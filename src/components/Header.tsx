@@ -1,5 +1,5 @@
 
-import { Search, User } from "lucide-react";
+import { Bell, MessageSquare, Search, User } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const Header = () => {
@@ -16,12 +16,27 @@ const Header = () => {
         </div>
       </div>
 
-      <Link 
-        to="/profile" 
-        className="flex items-center gap-2 text-gray-800 hover:text-purple-600 transition-colors"
-      >
-        <span>Login</span>
-      </Link>
+      <div className="flex items-center gap-4">
+        <button className="relative text-gray-600 hover:text-purple-600 transition-colors">
+          <Bell className="w-5 h-5" />
+          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-4 h-4 rounded-full flex items-center justify-center">3</span>
+        </button>
+        
+        <button className="relative text-gray-600 hover:text-purple-600 transition-colors">
+          <MessageSquare className="w-5 h-5" />
+          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-4 h-4 rounded-full flex items-center justify-center">5</span>
+        </button>
+        
+        <Link 
+          to="/profile" 
+          className="flex items-center gap-2 text-gray-800 hover:text-purple-600 transition-colors"
+        >
+          <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center overflow-hidden">
+            <User className="w-5 h-5 text-purple-600" />
+          </div>
+          <span className="font-medium">Alex</span>
+        </Link>
+      </div>
     </header>
   );
 };

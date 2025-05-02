@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 
 const Header = () => {
   return (
-    <header className="bg-white shadow-sm py-3 px-6 flex items-center justify-between fixed top-0 left-[280px] right-0 z-10">
+    <header className="bg-white shadow-sm py-3 px-6 flex items-center justify-between fixed top-0 right-0 z-10 transition-all duration-300" style={{ left: 'var(--sidebar-width, 280px)' }}>
       <div className="flex-1 max-w-md">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />

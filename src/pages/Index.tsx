@@ -1,4 +1,5 @@
 
+import { useEffect } from "react";
 import Header from "@/components/Header";
 import MembersList from "@/components/MembersList";
 import PostFeed from "@/components/PostFeed";
@@ -6,12 +7,37 @@ import Sidebar from "@/components/Sidebar";
 import { Image, MessageSquare, Video } from "lucide-react";
 
 const Index = () => {
+  // Update header position based on sidebar width
+  useEffect(() => {
+    const updateHeaderPosition = () => {
+      const sidebar = document.querySelector('div[class*="bg-[#2B2A33]"]');
+      if (sidebar) {
+        const width = sidebar.getBoundingClientRect().width;
+        document.documentElement.style.setProperty('--sidebar-width', `${width}px`);
+      }
+    };
+
+    // Initial update
+    updateHeaderPosition();
+
+    // Set up observer to detect sidebar width changes
+    const observer = new ResizeObserver(updateHeaderPosition);
+    const sidebar = document.querySelector('div[class*="bg-[#2B2A33]"]');
+    if (sidebar) {
+      observer.observe(sidebar);
+    }
+
+    return () => {
+      if (sidebar) observer.unobserve(sidebar);
+    };
+  }, []);
+
   return (
     <div className="min-h-screen bg-gray-100">
       <Sidebar />
       <Header />
       
-      <div className="pl-[280px] pt-16 pr-4 pb-10">
+      <div className="pl-[280px] pt-16 pr-4 pb-10 transition-all duration-300" style={{ paddingLeft: 'var(--sidebar-width, 280px)' }}>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-screen-xl mx-auto">
           <div className="lg:col-span-2">
             {/* Create Post Area */}

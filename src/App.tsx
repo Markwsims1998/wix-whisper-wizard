@@ -14,6 +14,7 @@ import People from "./pages/People";
 import Notifications from "./pages/Notifications";
 import Shop from "./pages/Shop";
 import Settings from "./pages/Settings";
+import Messages from "./pages/Messages";
 
 const queryClient = new QueryClient();
 
@@ -33,6 +34,7 @@ const App = () => (
           <Route path="/notifications" element={<Notifications />} />
           <Route path="/shop" element={<Shop />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/messages" element={<Messages />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

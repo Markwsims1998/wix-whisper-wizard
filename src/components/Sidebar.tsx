@@ -1,10 +1,12 @@
 
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { Activity, Image, Play, User, Users, ShoppingBag, Bell, Home, Settings, ChevronLeft } from "lucide-react";
 import { useState } from "react";
 
 const Sidebar = () => {
   const [collapsed, setCollapsed] = useState(false);
+  const location = useLocation();
+  const currentPath = location.pathname;
 
   return (
     <div className={`bg-[#2B2A33] min-h-screen ${collapsed ? 'w-[70px]' : 'w-[280px]'} flex flex-col fixed left-0 top-0 transition-all duration-300 ease-in-out`}>
@@ -49,14 +51,14 @@ const Sidebar = () => {
       {/* Navigation Icons */}
       <div className="mt-4 px-2">
         <nav className={collapsed ? "" : "grid grid-cols-2 gap-2"}>
-          <NavItem icon={<Home className="w-5 h-5" />} label="Home" isActive to="/" collapsed={collapsed} />
-          <NavItem icon={<Activity className="w-5 h-5" />} label="Activity" to="/activity" collapsed={collapsed} />
-          <NavItem icon={<Image className="w-5 h-5" />} label="Photos" to="/photos" collapsed={collapsed} />
-          <NavItem icon={<Play className="w-5 h-5" />} label="Watch" to="/watch" collapsed={collapsed} />
-          <NavItem icon={<Users className="w-5 h-5" />} label="People" to="/people" collapsed={collapsed} />
-          <NavItem icon={<Bell className="w-5 h-5" />} label="Notifications" to="/notifications" collapsed={collapsed} />
-          <NavItem icon={<ShoppingBag className="w-5 h-5" />} label="Shop" to="/shop" collapsed={collapsed} />
-          <NavItem icon={<Settings className="w-5 h-5" />} label="Settings" to="/settings" collapsed={collapsed} />
+          <NavItem icon={<Home className="w-5 h-5" />} label="Home" isActive={currentPath === "/"} to="/" collapsed={collapsed} />
+          <NavItem icon={<Activity className="w-5 h-5" />} label="Activity" isActive={currentPath === "/activity"} to="/activity" collapsed={collapsed} />
+          <NavItem icon={<Image className="w-5 h-5" />} label="Photos" isActive={currentPath === "/photos"} to="/photos" collapsed={collapsed} />
+          <NavItem icon={<Play className="w-5 h-5" />} label="Watch" isActive={currentPath === "/watch"} to="/watch" collapsed={collapsed} />
+          <NavItem icon={<Users className="w-5 h-5" />} label="People" isActive={currentPath === "/people"} to="/people" collapsed={collapsed} />
+          <NavItem icon={<Bell className="w-5 h-5" />} label="Notifications" isActive={currentPath === "/notifications"} to="/notifications" collapsed={collapsed} />
+          <NavItem icon={<ShoppingBag className="w-5 h-5" />} label="Shop" isActive={currentPath === "/shop"} to="/shop" collapsed={collapsed} />
+          <NavItem icon={<Settings className="w-5 h-5" />} label="Settings" isActive={currentPath === "/settings"} to="/settings" collapsed={collapsed} />
         </nav>
       </div>
       

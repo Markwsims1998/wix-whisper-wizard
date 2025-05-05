@@ -49,14 +49,14 @@ const Sidebar = () => {
       {/* Navigation Icons */}
       <div className="mt-4 px-2">
         <nav className={collapsed ? "" : "grid grid-cols-2 gap-2"}>
-          <NavItem icon={<Home className="w-5 h-5" />} label="Home" isActive collapsed={collapsed} />
-          <NavItem icon={<Activity className="w-5 h-5" />} label="Activity" collapsed={collapsed} />
-          <NavItem icon={<Image className="w-5 h-5" />} label="Photos" collapsed={collapsed} />
-          <NavItem icon={<Play className="w-5 h-5" />} label="Watch" collapsed={collapsed} />
-          <NavItem icon={<Users className="w-5 h-5" />} label="People" collapsed={collapsed} />
-          <NavItem icon={<Bell className="w-5 h-5" />} label="Notifications" collapsed={collapsed} />
-          <NavItem icon={<ShoppingBag className="w-5 h-5" />} label="Shop" collapsed={collapsed} />
-          <NavItem icon={<Settings className="w-5 h-5" />} label="Settings" collapsed={collapsed} />
+          <NavItem icon={<Home className="w-5 h-5" />} label="Home" isActive to="/" collapsed={collapsed} />
+          <NavItem icon={<Activity className="w-5 h-5" />} label="Activity" to="/activity" collapsed={collapsed} />
+          <NavItem icon={<Image className="w-5 h-5" />} label="Photos" to="/photos" collapsed={collapsed} />
+          <NavItem icon={<Play className="w-5 h-5" />} label="Watch" to="/watch" collapsed={collapsed} />
+          <NavItem icon={<Users className="w-5 h-5" />} label="People" to="/people" collapsed={collapsed} />
+          <NavItem icon={<Bell className="w-5 h-5" />} label="Notifications" to="/notifications" collapsed={collapsed} />
+          <NavItem icon={<ShoppingBag className="w-5 h-5" />} label="Shop" to="/shop" collapsed={collapsed} />
+          <NavItem icon={<Settings className="w-5 h-5" />} label="Settings" to="/settings" collapsed={collapsed} />
         </nav>
       </div>
       
@@ -81,8 +81,8 @@ const Sidebar = () => {
   );
 };
 
-const NavItem = ({ icon, label, isActive = false, collapsed = false }: { icon: React.ReactNode; label: string; isActive?: boolean; collapsed?: boolean }) => (
-  <Link to="/" className={`flex ${collapsed ? 'justify-center py-3' : 'flex-col items-center py-3'} text-xs`}>
+const NavItem = ({ icon, label, isActive = false, collapsed = false, to }: { icon: React.ReactNode; label: string; isActive?: boolean; collapsed?: boolean; to: string }) => (
+  <Link to={to} className={`flex ${collapsed ? 'justify-center py-3' : 'flex-col items-center py-3'} text-xs`}>
     <div className={`flex justify-center items-center mb-1 ${isActive ? 'text-[#8B5CF6]' : 'text-gray-400'}`}>
       {icon}
     </div>

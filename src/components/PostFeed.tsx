@@ -13,6 +13,7 @@ type Post = {
   mediaType?: 'image' | 'video';
   likes: number;
   comments: number;
+  category?: 'all' | 'local' | 'hotlist' | 'friends';
 };
 
 const posts: Post[] = [
@@ -25,6 +26,7 @@ const posts: Post[] = [
     mediaType: 'video',
     likes: 12,
     comments: 3,
+    category: 'all',
   },
   {
     id: '2',
@@ -33,6 +35,7 @@ const posts: Post[] = [
     timestamp: '4 days, 1 hour ago',
     likes: 1,
     comments: 0,
+    category: 'all',
   },
   {
     id: '3',
@@ -41,11 +44,80 @@ const posts: Post[] = [
     timestamp: '4 days, 1 hour ago',
     likes: 0,
     comments: 0,
-  }
+    category: 'all',
+  },
+  {
+    id: '4',
+    author: 'Linda Lohan',
+    content: 'New local event happening this weekend!',
+    timestamp: '1 day, 3 hours ago',
+    likes: 8,
+    comments: 5,
+    category: 'local',
+  },
+  {
+    id: '5',
+    author: 'Robert Cook',
+    content: 'Check out this local restaurant',
+    timestamp: '2 days, 5 hours ago',
+    mediaUrl: 'https://via.placeholder.com/800x450',
+    mediaType: 'image',
+    likes: 14,
+    comments: 2,
+    category: 'local',
+  },
+  {
+    id: '6',
+    author: 'Sephiroth',
+    content: 'This post is trending right now!',
+    timestamp: '12 hours ago',
+    likes: 45,
+    comments: 23,
+    category: 'hotlist',
+  },
+  {
+    id: '7',
+    author: 'Jennie Ferguson',
+    content: 'Hot new topic everyone is talking about',
+    timestamp: '1 day ago',
+    mediaUrl: 'https://via.placeholder.com/800x450',
+    mediaType: 'image',
+    likes: 78,
+    comments: 34,
+    category: 'hotlist',
+  },
+  {
+    id: '8',
+    author: 'Sephiroth',
+    content: 'Have you seen this, friend?',
+    timestamp: '3 hours ago',
+    likes: 5,
+    comments: 3,
+    category: 'friends',
+  },
+  {
+    id: '9',
+    author: 'Linda Lohan',
+    content: 'Friends-only update',
+    timestamp: '1 day, 4 hours ago',
+    mediaUrl: 'https://via.placeholder.com/800x450',
+    mediaType: 'image',
+    likes: 12,
+    comments: 8,
+    category: 'friends',
+  },
 ];
 
 const PostFeed = () => {
   const [activeTab, setActiveTab] = useState("all");
+
+  // Filter posts based on the active tab
+  const getFilteredPosts = (tabValue: string) => {
+    if (tabValue === 'all') {
+      return posts;
+    }
+    return posts.filter(post => post.category === tabValue);
+  };
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -62,7 +134,7 @@ const PostFeed = () => {
           </TabsList>
           
           <TabsContent value={activeTab} className="mt-4">
-            {posts.map((post) => (
+            {getFilteredPosts(activeTab).map((post) => (
               <div key={post.id} className="mb-8">
                 <div className="flex items-start gap-3 mb-3">
                   <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
@@ -90,7 +162,13 @@ const PostFeed = () => {
                   </div>
                 )}
 
-                {post.id !== '1' && (
+                {post.mediaUrl && post.mediaType === 'image' && (
+                  <div className="mt-2 mb-4">
+                    <img src={post.mediaUrl} alt="Post image" className="rounded-lg w-full" />
+                  </div>
+                )}
+
+                {!post.mediaUrl && post.id !== '1' && (
                   <p className="mb-4">{post.content}</p>
                 )}
                 
@@ -106,7 +184,7 @@ const PostFeed = () => {
                   </button>
                 </div>
                 
-                {post.id !== '3' && <Separator className="my-6" />}
+                {post.id !== posts[posts.length - 1].id && <Separator className="my-6" />}
               </div>
             ))}
           </TabsContent>

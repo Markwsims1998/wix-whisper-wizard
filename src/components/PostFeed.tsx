@@ -1,8 +1,11 @@
 
 import { Separator } from "@/components/ui/separator";
-import { User, Heart, MessageCircle, Share2 } from "lucide-react";
+import { User, Heart, MessageCircle, Share2, Lock } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useState } from "react";
+import { Link } from "react-router-dom";
+import { useSubscription } from "@/contexts/SubscriptionContext";
+import { Button } from "@/components/ui/button";
 
 type Post = {
   id: string;
@@ -110,6 +113,7 @@ const posts: Post[] = [
 
 const PostFeed = () => {
   const [activeTab, setActiveTab] = useState("all");
+  const { subscriptionDetails } = useSubscription();
 
   // Filter posts based on the active tab
   const getFilteredPosts = (tabValue: string) => {
@@ -151,20 +155,44 @@ const PostFeed = () => {
                 
                 {post.mediaUrl && post.mediaType === 'video' && (
                   <div className="relative rounded-lg overflow-hidden bg-black aspect-video mt-2 mb-4">
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="w-16 h-16 rounded-full bg-white/30 flex items-center justify-center">
-                        <div className="w-14 h-14 rounded-full bg-white/80 flex items-center justify-center">
-                          <div className="w-0 h-0 border-t-8 border-b-8 border-l-12 border-t-transparent border-b-transparent border-l-red-600 ml-1"></div>
+                    {subscriptionDetails.canViewVideos ? (
+                      <>
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="w-16 h-16 rounded-full bg-white/30 flex items-center justify-center">
+                            <div className="w-14 h-14 rounded-full bg-white/80 flex items-center justify-center">
+                              <div className="w-0 h-0 border-t-8 border-b-8 border-l-12 border-t-transparent border-b-transparent border-l-red-600 ml-1"></div>
+                            </div>
+                          </div>
                         </div>
+                        <img src={post.mediaUrl} alt="Video thumbnail" className="w-full object-cover opacity-70" />
+                      </>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center h-full p-6 text-center">
+                        <Lock className="h-12 w-12 text-white/50 mb-2" />
+                        <p className="text-white/80 mb-4">Video content requires a subscription</p>
+                        <Link to="/shop">
+                          <Button size="sm" variant="outline" className="bg-white/20 hover:bg-white/30 text-white border-white/20">
+                            View Plans
+                          </Button>
+                        </Link>
                       </div>
-                    </div>
-                    <img src={post.mediaUrl} alt="Video thumbnail" className="w-full object-cover opacity-70" />
+                    )}
                   </div>
                 )}
 
                 {post.mediaUrl && post.mediaType === 'image' && (
                   <div className="mt-2 mb-4">
-                    <img src={post.mediaUrl} alt="Post image" className="rounded-lg w-full" />
+                    {subscriptionDetails.canViewPhotos ? (
+                      <img src={post.mediaUrl} alt="Post image" className="rounded-lg w-full" />
+                    ) : (
+                      <div className="flex flex-col items-center justify-center h-[200px] rounded-lg bg-gray-200 p-6 text-center">
+                        <Lock className="h-12 w-12 text-gray-400 mb-2" />
+                        <p className="text-gray-500 mb-4">Photo content requires a subscription</p>
+                        <Link to="/shop">
+                          <Button size="sm" variant="outline">View Plans</Button>
+                        </Link>
+                      </div>
+                    )}
                   </div>
                 )}
 

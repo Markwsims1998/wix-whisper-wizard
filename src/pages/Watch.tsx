@@ -2,9 +2,15 @@
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
 import { useEffect } from "react";
-import { Play, User, Heart, MessageCircle, Share2 } from "lucide-react";
+import { Play, User, Heart, MessageCircle, Share2, Lock } from "lucide-react";
+import { Link } from "react-router-dom";
+import { useSubscription } from "@/contexts/SubscriptionContext";
+import { Button } from "@/components/ui/button";
 
 const Watch = () => {
+  const { subscriptionDetails } = useSubscription();
+  const canViewVideos = subscriptionDetails.canViewVideos;
+
   // Update header position based on sidebar width
   useEffect(() => {
     const updateHeaderPosition = () => {
@@ -50,50 +56,69 @@ const Watch = () => {
                 <h1 className="text-2xl font-semibold">Watch</h1>
                 <div className="border-b-2 border-purple-500 w-16 mt-1"></div>
               </div>
-              <button className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition">
-                <Play className="w-5 h-5" />
-                <span>Upload Video</span>
-              </button>
+              {canViewVideos && (
+                <button className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition">
+                  <Play className="w-5 h-5" />
+                  <span>Upload Video</span>
+                </button>
+              )}
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {videos.map(video => (
-                <div key={video.id} className="bg-gray-50 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition">
-                  <div className="relative">
-                    <img src={video.thumbnail} alt={video.title} className="w-full h-48 object-cover" />
-                    <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30">
-                      <div className="w-12 h-12 rounded-full bg-white/30 flex items-center justify-center">
-                        <div className="w-10 h-10 rounded-full bg-white/80 flex items-center justify-center">
-                          <div className="w-0 h-0 border-t-6 border-b-6 border-l-10 border-t-transparent border-b-transparent border-l-red-600 ml-1"></div>
+            {!canViewVideos ? (
+              <div className="text-center py-12">
+                <div className="bg-gray-50 rounded-lg p-8 max-w-md mx-auto">
+                  <Lock className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                  <h2 className="text-xl font-bold mb-2">Upgrade to Watch Videos</h2>
+                  <p className="text-gray-600 mb-6">
+                    Videos are available with Bronze subscription and higher.
+                  </p>
+                  <Link to="/shop">
+                    <Button className="bg-purple-600 hover:bg-purple-700">
+                      View Subscription Plans
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {videos.map(video => (
+                  <div key={video.id} className="bg-gray-50 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition">
+                    <div className="relative">
+                      <img src={video.thumbnail} alt={video.title} className="w-full h-48 object-cover" />
+                      <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30">
+                        <div className="w-12 h-12 rounded-full bg-white/30 flex items-center justify-center">
+                          <div className="w-10 h-10 rounded-full bg-white/80 flex items-center justify-center">
+                            <div className="w-0 h-0 border-t-6 border-b-6 border-l-10 border-t-transparent border-b-transparent border-l-red-600 ml-1"></div>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                  <div className="p-4">
-                    <div className="flex items-start gap-3">
-                      <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
-                        <User className="h-4 w-4 text-gray-500" />
+                    <div className="p-4">
+                      <div className="flex items-start gap-3">
+                        <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
+                          <User className="h-4 w-4 text-gray-500" />
+                        </div>
+                        <div>
+                          <h3 className="font-medium">{video.title}</h3>
+                          <p className="text-sm text-gray-500">{video.author} • {video.views} views</p>
+                        </div>
                       </div>
-                      <div>
-                        <h3 className="font-medium">{video.title}</h3>
-                        <p className="text-sm text-gray-500">{video.author} • {video.views} views</p>
+                      <div className="flex items-center gap-4 mt-3">
+                        <button className="flex items-center gap-1 text-gray-500 text-xs">
+                          <Heart className="h-3 w-3" /> {video.likes}
+                        </button>
+                        <button className="flex items-center gap-1 text-gray-500 text-xs">
+                          <MessageCircle className="h-3 w-3" /> {video.comments}
+                        </button>
+                        <button className="flex items-center gap-1 text-gray-500 text-xs">
+                          <Share2 className="h-3 w-3" /> Share
+                        </button>
                       </div>
                     </div>
-                    <div className="flex items-center gap-4 mt-3">
-                      <button className="flex items-center gap-1 text-gray-500 text-xs">
-                        <Heart className="h-3 w-3" /> {video.likes}
-                      </button>
-                      <button className="flex items-center gap-1 text-gray-500 text-xs">
-                        <MessageCircle className="h-3 w-3" /> {video.comments}
-                      </button>
-                      <button className="flex items-center gap-1 text-gray-500 text-xs">
-                        <Share2 className="h-3 w-3" /> Share
-                      </button>
-                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>

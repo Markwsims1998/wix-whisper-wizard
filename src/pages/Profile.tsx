@@ -5,8 +5,13 @@ import { ArrowLeft, Calendar, Edit, MapPin, User, Image, Video, Heart, MessageSq
 import { Link } from "react-router-dom";
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
+import { useSubscription } from "@/contexts/SubscriptionContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Profile = () => {
+  const { subscriptionTier, getTierBadge } = useSubscription();
+  const { user } = useAuth();
+
   return (
     <div className="min-h-screen bg-gray-100">
       <Sidebar />
@@ -34,9 +39,16 @@ const Profile = () => {
             {/* Profile Details */}
             <div className="pt-16 px-6 pb-6">
               <div className="flex justify-between">
-                <div>
-                  <h1 className="text-2xl font-bold">Alex Johnson</h1>
-                  <p className="text-gray-500">@alexjohnson</p>
+                <div className="flex items-center gap-2">
+                  <div>
+                    <h1 className="text-2xl font-bold">Alex Johnson</h1>
+                    <p className="text-gray-500">@alexjohnson</p>
+                  </div>
+                  {subscriptionTier !== "free" && (
+                    <div className="ml-2">
+                      {getTierBadge(subscriptionTier)}
+                    </div>
+                  )}
                 </div>
                 <Button variant="outline" className="gap-2">
                   <Edit className="w-4 h-4" />

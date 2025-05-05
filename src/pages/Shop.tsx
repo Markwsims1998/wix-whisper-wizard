@@ -1,102 +1,147 @@
 
+import { useState } from "react";
+import { Award, Diamond, Badge as BadgeIcon, Check } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
-import { useEffect } from "react";
-import { ShoppingBag, Search, Heart } from "lucide-react";
+import { useSubscription, SubscriptionTier, subscriptionPlans } from "@/contexts/SubscriptionContext";
+import { useToast } from "@/components/ui/use-toast";
 
 const Shop = () => {
-  // Update header position based on sidebar width
-  useEffect(() => {
-    const updateHeaderPosition = () => {
-      const sidebar = document.querySelector('div[class*="bg-[#2B2A33]"]');
-      if (sidebar) {
-        const width = sidebar.getBoundingClientRect().width;
-        document.documentElement.style.setProperty('--sidebar-width', `${width}px`);
-      }
-    };
+  const { subscriptionTier, upgradeSubscription } = useSubscription();
+  const { toast } = useToast();
+  const [processing, setProcessing] = useState(false);
 
-    // Initial update
-    updateHeaderPosition();
+  const handleSubscribe = (tier: SubscriptionTier) => {
+    setProcessing(true);
+    // Simulate payment processing
+    setTimeout(() => {
+      upgradeSubscription(tier);
+      toast({
+        title: "Subscription Updated",
+        description: `Your subscription has been updated to ${tier} tier.`,
+      });
+      setProcessing(false);
+    }, 1500);
+  };
 
-    // Set up observer to detect sidebar width changes
-    const observer = new ResizeObserver(updateHeaderPosition);
-    const sidebar = document.querySelector('div[class*="bg-[#2B2A33]"]');
-    if (sidebar) {
-      observer.observe(sidebar);
+  const tierDetails = [
+    {
+      tier: "gold" as SubscriptionTier,
+      title: "Gold Tier",
+      icon: <Award className="h-8 w-8 text-yellow-500" />,
+      color: "bg-gradient-to-br from-yellow-300 to-yellow-600",
+      highlightColor: "border-yellow-500",
+      price: "£24.99",
+      features: [
+        "Unlimited messages",
+        "Full access to all photos",
+        "Full access to all videos",
+        "Premium support",
+        "Early access to new features"
+      ]
+    },
+    {
+      tier: "silver" as SubscriptionTier,
+      title: "Silver Tier",
+      icon: <Diamond className="h-8 w-8 text-gray-400" />,
+      color: "bg-gradient-to-br from-gray-300 to-gray-500",
+      highlightColor: "border-gray-400",
+      price: "£14.99",
+      features: [
+        "1,000 messages per month",
+        "Full access to all photos",
+        "Full access to all videos",
+        "Standard support"
+      ]
+    },
+    {
+      tier: "bronze" as SubscriptionTier,
+      title: "Bronze Tier",
+      icon: <BadgeIcon className="h-8 w-8 text-amber-700" />,
+      color: "bg-gradient-to-br from-amber-500 to-amber-800",
+      highlightColor: "border-amber-700",
+      price: "£9.99",
+      features: [
+        "500 messages per month",
+        "Access to photos",
+        "Access to videos",
+        "Basic support"
+      ]
     }
-
-    return () => {
-      if (sidebar) observer.unobserve(sidebar);
-    };
-  }, []);
-
-  const products = [
-    { id: 1, name: 'HappyKinks T-Shirt', price: 24.99, image: 'https://via.placeholder.com/300x300', category: 'Clothing' },
-    { id: 2, name: 'Premium Membership', price: 9.99, image: 'https://via.placeholder.com/300x300', category: 'Membership' },
-    { id: 3, name: 'Event Ticket', price: 49.99, image: 'https://via.placeholder.com/300x300', category: 'Events' },
-    { id: 4, name: 'HappyKinks Mug', price: 14.99, image: 'https://via.placeholder.com/300x300', category: 'Merchandise' },
-    { id: 5, name: 'Digital Guide', price: 12.99, image: 'https://via.placeholder.com/300x300', category: 'Digital' },
-    { id: 6, name: 'HappyKinks Cap', price: 19.99, image: 'https://via.placeholder.com/300x300', category: 'Clothing' }
   ];
-
-  const categories = ['All', 'Clothing', 'Membership', 'Events', 'Merchandise', 'Digital'];
 
   return (
     <div className="min-h-screen bg-gray-100">
       <Sidebar />
       <Header />
       
-      <div className="pl-[280px] pt-16 pr-4 pb-10 transition-all duration-300" style={{ paddingLeft: 'var(--sidebar-width, 280px)' }}>
-        <div className="max-w-screen-xl mx-auto">
+      <div className="pl-[280px] pt-16 pb-10">
+        <div className="max-w-screen-xl mx-auto px-4">
           <div className="bg-white rounded-lg p-6 mb-6">
-            <div className="flex justify-between items-center mb-6">
-              <div>
-                <h1 className="text-2xl font-semibold">Shop</h1>
-                <div className="border-b-2 border-purple-500 w-16 mt-1"></div>
-              </div>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <input 
-                  type="text" 
-                  placeholder="Search products..." 
-                  className="pl-10 pr-4 py-2 border border-gray-200 rounded-lg w-full focus:outline-none focus:ring-1 focus:ring-purple-500 text-sm"
-                />
-              </div>
-            </div>
+            <h1 className="text-2xl font-semibold mb-2">Subscription Plans</h1>
+            <p className="text-gray-600 mb-8">Choose the plan that works best for you</p>
             
-            <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
-              {categories.map((category) => (
-                <button 
-                  key={category} 
-                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-full text-sm font-medium hover:bg-purple-100 hover:text-purple-700 whitespace-nowrap"
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {tierDetails.map((tierInfo) => (
+                <div 
+                  key={tierInfo.tier}
+                  className={`rounded-lg border-2 overflow-hidden ${
+                    subscriptionTier === tierInfo.tier ? tierInfo.highlightColor : "border-transparent"
+                  } transition-all hover:shadow-lg`}
                 >
-                  {category}
-                </button>
-              ))}
-            </div>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-              {products.map(product => (
-                <div key={product.id} className="bg-gray-50 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition">
-                  <div className="relative">
-                    <img src={product.image} alt={product.name} className="w-full h-48 object-cover" />
-                    <button className="absolute top-2 right-2 h-8 w-8 rounded-full bg-white flex items-center justify-center shadow-md hover:bg-gray-100 transition">
-                      <Heart className="h-4 w-4 text-gray-500 hover:text-red-500" />
-                    </button>
-                  </div>
-                  <div className="p-4">
-                    <h3 className="font-medium">{product.name}</h3>
-                    <div className="flex justify-between items-center mt-2">
-                      <p className="text-purple-600 font-bold">${product.price}</p>
-                      <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">{product.category}</span>
+                  <div className={`p-6 ${tierInfo.color} text-white`}>
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-xl font-bold">{tierInfo.title}</h3>
+                      {tierInfo.icon}
                     </div>
-                    <button className="mt-3 bg-purple-600 text-white w-full py-2 rounded-md hover:bg-purple-700 transition flex items-center justify-center gap-2">
-                      <ShoppingBag className="h-4 w-4" />
-                      Add to Cart
-                    </button>
+                    <div className="mt-4">
+                      <span className="text-3xl font-bold">{tierInfo.price}</span>
+                      <span className="text-sm opacity-80">/month</span>
+                    </div>
+                  </div>
+                  
+                  <div className="p-6 bg-white">
+                    <ul className="space-y-3">
+                      {tierInfo.features.map((feature, index) => (
+                        <li key={index} className="flex items-center gap-2">
+                          <Check className="h-5 w-5 text-green-500 flex-shrink-0" />
+                          <span>{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    
+                    <div className="mt-6">
+                      <Button 
+                        className="w-full" 
+                        variant={subscriptionTier === tierInfo.tier ? "outline" : "default"}
+                        disabled={processing || subscriptionTier === tierInfo.tier}
+                        onClick={() => handleSubscribe(tierInfo.tier)}
+                      >
+                        {subscriptionTier === tierInfo.tier ? "Current Plan" : "Subscribe"}
+                      </Button>
+                    </div>
                   </div>
                 </div>
               ))}
+            </div>
+            
+            <div className="mt-8 p-4 bg-gray-50 rounded-lg border border-gray-200">
+              <h2 className="text-lg font-medium mb-2">Free Plan Features</h2>
+              <ul className="space-y-2">
+                <li className="flex items-center gap-2">
+                  <Check className="h-5 w-5 text-green-500" />
+                  <span>100 messages per day</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="h-5 w-5 text-green-500" />
+                  <span>Access to photos</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="h-5 w-5 flex items-center justify-center text-red-500">✕</span>
+                  <span className="text-gray-500">No access to videos</span>
+                </li>
+              </ul>
             </div>
           </div>
         </div>

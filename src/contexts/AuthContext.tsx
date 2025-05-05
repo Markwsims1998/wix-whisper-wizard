@@ -65,6 +65,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsAuthenticated(true);
       localStorage.setItem('user', JSON.stringify(userData));
       
+      // Initialize subscription data on first login
+      if (!localStorage.getItem(`subscription_tier_${userData.id}`)) {
+        localStorage.setItem(`subscription_tier_${userData.id}`, "free");
+        const messagesLimit = 100;
+        localStorage.setItem(`messages_remaining_${userData.id}`, String(messagesLimit));
+        const resetTime = new Date(Date.now() + 24 * 60 * 60 * 1000);
+        localStorage.setItem(`message_reset_time_${userData.id}`, resetTime.toISOString());
+      }
+      
       toast({
         title: "Login successful",
         description: "Welcome back, Alex!",

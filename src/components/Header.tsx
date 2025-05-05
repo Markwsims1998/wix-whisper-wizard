@@ -1,41 +1,56 @@
 
-import { Bell, MessageSquare, Search, User } from "lucide-react";
+import { Bell, MessageSquare, Search, LogOut } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Header = () => {
+  const { user, logout } = useAuth();
+
   return (
-    <header className="bg-white shadow-sm py-3 px-6 flex items-center justify-between fixed top-0 right-0 z-10 transition-all duration-300" style={{ left: 'var(--sidebar-width, 280px)' }}>
+    <header className="bg-white shadow-sm py-3 px-6 flex items-center justify-between fixed top-0 right-0 z-10 transition-all duration-300 dark:bg-gray-800 dark:text-white" style={{ left: 'var(--sidebar-width, 280px)' }}>
       <div className="flex-1 max-w-md">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
           <input 
             type="text" 
             placeholder="Search..." 
-            className="pl-10 pr-4 py-2 border border-gray-200 rounded-lg w-full focus:outline-none focus:ring-1 focus:ring-purple-500 text-sm"
+            className="pl-10 pr-4 py-2 border border-gray-200 rounded-lg w-full focus:outline-none focus:ring-1 focus:ring-purple-500 text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
           />
         </div>
       </div>
 
       <div className="flex items-center gap-4">
-        <Link to="/notifications" className="relative text-gray-600 hover:text-purple-600 transition-colors">
+        <Link to="/notifications" className="relative text-gray-600 hover:text-purple-600 transition-colors dark:text-gray-300 dark:hover:text-purple-400">
           <Bell className="w-5 h-5" />
           <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-4 h-4 rounded-full flex items-center justify-center">3</span>
         </Link>
         
-        <Link to="/messages" className="relative text-gray-600 hover:text-purple-600 transition-colors">
+        <Link to="/messages" className="relative text-gray-600 hover:text-purple-600 transition-colors dark:text-gray-300 dark:hover:text-purple-400">
           <MessageSquare className="w-5 h-5" />
           <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-4 h-4 rounded-full flex items-center justify-center">5</span>
         </Link>
         
         <Link 
           to="/profile" 
-          className="flex items-center gap-2 text-gray-800 hover:text-purple-600 transition-colors"
+          className="flex items-center gap-2 text-gray-800 hover:text-purple-600 transition-colors dark:text-gray-300 dark:hover:text-purple-400"
         >
-          <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center overflow-hidden">
-            <User className="w-5 h-5 text-purple-600" />
+          <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center overflow-hidden dark:bg-purple-900">
+            {user?.profilePicture ? (
+              <img src={user.profilePicture} alt="Profile" className="w-full h-full object-cover" />
+            ) : (
+              <span className="font-medium text-purple-600 dark:text-purple-300">{user?.name.charAt(0)}</span>
+            )}
           </div>
-          <span className="font-medium">Alex</span>
+          <span className="font-medium">{user?.name || 'User'}</span>
         </Link>
+
+        <button 
+          onClick={logout}
+          className="text-gray-600 hover:text-red-600 transition-colors dark:text-gray-300 dark:hover:text-red-400"
+          title="Logout"
+        >
+          <LogOut className="w-5 h-5" />
+        </button>
       </div>
     </header>
   );

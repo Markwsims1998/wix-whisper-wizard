@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Award, Diamond, Badge as BadgeIcon, Check } from "lucide-react";
+import { Award, Diamond, Badge as BadgeIcon, Check, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
@@ -8,11 +8,14 @@ import { useSubscription, SubscriptionTier, subscriptionPlans } from "@/contexts
 import { useToast } from "@/components/ui/use-toast";
 import { Link } from "react-router-dom";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Separator } from "@/components/ui/separator";
+import ProductItem from "@/components/shop/ProductItem";
 
 const Shop = () => {
   const { subscriptionTier, upgradeSubscription, getTierBadge } = useSubscription();
   const { toast } = useToast();
   const [processing, setProcessing] = useState(false);
+  const [showSubscriptions, setShowSubscriptions] = useState(false);
 
   const handleSubscribe = (tier: SubscriptionTier) => {
     setProcessing(true);
@@ -39,6 +42,7 @@ const Shop = () => {
         "Unlimited messages",
         "Full access to all photos",
         "Full access to all videos",
+        "No watermarks on photos",
         "Premium support",
         "Early access to new features"
       ]
@@ -73,6 +77,46 @@ const Shop = () => {
     }
   ];
 
+  // Product categories and items for the shop
+  const productCategories = [
+    {
+      name: "Apparel",
+      items: [
+        { id: "p1", name: "HappyKinks T-Shirt", price: "£19.99", image: "https://via.placeholder.com/300x300", rating: 4.5, reviews: 24 },
+        { id: "p2", name: "Logo Hoodie", price: "£39.99", image: "https://via.placeholder.com/300x300", rating: 4.8, reviews: 42 },
+        { id: "p3", name: "Beanie Hat", price: "£14.99", image: "https://via.placeholder.com/300x300", rating: 4.2, reviews: 15 },
+        { id: "p4", name: "Vintage Cap", price: "£18.99", image: "https://via.placeholder.com/300x300", rating: 4.0, reviews: 8 }
+      ]
+    },
+    {
+      name: "Accessories",
+      items: [
+        { id: "p5", name: "Tote Bag", price: "£12.99", image: "https://via.placeholder.com/300x300", rating: 4.3, reviews: 18 },
+        { id: "p6", name: "Phone Case", price: "£15.99", image: "https://via.placeholder.com/300x300", rating: 4.6, reviews: 31 },
+        { id: "p7", name: "Key Chain", price: "£7.99", image: "https://via.placeholder.com/300x300", rating: 4.4, reviews: 12 },
+        { id: "p8", name: "Sticker Pack", price: "£5.99", image: "https://via.placeholder.com/300x300", rating: 4.7, reviews: 46 }
+      ]
+    },
+    {
+      name: "Home & Living",
+      items: [
+        { id: "p9", name: "Coffee Mug", price: "£13.99", image: "https://via.placeholder.com/300x300", rating: 4.9, reviews: 37 },
+        { id: "p10", name: "Throw Pillow", price: "£21.99", image: "https://via.placeholder.com/300x300", rating: 4.5, reviews: 22 },
+        { id: "p11", name: "Wall Art Print", price: "£24.99", image: "https://via.placeholder.com/300x300", rating: 4.8, reviews: 14 },
+        { id: "p12", name: "Laptop Sleeve", price: "£19.99", image: "https://via.placeholder.com/300x300", rating: 4.6, reviews: 27 }
+      ]
+    },
+    {
+      name: "Digital Content",
+      items: [
+        { id: "p13", name: "Exclusive Ebook", price: "£8.99", image: "https://via.placeholder.com/300x300", rating: 4.3, reviews: 19 },
+        { id: "p14", name: "Community Guidebook", price: "£12.99", image: "https://via.placeholder.com/300x300", rating: 4.7, reviews: 26 },
+        { id: "p15", name: "Event Calendar", price: "£5.99", image: "https://via.placeholder.com/300x300", rating: 4.0, reviews: 11 },
+        { id: "p16", name: "Resource Pack", price: "£9.99", image: "https://via.placeholder.com/300x300", rating: 4.2, reviews: 16 }
+      ]
+    }
+  ];
+
   return (
     <div className="min-h-screen bg-gray-100">
       <Sidebar />
@@ -80,6 +124,7 @@ const Shop = () => {
       
       <div className="pl-[280px] pt-16 pb-10">
         <div className="max-w-screen-xl mx-auto px-4">
+          {/* Subscription Status Alert */}
           {subscriptionTier !== "free" && (
             <Alert className="mb-4 bg-green-50 border-green-200">
               <Check className="h-4 w-4 text-green-600" />
@@ -102,77 +147,105 @@ const Shop = () => {
             <h1 className="text-2xl font-semibold mb-2">Shop</h1>
             <p className="text-gray-600 mb-8">Explore our subscription plans and shop items</p>
             
+            {/* Collapsible Subscription Plans Section */}
             <div className="mb-8">
-              <h2 className="text-lg font-semibold mb-4">Subscription Plans</h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {tierDetails.map((tierInfo) => (
-                  <div 
-                    key={tierInfo.tier}
-                    className={`rounded-lg border-2 overflow-hidden ${
-                      subscriptionTier === tierInfo.tier ? tierInfo.highlightColor : "border-transparent"
-                    } transition-all hover:shadow-lg`}
-                  >
-                    <div className={`p-6 ${tierInfo.color} text-white`}>
-                      <div className="flex items-center justify-between">
-                        <h3 className="text-xl font-bold">{tierInfo.title}</h3>
-                        {tierInfo.icon}
+              <div 
+                className="flex items-center justify-between cursor-pointer" 
+                onClick={() => setShowSubscriptions(!showSubscriptions)}
+              >
+                <h2 className="text-lg font-semibold">Subscription Plans</h2>
+                <div className="p-1">
+                  {showSubscriptions ? (
+                    <ChevronUp className="h-5 w-5 text-gray-500" />
+                  ) : (
+                    <ChevronDown className="h-5 w-5 text-gray-500" />
+                  )}
+                </div>
+              </div>
+              
+              {showSubscriptions && (
+                <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {tierDetails.map((tierInfo) => (
+                    <div 
+                      key={tierInfo.tier}
+                      className={`rounded-lg border-2 overflow-hidden ${
+                        subscriptionTier === tierInfo.tier ? tierInfo.highlightColor : "border-transparent"
+                      } transition-all hover:shadow-lg`}
+                    >
+                      <div className={`p-6 ${tierInfo.color} text-white`}>
+                        <div className="flex items-center justify-between">
+                          <h3 className="text-xl font-bold">{tierInfo.title}</h3>
+                          {tierInfo.icon}
+                        </div>
+                        <div className="mt-4">
+                          <span className="text-3xl font-bold">{tierInfo.price}</span>
+                          <span className="text-sm opacity-80">/month</span>
+                        </div>
                       </div>
-                      <div className="mt-4">
-                        <span className="text-3xl font-bold">{tierInfo.price}</span>
-                        <span className="text-sm opacity-80">/month</span>
-                      </div>
-                    </div>
-                    
-                    <div className="p-6 bg-white">
-                      <ul className="space-y-3">
-                        {tierInfo.features.map((feature, index) => (
-                          <li key={index} className="flex items-center gap-2">
-                            <Check className="h-5 w-5 text-green-500 flex-shrink-0" />
-                            <span>{feature}</span>
-                          </li>
-                        ))}
-                      </ul>
                       
-                      <div className="mt-6">
-                        <Button 
-                          className="w-full" 
-                          variant={subscriptionTier === tierInfo.tier ? "outline" : "default"}
-                          disabled={processing || subscriptionTier === tierInfo.tier}
-                          onClick={() => handleSubscribe(tierInfo.tier)}
-                        >
-                          {subscriptionTier === tierInfo.tier ? "Current Plan" : "Subscribe"}
-                        </Button>
+                      <div className="p-6 bg-white">
+                        <ul className="space-y-3">
+                          {tierInfo.features.map((feature, index) => (
+                            <li key={index} className="flex items-center gap-2">
+                              <Check className="h-5 w-5 text-green-500 flex-shrink-0" />
+                              <span>{feature}</span>
+                            </li>
+                          ))}
+                        </ul>
+                        
+                        <div className="mt-6">
+                          <Button 
+                            className="w-full" 
+                            variant={subscriptionTier === tierInfo.tier ? "outline" : "default"}
+                            disabled={processing || subscriptionTier === tierInfo.tier}
+                            onClick={() => handleSubscribe(tierInfo.tier)}
+                          >
+                            {subscriptionTier === tierInfo.tier ? "Current Plan" : "Subscribe"}
+                          </Button>
+                        </div>
                       </div>
                     </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            
+            {/* Free Plan Details (only show if user is not subscribed) */}
+            {subscriptionTier === "free" && (
+              <div className="mt-8 p-4 bg-gray-50 rounded-lg border border-gray-200 mb-8">
+                <h2 className="text-lg font-medium mb-2">Free Plan Features</h2>
+                <ul className="space-y-2">
+                  <li className="flex items-center gap-2">
+                    <Check className="h-5 w-5 text-green-500" />
+                    <span>100 messages per day</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Check className="h-5 w-5 text-green-500" />
+                    <span>Access to photos</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="h-5 w-5 flex items-center justify-center text-red-500">✕</span>
+                    <span className="text-gray-500">No access to videos</span>
+                  </li>
+                </ul>
+              </div>
+            )}
+            
+            {/* Products Section */}
+            <div className="mt-8">
+              <h2 className="text-xl font-semibold mb-8">Shop Products</h2>
+              
+              {productCategories.map((category, index) => (
+                <div key={index} className="mb-12">
+                  <h3 className="text-lg font-medium mb-4">{category.name}</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {category.items.map(product => (
+                      <ProductItem key={product.id} product={product} />
+                    ))}
                   </div>
-                ))}
-              </div>
-            </div>
-            
-            <div className="mt-8 p-4 bg-gray-50 rounded-lg border border-gray-200">
-              <h2 className="text-lg font-medium mb-2">Free Plan Features</h2>
-              <ul className="space-y-2">
-                <li className="flex items-center gap-2">
-                  <Check className="h-5 w-5 text-green-500" />
-                  <span>100 messages per day</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="h-5 w-5 text-green-500" />
-                  <span>Access to photos</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="h-5 w-5 flex items-center justify-center text-red-500">✕</span>
-                  <span className="text-gray-500">No access to videos</span>
-                </li>
-              </ul>
-            </div>
-            
-            {/* Shop items section (future expansion) */}
-            <div className="mt-12">
-              <h2 className="text-lg font-semibold mb-4">Shop Items</h2>
-              <div className="p-8 bg-gray-50 rounded-lg border border-dashed border-gray-300 text-center">
-                <p className="text-gray-500">Shop items coming soon!</p>
-              </div>
+                  {index < productCategories.length - 1 && <Separator className="my-8" />}
+                </div>
+              ))}
             </div>
           </div>
         </div>

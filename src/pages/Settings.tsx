@@ -1,384 +1,574 @@
 
+import React, { useEffect, useState } from "react";
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
-import React, { useEffect, useState } from "react";
-import { Settings as SettingsIcon, User, Bell, Shield, Key, Eye, Globe, CreditCard } from "lucide-react";
+import { Settings as SettingsIcon, User, Bell, Shield, Key, Eye, Globe, CreditCard, BadgeDollarSign, ArrowRight } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
-import { useToast } from "@/components/ui/use-toast";
-import { useTheme } from "@/contexts/ThemeContext";
-import { Switch } from "@/components/ui/switch";
-import { Button } from "@/components/ui/button";
 import { useSubscription } from "@/contexts/SubscriptionContext";
-import { Link } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
+import { useToast } from "@/components/ui/use-toast";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const Settings = () => {
-  const { user } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
   const { toast } = useToast();
-  const { theme, setTheme } = useTheme();
-  const { subscriptionTier, subscriptionDetails, upgradeSubscription, getTierIcon, getTierBadge } = useSubscription();
+  const { user } = useAuth();
+  const { subscriptionTier, subscriptionDetails, getTierBadge } = useSubscription();
+  const queryParams = new URLSearchParams(location.search);
+  const defaultTab = queryParams.get('tab') || 'profile';
 
-  // Update header position based on sidebar width
-  useEffect(() => {
-    const updateHeaderPosition = () => {
-      const sidebar = document.querySelector('div[class*="bg-[#2B2A33]"]');
-      if (sidebar) {
-        const width = sidebar.getBoundingClientRect().width;
-        document.documentElement.style.setProperty('--sidebar-width', `${width}px`);
-      }
-    };
+  // Local distance settings
+  const [postalCode, setPostalCode] = useState("SW1A 1AA");
+  const [distanceKm, setDistanceKm] = useState(25);
 
-    // Initial update
-    updateHeaderPosition();
+  // Privacy settings
+  const [privacySettings, setPrivacySettings] = useState({
+    profileVisibility: "public",
+    showOnline: true,
+    allowMessages: true,
+    showActivity: true,
+    allowFriendRequests: true,
+    showSubscription: true
+  });
 
-    // Set up observer to detect sidebar width changes
-    const observer = new ResizeObserver(updateHeaderPosition);
-    const sidebar = document.querySelector('div[class*="bg-[#2B2A33]"]');
-    if (sidebar) {
-      observer.observe(sidebar);
-    }
+  // Handle tab change
+  const handleTabChange = (value: string) => {
+    navigate(`/settings?tab=${value}`);
+  };
 
-    return () => {
-      if (sidebar) observer.unobserve(sidebar);
-    };
-  }, []);
-
-  const handleSaveChanges = () => {
+  // Handle cancel subscription
+  const handleCancelSubscription = () => {
     toast({
-      title: "Changes saved",
-      description: "Your settings have been updated successfully.",
+      title: "Subscription Cancelled",
+      description: "Your subscription will remain active until the end of the current billing period.",
     });
   };
 
-  const handleThemeChange = (newTheme: 'light' | 'dark' | 'system') => {
-    setTheme(newTheme);
+  // Update settings
+  const handleSaveSettings = (section: string) => {
     toast({
-      title: "Theme Updated",
-      description: `Theme has been changed to ${newTheme} mode.`,
+      title: "Settings Saved",
+      description: `Your ${section} settings have been updated successfully.`,
     });
   };
-
-  // Default distance settings
-  const [localDistance, setLocalDistance] = useState(25); // Default 25 km
-  const [postalCode, setPostalCode] = useState("");
 
   return (
-    <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
+    <div className="min-h-screen bg-gray-100">
       <Sidebar />
       <Header />
       
-      <div className="pl-[280px] pt-16 pr-4 pb-10 transition-all duration-300" style={{ paddingLeft: 'var(--sidebar-width, 280px)' }}>
-        <div className="max-w-screen-xl mx-auto">
-          <div className="bg-white rounded-lg p-6 mb-6 dark:bg-gray-800 dark:text-white">
-            <div className="mb-6">
-              <h1 className="text-2xl font-semibold">Settings</h1>
-              <div className="border-b-2 border-purple-500 w-16 mt-1"></div>
-            </div>
-            
-            <Tabs defaultValue="account" className="mb-4">
-              <TabsList className="grid grid-cols-6 w-full bg-gray-100 mb-6 dark:bg-gray-700">
-                <TabsTrigger value="account" className="text-xs">Account</TabsTrigger>
-                <TabsTrigger value="subscription" className="text-xs">Subscription</TabsTrigger>
-                <TabsTrigger value="notifications" className="text-xs">Notifications</TabsTrigger>
-                <TabsTrigger value="privacy" className="text-xs">Privacy</TabsTrigger>
-                <TabsTrigger value="security" className="text-xs">Security</TabsTrigger>
-                <TabsTrigger value="display" className="text-xs">Display</TabsTrigger>
+      <div className="pl-[280px] pt-16 pb-10">
+        <div className="max-w-screen-xl mx-auto px-4">
+          <div className="flex items-center py-4">
+            <h1 className="text-2xl font-semibold flex items-center">
+              <SettingsIcon className="mr-2 h-6 w-6" />
+              Settings
+            </h1>
+          </div>
+
+          <div className="bg-white rounded-lg shadow p-6">
+            <Tabs defaultValue={defaultTab} onValueChange={handleTabChange}>
+              <TabsList className="grid grid-cols-2 md:grid-cols-7 gap-2">
+                <TabsTrigger value="profile">Profile</TabsTrigger>
+                <TabsTrigger value="subscription">Subscription</TabsTrigger>
+                <TabsTrigger value="notifications">Notifications</TabsTrigger>
+                <TabsTrigger value="privacy">Privacy</TabsTrigger>
+                <TabsTrigger value="security">Security</TabsTrigger>
+                <TabsTrigger value="location">Location</TabsTrigger>
+                <TabsTrigger value="language">Language</TabsTrigger>
               </TabsList>
-              
-              <TabsContent value="account" className="space-y-6">
-                <div className="flex items-start gap-6">
-                  <div className="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden dark:bg-gray-600">
-                    {user?.profilePicture ? (
-                      <img src={user.profilePicture} alt="Profile" className="h-full w-full object-cover" />
-                    ) : (
-                      <User className="h-12 w-12 text-gray-500 dark:text-gray-400" />
-                    )}
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-medium text-lg">Profile Photo</h3>
-                    <p className="text-sm text-gray-500 mb-3 dark:text-gray-400">Upload a new profile photo</p>
-                    <div className="flex gap-2">
-                      <button className="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 text-sm">Upload New</button>
-                      <button className="bg-gray-100 text-gray-600 px-4 py-2 rounded-md hover:bg-gray-200 text-sm dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600">Remove</button>
+
+              {/* Profile Settings */}
+              <TabsContent value="profile" className="mt-6">
+                <div className="space-y-6">
+                  <h2 className="text-lg font-semibold">Profile Information</h2>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-3">
+                      <Label htmlFor="name">Full Name</Label>
+                      <Input id="name" defaultValue={user?.name || "Alex Johnson"} />
                     </div>
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Full Name</label>
-                      <input
-                        type="text"
-                        defaultValue={user?.name || "Alex Johnson"}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-purple-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                      />
+                    <div className="space-y-3">
+                      <Label htmlFor="username">Username</Label>
+                      <Input id="username" defaultValue={user?.username || "@alexjohnson"} />
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Username</label>
-                      <input
-                        type="text"
-                        defaultValue={user?.username || "@alexjohnson"}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-purple-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                      />
+                    <div className="space-y-3">
+                      <Label htmlFor="email">Email</Label>
+                      <Input id="email" type="email" defaultValue={user?.email || "alex@example.com"} />
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Email</label>
-                      <input
-                        type="email"
-                        defaultValue={user?.email || "alex@example.com"}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-purple-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                      />
+                    <div className="space-y-3">
+                      <Label htmlFor="phone">Phone (optional)</Label>
+                      <Input id="phone" type="tel" placeholder="Enter your phone number" />
                     </div>
-                  </div>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Bio</label>
+                    <div className="space-y-3 md:col-span-2">
+                      <Label htmlFor="bio">Bio</Label>
                       <textarea
-                        rows={5}
-                        defaultValue="Member of HappyKinks community since 2023. I enjoy participating in various community events and discussions."
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-purple-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                        id="bio"
+                        rows={4}
+                        className="w-full p-2 border border-gray-300 rounded-md"
+                        defaultValue="Digital enthusiast, photography lover, and coffee addict. Always looking for the next adventure!"
                       ></textarea>
                     </div>
                   </div>
-                </div>
-                <div className="flex justify-end">
-                  <Button 
-                    className="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700"
-                    onClick={handleSaveChanges}
-                  >
-                    Save Changes
-                  </Button>
+
+                  <div className="pt-4 flex justify-end">
+                    <Button onClick={() => handleSaveSettings('profile')}>Save Changes</Button>
+                  </div>
                 </div>
               </TabsContent>
 
-              <TabsContent value="subscription" className="space-y-6">
-                <h3 className="font-medium text-gray-700 mb-2 flex items-center dark:text-gray-300">
-                  <CreditCard className="h-5 w-5 mr-2" /> Subscription Details
-                </h3>
-                
-                <div className="bg-gray-50 p-6 rounded-lg dark:bg-gray-700">
-                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
-                    <div className="mb-4 md:mb-0">
-                      <h4 className="text-lg font-medium">Current Plan</h4>
-                      <div className="flex items-center mt-1">
-                        {subscriptionTier !== "free" ? (
-                          <>
-                            <div className="mr-2">{getTierIcon(subscriptionTier)}</div>
-                            <p className="text-purple-600 font-medium capitalize dark:text-purple-400">{subscriptionTier} Tier</p>
-                          </>
-                        ) : (
-                          <p className="text-gray-500">Free Plan</p>
-                        )}
-                      </div>
-                    </div>
-                    <div>
-                      {subscriptionTier !== "free" && (
-                        <div className="text-sm text-gray-600 mb-2 dark:text-gray-400">
-                          Renews on: {new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString()}
-                        </div>
-                      )}
-                      <Link to="/shop">
-                        <Button variant={subscriptionTier !== "free" ? "outline" : "default"} className="w-full md:w-auto">
-                          {subscriptionTier !== "free" ? "Change Plan" : "Upgrade Plan"}
-                        </Button>
-                      </Link>
-                    </div>
-                  </div>
+              {/* Subscription Settings */}
+              <TabsContent value="subscription" className="mt-6">
+                <div className="space-y-6">
+                  <h2 className="text-lg font-semibold">Subscription Details</h2>
                   
-                  <div className="border-t border-gray-200 pt-6 dark:border-gray-600">
-                    <h4 className="font-medium mb-4">Plan Benefits</h4>
+                  {subscriptionTier !== "free" ? (
+                    <>
+                      <Alert className="bg-green-50 border-green-200">
+                        <BadgeDollarSign className="h-5 w-5 text-green-600" />
+                        <AlertTitle className="flex items-center">
+                          <span className="mr-2">Active Subscription: {subscriptionTier.charAt(0).toUpperCase() + subscriptionTier.slice(1)} Tier</span> 
+                          {getTierBadge(subscriptionTier)}
+                        </AlertTitle>
+                        <AlertDescription>
+                          You're currently on our {subscriptionTier} plan with all its benefits.
+                        </AlertDescription>
+                      </Alert>
+                      
+                      <div className="bg-gray-50 p-4 rounded-lg">
+                        <h3 className="font-medium mb-3">Subscription Benefits</h3>
+                        <ul className="space-y-2">
+                          {subscriptionTier === "gold" && (
+                            <>
+                              <li className="flex items-center gap-2">
+                                <div className="h-4 w-4 rounded-full bg-green-500 flex-shrink-0"></div>
+                                <span>Unlimited messages</span>
+                              </li>
+                              <li className="flex items-center gap-2">
+                                <div className="h-4 w-4 rounded-full bg-green-500 flex-shrink-0"></div>
+                                <span>Full access to all photos and videos</span>
+                              </li>
+                              <li className="flex items-center gap-2">
+                                <div className="h-4 w-4 rounded-full bg-green-500 flex-shrink-0"></div>
+                                <span>No watermarks on photos</span>
+                              </li>
+                              <li className="flex items-center gap-2">
+                                <div className="h-4 w-4 rounded-full bg-green-500 flex-shrink-0"></div>
+                                <span>Priority support</span>
+                              </li>
+                            </>
+                          )}
+                          {subscriptionTier === "silver" && (
+                            <>
+                              <li className="flex items-center gap-2">
+                                <div className="h-4 w-4 rounded-full bg-green-500 flex-shrink-0"></div>
+                                <span>1,000 messages per month</span>
+                              </li>
+                              <li className="flex items-center gap-2">
+                                <div className="h-4 w-4 rounded-full bg-green-500 flex-shrink-0"></div>
+                                <span>Full access to all photos and videos</span>
+                              </li>
+                              <li className="flex items-center gap-2">
+                                <div className="h-4 w-4 rounded-full bg-green-500 flex-shrink-0"></div>
+                                <span>Standard support</span>
+                              </li>
+                            </>
+                          )}
+                          {subscriptionTier === "bronze" && (
+                            <>
+                              <li className="flex items-center gap-2">
+                                <div className="h-4 w-4 rounded-full bg-green-500 flex-shrink-0"></div>
+                                <span>500 messages per month</span>
+                              </li>
+                              <li className="flex items-center gap-2">
+                                <div className="h-4 w-4 rounded-full bg-green-500 flex-shrink-0"></div>
+                                <span>Full access to all photos and videos</span>
+                              </li>
+                              <li className="flex items-center gap-2">
+                                <div className="h-4 w-4 rounded-full bg-green-500 flex-shrink-0"></div>
+                                <span>Basic support</span>
+                              </li>
+                            </>
+                          )}
+                        </ul>
+                      </div>
+                      
+                      <div className="pt-4 flex justify-between items-center">
+                        <div className="text-sm">
+                          <p className="font-medium">Next billing date: June 5, 2025</p>
+                          <p className="text-gray-500">
+                            You will be charged £{
+                              subscriptionTier === 'gold' ? '24.99' : 
+                              subscriptionTier === 'silver' ? '14.99' : '9.99'
+                            }
+                          </p>
+                        </div>
+                        <div className="space-y-2">
+                          <Button className="w-full">Change Plan</Button>
+                          <button 
+                            className="text-red-600 text-sm hover:underline w-full text-center"
+                            onClick={handleCancelSubscription}
+                          >
+                            Cancel subscription
+                          </button>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <Alert className="bg-amber-50 border-amber-200">
+                        <AlertTitle>Free Plan</AlertTitle>
+                        <AlertDescription>
+                          You're currently on our free plan with limited features.
+                        </AlertDescription>
+                      </Alert>
+                      
+                      <div className="bg-gray-50 p-4 rounded-lg">
+                        <h3 className="font-medium mb-3">Free Plan Limitations</h3>
+                        <ul className="space-y-2">
+                          <li className="flex items-center gap-2">
+                            <div className="h-4 w-4 rounded-full bg-green-500 flex-shrink-0"></div>
+                            <span>100 messages per day</span>
+                          </li>
+                          <li className="flex items-center gap-2">
+                            <div className="h-4 w-4 rounded-full bg-green-500 flex-shrink-0"></div>
+                            <span>Limited photo access</span>
+                          </li>
+                          <li className="flex items-center gap-2">
+                            <div className="h-4 w-4 rounded-full bg-amber-500 flex-shrink-0"></div>
+                            <span>No video access</span>
+                          </li>
+                          <li className="flex items-center gap-2">
+                            <div className="h-4 w-4 rounded-full bg-amber-500 flex-shrink-0"></div>
+                            <span>Watermarks on shared photos</span>
+                          </li>
+                        </ul>
+                      </div>
+                      
+                      <div className="pt-4 flex justify-end">
+                        <Button 
+                          onClick={() => navigate('/shop')}
+                          className="gap-2"
+                        >
+                          <span>Upgrade Now</span>
+                          <ArrowRight className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </TabsContent>
+              
+              {/* Notification Settings */}
+              <TabsContent value="notifications" className="mt-6">
+                <div className="space-y-6">
+                  <h2 className="text-lg font-semibold">Notification Preferences</h2>
+                  
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label className="text-base">Email Notifications</Label>
+                        <p className="text-sm text-gray-500">Receive notifications via email</p>
+                      </div>
+                      <Switch defaultChecked />
+                    </div>
+                    <Separator />
+                    
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label className="text-base">Friend Requests</Label>
+                        <p className="text-sm text-gray-500">Get notified when someone sends you a friend request</p>
+                      </div>
+                      <Switch defaultChecked />
+                    </div>
+                    <Separator />
+                    
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label className="text-base">Messages</Label>
+                        <p className="text-sm text-gray-500">Get notified when you receive new messages</p>
+                      </div>
+                      <Switch defaultChecked />
+                    </div>
+                    <Separator />
+                    
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label className="text-base">Tags</Label>
+                        <p className="text-sm text-gray-500">Get notified when you're tagged in a post or comment</p>
+                      </div>
+                      <Switch defaultChecked />
+                    </div>
+                    <Separator />
+                    
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label className="text-base">System Notifications</Label>
+                        <p className="text-sm text-gray-500">Get notified about account activity and announcements</p>
+                      </div>
+                      <Switch defaultChecked />
+                    </div>
+                  </div>
+
+                  <div className="pt-4 flex justify-end">
+                    <Button onClick={() => handleSaveSettings('notifications')}>Save Preferences</Button>
+                  </div>
+                </div>
+              </TabsContent>
+
+              {/* Privacy Settings */}
+              <TabsContent value="privacy" className="mt-6">
+                <div className="space-y-6">
+                  <h2 className="text-lg font-semibold">Privacy Settings</h2>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="profile-visibility" className="text-base">Profile Visibility</Label>
+                      <Select 
+                        defaultValue={privacySettings.profileVisibility}
+                        onValueChange={(value) => setPrivacySettings({...privacySettings, profileVisibility: value})}
+                      >
+                        <SelectTrigger id="profile-visibility" className="w-full mt-1">
+                          <SelectValue placeholder="Who can see your profile" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="public">Public (Everyone)</SelectItem>
+                          <SelectItem value="friends">Friends Only</SelectItem>
+                          <SelectItem value="private">Private (Only You)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-sm text-gray-500 mt-1">Control who can see your profile information</p>
+                    </div>
+                    <Separator />
+                    
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label className="text-base">Online Status</Label>
+                        <p className="text-sm text-gray-500">Show when you're online</p>
+                      </div>
+                      <Switch 
+                        checked={privacySettings.showOnline}
+                        onCheckedChange={(checked) => setPrivacySettings({...privacySettings, showOnline: checked})}
+                      />
+                    </div>
+                    <Separator />
+                    
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label className="text-base">Direct Messages</Label>
+                        <p className="text-sm text-gray-500">Allow people to send you messages</p>
+                      </div>
+                      <Switch 
+                        checked={privacySettings.allowMessages}
+                        onCheckedChange={(checked) => setPrivacySettings({...privacySettings, allowMessages: checked})}
+                      />
+                    </div>
+                    <Separator />
+                    
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label className="text-base">Activity Status</Label>
+                        <p className="text-sm text-gray-500">Show your recent activity</p>
+                      </div>
+                      <Switch 
+                        checked={privacySettings.showActivity}
+                        onCheckedChange={(checked) => setPrivacySettings({...privacySettings, showActivity: checked})}
+                      />
+                    </div>
+                    <Separator />
+                    
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label className="text-base">Friend Requests</Label>
+                        <p className="text-sm text-gray-500">Allow people to send you friend requests</p>
+                      </div>
+                      <Switch 
+                        checked={privacySettings.allowFriendRequests}
+                        onCheckedChange={(checked) => setPrivacySettings({...privacySettings, allowFriendRequests: checked})}
+                      />
+                    </div>
+                    <Separator />
+                    
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label className="text-base">Show Subscription Badge</Label>
+                        <p className="text-sm text-gray-500">Display your subscription badge on your profile</p>
+                      </div>
+                      <Switch 
+                        checked={privacySettings.showSubscription}
+                        onCheckedChange={(checked) => setPrivacySettings({...privacySettings, showSubscription: checked})}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="pt-4 flex justify-end">
+                    <Button onClick={() => handleSaveSettings('privacy')}>Save Privacy Settings</Button>
+                  </div>
+                </div>
+              </TabsContent>
+
+              {/* Security Settings */}
+              <TabsContent value="security" className="mt-6">
+                <div className="space-y-6">
+                  <h2 className="text-lg font-semibold">Security Settings</h2>
+                  
+                  <div className="space-y-4">
                     <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <span>Messages</span>
-                        <span className="font-medium">
-                          {subscriptionDetails.messagesRemaining === Infinity 
-                            ? "Unlimited" 
-                            : `${subscriptionDetails.messagesRemaining} / ${subscriptionDetails.maxMessages}`}
-                        </span>
+                      <Label htmlFor="current-password">Current Password</Label>
+                      <Input id="current-password" type="password" placeholder="Enter current password" />
+                    </div>
+                    <div className="space-y-3">
+                      <Label htmlFor="new-password">New Password</Label>
+                      <Input id="new-password" type="password" placeholder="Enter new password" />
+                    </div>
+                    <div className="space-y-3">
+                      <Label htmlFor="confirm-password">Confirm New Password</Label>
+                      <Input id="confirm-password" type="password" placeholder="Confirm new password" />
+                    </div>
+                    
+                    <Separator className="my-6" />
+                    
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label className="text-base">Two-Factor Authentication</Label>
+                        <p className="text-sm text-gray-500">Add an extra layer of security to your account</p>
                       </div>
-                      <div className="flex items-center justify-between">
-                        <span>Photo Access</span>
-                        <span className={subscriptionDetails.canViewPhotos ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}>
-                          {subscriptionDetails.canViewPhotos ? "Full Access" : "Limited Access"}
-                        </span>
+                      <Switch defaultChecked={false} />
+                    </div>
+                    
+                    <Separator className="my-6" />
+                    
+                    <div>
+                      <h3 className="text-base font-medium mb-2">Login Sessions</h3>
+                      <div className="bg-gray-50 p-3 rounded-md">
+                        <p className="text-sm font-medium">Current Session</p>
+                        <p className="text-xs text-gray-500">London, UK • Chrome on Windows • May 6, 2025</p>
                       </div>
-                      <div className="flex items-center justify-between">
-                        <span>Video Access</span>
-                        <span className={subscriptionDetails.canViewVideos ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}>
-                          {subscriptionDetails.canViewVideos ? "Full Access" : "No Access"}
-                        </span>
+                      <Button variant="outline" className="mt-3" size="sm">Logout of All Other Sessions</Button>
+                    </div>
+                  </div>
+
+                  <div className="pt-4 flex justify-end">
+                    <Button onClick={() => handleSaveSettings('security')}>Update Security Settings</Button>
+                  </div>
+                </div>
+              </TabsContent>
+
+              {/* Location Settings */}
+              <TabsContent value="location" className="mt-6">
+                <div className="space-y-6">
+                  <h2 className="text-lg font-semibold">Location Settings</h2>
+                  
+                  <div className="space-y-4">
+                    <div className="space-y-3">
+                      <Label htmlFor="postal-code">Postal Code</Label>
+                      <Input 
+                        id="postal-code" 
+                        value={postalCode} 
+                        onChange={(e) => setPostalCode(e.target.value)} 
+                        placeholder="Enter your postal code" 
+                      />
+                      <p className="text-sm text-gray-500">Used to show you local content and members</p>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <Label htmlFor="distance">Search Distance (km)</Label>
+                      <div className="flex items-center gap-3">
+                        <Input 
+                          id="distance" 
+                          type="number" 
+                          value={distanceKm} 
+                          onChange={(e) => setDistanceKm(Number(e.target.value))}
+                          min={1}
+                          max={100}
+                        />
+                        <span>km</span>
                       </div>
+                      <p className="text-sm text-gray-500">Maximum distance for local members and content</p>
                     </div>
+                    
+                    <Separator className="my-6" />
+                    
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label className="text-base">Location Services</Label>
+                        <p className="text-sm text-gray-500">Allow access to your precise location</p>
+                      </div>
+                      <Switch defaultChecked />
+                    </div>
+                  </div>
+
+                  <div className="pt-4 flex justify-end">
+                    <Button onClick={() => handleSaveSettings('location')}>Save Location Settings</Button>
                   </div>
                 </div>
               </TabsContent>
 
-              <TabsContent value="notifications" className="space-y-4">
-                <h3 className="font-medium text-gray-700 mb-2 flex items-center dark:text-gray-300"><Bell className="h-5 w-5 mr-2" /> Notification Settings</h3>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between bg-gray-50 p-3 rounded-md dark:bg-gray-700">
-                    <div>
-                      <h4 className="font-medium">Friend Requests</h4>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">Get notified when someone sends you a friend request</p>
+              {/* Language Settings */}
+              <TabsContent value="language" className="mt-6">
+                <div className="space-y-6">
+                  <h2 className="text-lg font-semibold">Language & Region</h2>
+                  
+                  <div className="space-y-4">
+                    <div className="space-y-3">
+                      <Label htmlFor="language">Language</Label>
+                      <Select defaultValue="en">
+                        <SelectTrigger id="language">
+                          <SelectValue placeholder="Select a language" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="en">English</SelectItem>
+                          <SelectItem value="fr">French</SelectItem>
+                          <SelectItem value="de">German</SelectItem>
+                          <SelectItem value="es">Spanish</SelectItem>
+                          <SelectItem value="it">Italian</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
-                    <Switch defaultChecked />
-                  </div>
-                  <div className="flex items-center justify-between bg-gray-50 p-3 rounded-md dark:bg-gray-700">
-                    <div>
-                      <h4 className="font-medium">New Comments</h4>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">Get notified when someone comments on your post</p>
+                    
+                    <div className="space-y-3">
+                      <Label htmlFor="region">Region</Label>
+                      <Select defaultValue="gb">
+                        <SelectTrigger id="region">
+                          <SelectValue placeholder="Select a region" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="gb">United Kingdom</SelectItem>
+                          <SelectItem value="us">United States</SelectItem>
+                          <SelectItem value="ca">Canada</SelectItem>
+                          <SelectItem value="au">Australia</SelectItem>
+                          <SelectItem value="eu">European Union</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
-                    <Switch defaultChecked />
-                  </div>
-                  <div className="flex items-center justify-between bg-gray-50 p-3 rounded-md dark:bg-gray-700">
-                    <div>
-                      <h4 className="font-medium">Event Reminders</h4>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">Get notified about upcoming events</p>
+                    
+                    <div className="space-y-3">
+                      <Label htmlFor="timezone">Time Zone</Label>
+                      <Select defaultValue="london">
+                        <SelectTrigger id="timezone">
+                          <SelectValue placeholder="Select a timezone" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="london">London (GMT+1)</SelectItem>
+                          <SelectItem value="newyork">New York (GMT-4)</SelectItem>
+                          <SelectItem value="losangeles">Los Angeles (GMT-7)</SelectItem>
+                          <SelectItem value="tokyo">Tokyo (GMT+9)</SelectItem>
+                          <SelectItem value="sydney">Sydney (GMT+10)</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
-                    <Switch />
                   </div>
-                </div>
-              </TabsContent>
 
-              <TabsContent value="privacy" className="space-y-4">
-                <h3 className="font-medium text-gray-700 mb-2 flex items-center dark:text-gray-300"><Shield className="h-5 w-5 mr-2" /> Privacy Settings</h3>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between bg-gray-50 p-3 rounded-md dark:bg-gray-700">
-                    <div>
-                      <h4 className="font-medium">Profile Visibility</h4>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">Who can see your profile information</p>
-                    </div>
-                    <select 
-                      className="border border-gray-300 rounded-md py-1 px-3 focus:outline-none focus:ring-1 focus:ring-purple-500 dark:bg-gray-600 dark:text-white dark:border-gray-500"
-                      onChange={() => handleSaveChanges()}
-                    >
-                      <option>Everyone</option>
-                      <option>Friends Only</option>
-                      <option>Only Me</option>
-                    </select>
-                  </div>
-                  <div className="flex items-center justify-between bg-gray-50 p-3 rounded-md dark:bg-gray-700">
-                    <div>
-                      <h4 className="font-medium">Post Visibility</h4>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">Who can see your posts</p>
-                    </div>
-                    <select 
-                      className="border border-gray-300 rounded-md py-1 px-3 focus:outline-none focus:ring-1 focus:ring-purple-500 dark:bg-gray-600 dark:text-white dark:border-gray-500"
-                      onChange={() => handleSaveChanges()}
-                    >
-                      <option>Everyone</option>
-                      <option>Friends Only</option>
-                      <option>Only Me</option>
-                    </select>
-                  </div>
-                  <div className="flex items-center justify-between bg-gray-50 p-3 rounded-md dark:bg-gray-700">
-                    <div>
-                      <h4 className="font-medium">Search By Location</h4>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">Allow others to find you by location</p>
-                    </div>
-                    <Switch defaultChecked onChange={() => handleSaveChanges()} />
-                  </div>
-                </div>
-              </TabsContent>
-
-              <TabsContent value="security" className="space-y-4">
-                <h3 className="font-medium text-gray-700 mb-2 flex items-center dark:text-gray-300"><Key className="h-5 w-5 mr-2" /> Security Settings</h3>
-                <div className="space-y-4">
-                  <div className="bg-gray-50 p-4 rounded-md dark:bg-gray-700">
-                    <h4 className="font-medium mb-1">Change Password</h4>
-                    <div className="grid grid-cols-1 gap-3 mt-3">
-                      <input
-                        type="password"
-                        placeholder="Current Password"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-purple-500 dark:bg-gray-600 dark:text-white dark:border-gray-500"
-                      />
-                      <input
-                        type="password"
-                        placeholder="New Password"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-purple-500 dark:bg-gray-600 dark:text-white dark:border-gray-500"
-                      />
-                      <input
-                        type="password"
-                        placeholder="Confirm New Password"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-purple-500 dark:bg-gray-600 dark:text-white dark:border-gray-500"
-                      />
-                      <button className="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 w-full">Update Password</button>
-                    </div>
-                  </div>
-                </div>
-              </TabsContent>
-
-              <TabsContent value="display" className="space-y-4">
-                <h3 className="font-medium text-gray-700 mb-2 flex items-center dark:text-gray-300"><Eye className="h-5 w-5 mr-2" /> Display Settings</h3>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between bg-gray-50 p-3 rounded-md dark:bg-gray-700">
-                    <div>
-                      <h4 className="font-medium">Theme</h4>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">Choose your preferred theme</p>
-                    </div>
-                    <select 
-                      className="border border-gray-300 rounded-md py-1 px-3 focus:outline-none focus:ring-1 focus:ring-purple-500 dark:bg-gray-600 dark:text-white dark:border-gray-500"
-                      value={theme}
-                      onChange={(e) => handleThemeChange(e.target.value as 'light' | 'dark' | 'system')}
-                    >
-                      <option value="light">Light</option>
-                      <option value="dark">Dark</option>
-                      <option value="system">System</option>
-                    </select>
-                  </div>
-                  <div className="flex items-center justify-between bg-gray-50 p-3 rounded-md dark:bg-gray-700">
-                    <div>
-                      <h4 className="font-medium">Language</h4>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">Select your preferred language</p>
-                    </div>
-                    <select 
-                      className="border border-gray-300 rounded-md py-1 px-3 focus:outline-none focus:ring-1 focus:ring-purple-500 dark:bg-gray-600 dark:text-white dark:border-gray-500"
-                      onChange={() => handleSaveChanges()}
-                    >
-                      <option>English</option>
-                      <option>Spanish</option>
-                      <option>French</option>
-                      <option>German</option>
-                    </select>
-                  </div>
-                  <div className="flex items-center justify-between bg-gray-50 p-3 rounded-md dark:bg-gray-700">
-                    <div>
-                      <h4 className="font-medium">Local Area Settings</h4>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">Define your local area radius</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="number"
-                        value={localDistance}
-                        onChange={(e) => {
-                          setLocalDistance(parseInt(e.target.value));
-                          handleSaveChanges();
-                        }}
-                        className="w-20 px-3 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-purple-500 dark:bg-gray-600 dark:text-white dark:border-gray-500"
-                        min="1"
-                        max="500"
-                      />
-                      <span className="text-sm text-gray-500 dark:text-gray-400">km</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between bg-gray-50 p-3 rounded-md dark:bg-gray-700">
-                    <div>
-                      <h4 className="font-medium">Postal Code</h4>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">Set your postal code for local content</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="text"
-                        value={postalCode}
-                        onChange={(e) => {
-                          setPostalCode(e.target.value);
-                          handleSaveChanges();
-                        }}
-                        placeholder="Enter postal code"
-                        className="w-40 px-3 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-purple-500 dark:bg-gray-600 dark:text-white dark:border-gray-500"
-                      />
-                    </div>
+                  <div className="pt-4 flex justify-end">
+                    <Button onClick={() => handleSaveSettings('language')}>Save Language Settings</Button>
                   </div>
                 </div>
               </TabsContent>

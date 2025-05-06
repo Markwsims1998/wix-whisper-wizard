@@ -7,11 +7,13 @@ import { useSubscription } from "@/contexts/SubscriptionContext";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import MediaViewer from "@/components/media/MediaViewer";
 
 const Photos = () => {
   const { subscriptionDetails } = useSubscription();
   const canViewPhotos = subscriptionDetails.canViewPhotos;
   const [activeTab, setActiveTab] = useState("all");
+  const [selectedPhoto, setSelectedPhoto] = useState<any | null>(null);
   
   // Update header position based on sidebar width
   useEffect(() => {
@@ -61,6 +63,20 @@ const Photos = () => {
     return photoGallery.filter(photo => photo.category === tabValue);
   };
 
+  const handlePhotoClick = (photo: any) => {
+    if (canViewPhotos) {
+      setSelectedPhoto(photo);
+    } else {
+      // Redirect to shop if not subscribed
+      window.location.href = "/shop";
+    }
+  };
+
+  const handleLikePhoto = (photoId: number) => {
+    // In a real app, this would update the like count in the database
+    console.log("Liked photo:", photoId);
+  };
+
   return (
     <div className="min-h-screen bg-gray-100">
       <Sidebar />
@@ -83,28 +99,30 @@ const Photos = () => {
             </div>
             
             <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-4">
-              <TabsList className="grid grid-cols-4 w-full bg-gray-100 mb-6">
+              <TabsList className="grid grid-cols-5 w-full bg-gray-100 mb-6">
                 <TabsTrigger value="all" className="text-xs">All</TabsTrigger>
                 <TabsTrigger value="top" className="text-xs">Top Liked</TabsTrigger>
                 <TabsTrigger value="recent" className="text-xs">Recent</TabsTrigger>
                 <TabsTrigger value="friends" className="text-xs">Friends</TabsTrigger>
+                <TabsTrigger value="featured" className="text-xs">Featured</TabsTrigger>
               </TabsList>
 
               <TabsContent value={activeTab}>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                   {getFilteredPhotos(activeTab).map(photo => (
-                    <div key={photo.id} className="bg-gray-50 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition">
+                    <div 
+                      key={photo.id} 
+                      className="bg-gray-50 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition cursor-pointer"
+                      onClick={() => handlePhotoClick(photo)}
+                    >
                       <div className="relative">
                         <img 
                           src={photo.url} 
                           alt="Gallery photo" 
-                          className={`w-full h-48 object-cover ${!canViewPhotos ? 'blur-sm filter saturate-50' : ''}`} 
+                          className={`w-full h-48 object-cover ${!canViewPhotos ? 'filter saturate-50' : ''}`} 
                         />
                         {!canViewPhotos && (
-                          <div 
-                            className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 opacity-0 hover:opacity-100 transition-opacity duration-300 cursor-pointer"
-                            onClick={() => window.location.href = "/shop"}
-                          >
+                          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 opacity-0 hover:opacity-100 transition-opacity duration-300">
                             <Lock className="w-10 h-10 text-white mb-2" />
                             <span className="text-white font-medium">Subscription Required</span>
                             <Button size="sm" variant="outline" className="mt-2 bg-white/20 text-white border-white/20 hover:bg-white/30">
@@ -140,6 +158,16 @@ const Photos = () => {
           </div>
         </div>
       </div>
+
+      {/* Full-screen image viewer */}
+      {selectedPhoto && (
+        <MediaViewer
+          type="image"
+          media={selectedPhoto}
+          onClose={() => setSelectedPhoto(null)}
+          onLike={() => handleLikePhoto(selectedPhoto.id)}
+        />
+      )}
     </div>
   );
 };

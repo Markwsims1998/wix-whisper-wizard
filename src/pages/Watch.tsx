@@ -1,15 +1,17 @@
 
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
-import { useEffect } from "react";
-import { Play, User, Heart, MessageCircle, Lock } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Play, User, Heart, MessageCircle, Lock, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { Button } from "@/components/ui/button";
+import MediaViewer from "@/components/media/MediaViewer";
 
 const Watch = () => {
   const { subscriptionDetails } = useSubscription();
   const canViewVideos = subscriptionDetails.canViewVideos;
+  const [selectedVideo, setSelectedVideo] = useState<any | null>(null);
 
   // Update header position based on sidebar width
   useEffect(() => {
@@ -43,6 +45,15 @@ const Watch = () => {
     { id: 4, thumbnail: 'https://via.placeholder.com/600x340', title: 'Workshop Announcement', author: 'Irina Petrova', views: '987', likes: 28, comments: 5 }
   ];
 
+  const handleVideoClick = (video: any) => {
+    if (canViewVideos) {
+      setSelectedVideo(video);
+    } else {
+      // Redirect to shop if not subscribed
+      window.location.href = "/shop";
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-100">
       <Sidebar />
@@ -66,12 +77,16 @@ const Watch = () => {
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {videos.map(video => (
-                <div key={video.id} className="bg-gray-50 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition">
+                <div 
+                  key={video.id} 
+                  className="bg-gray-50 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition cursor-pointer"
+                  onClick={() => handleVideoClick(video)}
+                >
                   <div className="relative">
                     <img 
                       src={video.thumbnail} 
                       alt={video.title} 
-                      className={`w-full h-48 object-cover ${!canViewVideos ? 'blur-sm' : ''}`}
+                      className="w-full h-48 object-cover"
                     />
                     <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30">
                       <div className="w-12 h-12 rounded-full bg-white/30 flex items-center justify-center">
@@ -82,10 +97,7 @@ const Watch = () => {
                     </div>
                     
                     {!canViewVideos && (
-                      <div 
-                        className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 opacity-0 hover:opacity-100 transition-opacity duration-300 cursor-pointer"
-                        onClick={() => window.location.href = "/shop"}
-                      >
+                      <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 opacity-0 hover:opacity-100 transition-opacity duration-300">
                         <Lock className="w-10 h-10 text-white mb-2" />
                         <span className="text-white font-medium">Subscription Required</span>
                         <Button size="sm" variant="outline" className="mt-2 bg-white/20 text-white border-white/20 hover:bg-white/30">
@@ -119,6 +131,15 @@ const Watch = () => {
           </div>
         </div>
       </div>
+
+      {/* Full-screen video viewer */}
+      {selectedVideo && (
+        <MediaViewer 
+          type="video"
+          media={selectedVideo}
+          onClose={() => setSelectedVideo(null)}
+        />
+      )}
     </div>
   );
 };

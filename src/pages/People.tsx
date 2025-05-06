@@ -5,9 +5,13 @@ import { useEffect, useState } from "react";
 import { Users, User, Search, MapPin } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/use-toast";
+import { useSubscription } from "@/contexts/SubscriptionContext";
+import { useNavigate } from "react-router-dom";
 
 const People = () => {
+  const navigate = useNavigate();
   const { toast } = useToast();
+  const { subscriptionTier } = useSubscription();
   const [searchTerm, setSearchTerm] = useState("");
   const [friendRequests, setFriendRequests] = useState<Set<string>>(new Set());
   const [friendsList, setFriendsList] = useState<Set<string>>(new Set(['1', '2', '3', '4']));
@@ -38,16 +42,16 @@ const People = () => {
   }, []);
 
   const members = [
-    { id: '1', name: 'Admin', username: '@admin', timeAgo: '3 hours ago', isFriend: true },
-    { id: '2', name: 'Sephiroth', username: '@seph', timeAgo: '19 days ago', isFriend: true, isHotlist: true },
-    { id: '3', name: 'Linda Lohan', username: '@linda', timeAgo: 'a year ago', isLocal: true, isFriend: true },
-    { id: '4', name: 'Irina Petrova', username: '@irina', timeAgo: 'a year ago', isLocal: true, isFriend: true },
-    { id: '5', name: 'Jennie Ferguson', username: '@jennie', timeAgo: '2 years ago', isHotlist: true },
-    { id: '6', name: 'Robert Cook', username: '@robert', timeAgo: '2 years ago', isLocal: true },
-    { id: '7', name: 'Sophia Lee', username: '@sophia', timeAgo: '2 years ago', isHotlist: true },
-    { id: '8', name: 'John Smith', username: '@john', timeAgo: '3 years ago' },
-    { id: '9', name: 'Emma Wilson', username: '@emma', timeAgo: '3 years ago' },
-    { id: '10', name: 'Michael Brown', username: '@michael', timeAgo: '3 years ago' }
+    { id: '1', name: 'Admin', username: '@admin', timeAgo: '3 hours ago', isFriend: true, subscribed: true, tier: 'gold' },
+    { id: '2', name: 'Sephiroth', username: '@seph', timeAgo: '19 days ago', isFriend: true, isHotlist: true, subscribed: true, tier: 'gold' },
+    { id: '3', name: 'Linda Lohan', username: '@linda', timeAgo: 'a year ago', isLocal: true, isFriend: true, subscribed: true, tier: 'silver' },
+    { id: '4', name: 'Irina Petrova', username: '@irina', timeAgo: 'a year ago', isLocal: true, isFriend: true, subscribed: true, tier: 'bronze' },
+    { id: '5', name: 'Jennie Ferguson', username: '@jennie', timeAgo: '2 years ago', isHotlist: true, subscribed: false },
+    { id: '6', name: 'Robert Cook', username: '@robert', timeAgo: '2 years ago', isLocal: true, subscribed: true, tier: 'bronze' },
+    { id: '7', name: 'Sophia Lee', username: '@sophia', timeAgo: '2 years ago', isHotlist: true, subscribed: false },
+    { id: '8', name: 'John Smith', username: '@john', timeAgo: '3 years ago', subscribed: false },
+    { id: '9', name: 'Emma Wilson', username: '@emma', timeAgo: '3 years ago', subscribed: false },
+    { id: '10', name: 'Michael Brown', username: '@michael', timeAgo: '3 years ago', subscribed: true, tier: 'silver' }
   ];
   
   // Handle friend request or message
@@ -60,16 +64,21 @@ const People = () => {
       });
       
       // In a real app, you would navigate to the messages page with this user
-      // navigate(`/messages?user=${memberId}`);
+      navigate(`/messages?user=${memberId}`);
     } else {
       // Send friend request
       const updatedRequests = new Set(friendRequests);
       updatedRequests.add(memberId);
       setFriendRequests(updatedRequests);
       
+      // Update friends list immediately for demo purposes
+      const updatedFriends = new Set(friendsList);
+      updatedFriends.add(memberId);
+      setFriendsList(updatedFriends);
+      
       toast({
         title: "Friend Request Sent",
-        description: "Your friend request has been sent.",
+        description: "Your friend request has been accepted!",
       });
     }
   };
@@ -81,8 +90,8 @@ const People = () => {
       description: `Viewing ${name}'s profile...`,
     });
     
-    // In a real app, you would navigate to the profile page
-    // navigate(`/profile/${memberId}`);
+    // Navigate to the profile page
+    navigate(`/profile?name=${name}`);
   };
   
   // Filter members based on search term
@@ -90,6 +99,22 @@ const People = () => {
     member.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
     member.username.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const getMemberBadge = (member: any) => {
+    if (member.subscribed && member.tier) {
+      switch (member.tier) {
+        case 'gold':
+          return <span className="px-1 py-0.5 bg-yellow-500 text-white text-xs rounded ml-1">Gold</span>;
+        case 'silver':
+          return <span className="px-1 py-0.5 bg-gray-400 text-white text-xs rounded ml-1">Silver</span>;
+        case 'bronze':
+          return <span className="px-1 py-0.5 bg-amber-700 text-white text-xs rounded ml-1">Bronze</span>;
+        default:
+          return null;
+      }
+    }
+    return null;
+  };
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -134,6 +159,7 @@ const People = () => {
                       isFriend={friendsList.has(member.id)}
                       onFriendAction={handleFriendAction}
                       onViewProfile={handleViewProfile}
+                      subscriptionTier={member.subscribed ? member.tier : null}
                     />
                   ))}
                 </div>
@@ -149,6 +175,7 @@ const People = () => {
                       isFriend={friendsList.has(member.id)}
                       onFriendAction={handleFriendAction}
                       onViewProfile={handleViewProfile}
+                      subscriptionTier={member.subscribed ? member.tier : null}
                     />
                   ))}
                 </div>
@@ -164,6 +191,7 @@ const People = () => {
                       isFriend={friendsList.has(member.id)}
                       onFriendAction={handleFriendAction}
                       onViewProfile={handleViewProfile}
+                      subscriptionTier={member.subscribed ? member.tier : null}
                     />
                   ))}
                 </div>
@@ -179,6 +207,7 @@ const People = () => {
                       isFriend={true}
                       onFriendAction={handleFriendAction}
                       onViewProfile={handleViewProfile}
+                      subscriptionTier={member.subscribed ? member.tier : null}
                     />
                   ))}
                 </div>
@@ -197,9 +226,25 @@ interface MemberCardProps {
   isFriend: boolean;
   onFriendAction: (id: string, isFriend: boolean) => void;
   onViewProfile: (name: string) => void;
+  subscriptionTier: string | null;
 }
 
-const MemberCard = ({ member, isFriendRequested, isFriend, onFriendAction, onViewProfile }: MemberCardProps) => {
+const MemberCard = ({ member, isFriendRequested, isFriend, onFriendAction, onViewProfile, subscriptionTier }: MemberCardProps) => {
+  const getSubscriptionBadge = () => {
+    if (!subscriptionTier) return null;
+    
+    switch (subscriptionTier) {
+      case 'gold':
+        return <span className="px-1 py-0.5 bg-yellow-500 text-white text-xs rounded">Gold</span>;
+      case 'silver':
+        return <span className="px-1 py-0.5 bg-gray-400 text-white text-xs rounded">Silver</span>;
+      case 'bronze':
+        return <span className="px-1 py-0.5 bg-amber-700 text-white text-xs rounded">Bronze</span>;
+      default:
+        return null;
+    }
+  };
+  
   return (
     <div className="bg-gray-50 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition p-4">
       <div className="flex flex-col items-center">
@@ -210,12 +255,15 @@ const MemberCard = ({ member, isFriendRequested, isFriend, onFriendAction, onVie
           <User className="h-8 w-8 text-gray-500" />
         </div>
         <h3 
-          className="font-medium text-center cursor-pointer hover:underline"
+          className="font-medium text-center cursor-pointer hover:underline flex items-center gap-1"
           onClick={() => onViewProfile(member.name)}
         >
           {member.name}
         </h3>
-        <p className="text-sm text-gray-500 text-center">{member.username}</p>
+        <div className="flex items-center gap-1 mt-1">
+          <p className="text-sm text-gray-500 text-center">{member.username}</p>
+          {getSubscriptionBadge()}
+        </div>
         <p className="text-xs text-gray-400 text-center mt-1">Active {member.timeAgo}</p>
         
         {member.isLocal && (

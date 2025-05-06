@@ -2,18 +2,22 @@
 import { useEffect, useState } from "react";
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
-import { MessageSquare, User, Search, Phone, Video, Image, Paperclip, Send, Info } from "lucide-react";
+import { MessageSquare, User, Search, Phone, Video, Image as ImageIcon, Paperclip, Send, Info, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
+import MediaViewer from "@/components/media/MediaViewer";
 
 const Messages = () => {
   const [selectedChat, setSelectedChat] = useState<number | null>(1);
   const [messageInput, setMessageInput] = useState("");
+  const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<any | null>(null);
   const { subscriptionTier, subscriptionDetails, consumeMessage } = useSubscription();
   const { toast } = useToast();
+  const isGoldMember = subscriptionTier === 'gold';
   
   // Update header position based on sidebar width
   useEffect(() => {
@@ -41,11 +45,11 @@ const Messages = () => {
   }, []);
 
   const chats = [
-    { id: 1, name: 'Sephiroth', message: 'Hey, how are you?', time: '2m ago', unread: 2 },
-    { id: 2, name: 'Linda Lohan', message: 'The event was amazing!', time: '1h ago', unread: 0 },
-    { id: 3, name: 'Irina Petrova', message: 'Did you see the latest post?', time: '3h ago', unread: 1 },
-    { id: 4, name: 'Robert Cook', message: 'Thanks for the help!', time: '1d ago', unread: 0 },
-    { id: 5, name: 'Jennie Ferguson', message: 'Let me know when you\'re free', time: '2d ago', unread: 0 }
+    { id: 1, name: 'Sephiroth', message: 'Hey, how are you?', time: '2m ago', unread: 2, subscribed: true, tier: 'gold' },
+    { id: 2, name: 'Linda Lohan', message: 'The event was amazing!', time: '1h ago', unread: 0, subscribed: true, tier: 'silver' },
+    { id: 3, name: 'Irina Petrova', message: 'Did you see the latest post?', time: '3h ago', unread: 1, subscribed: false },
+    { id: 4, name: 'Robert Cook', message: 'Thanks for the help!', time: '1d ago', unread: 0, subscribed: true, tier: 'bronze' },
+    { id: 5, name: 'Jennie Ferguson', message: 'Let me know when you\'re free', time: '2d ago', unread: 0, subscribed: false }
   ];
 
   const [messages, setMessages] = useState([
@@ -57,7 +61,7 @@ const Messages = () => {
   ]);
 
   const handleSendMessage = () => {
-    if (!messageInput.trim()) return;
+    if (!messageInput.trim() && !selectedImage) return;
 
     // Check if user can send more messages
     if (subscriptionDetails.messagesRemaining <= 0) {
@@ -74,16 +78,24 @@ const Messages = () => {
       const now = new Date();
       const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       
-      const newMessage = {
+      let newMessage: any = {
         id: messages.length + 1,
         sender: 'me',
-        text: messageInput,
         time: timeString,
         isMine: true
       };
+
+      // Check if there's a message, image, or both
+      if (selectedImage) {
+        newMessage.image = selectedImage;
+      }
+      if (messageInput.trim()) {
+        newMessage.text = messageInput;
+      }
       
       setMessages(prevMessages => [...prevMessages, newMessage]);
       setMessageInput("");
+      setSelectedImage(null);
       
       // Simulate a reply after a delay
       setTimeout(() => {
@@ -134,11 +146,39 @@ const Messages = () => {
   // Function to navigate to a user's profile
   const navigateToProfile = (name: string) => {
     // In a real app, this would navigate to the user profile
-    console.log(`Navigate to ${name}'s profile`);
-    toast({
-      title: "Profile Navigation",
-      description: `Navigating to ${name}'s profile...`,
+    window.location.href = `/profile?name=${name}`;
+  };
+
+  // Handle photo attachment
+  const handleAttachImage = () => {
+    // In a real app, this would open a file selector
+    // For now, we'll simulate adding a random placeholder image
+    const randomId = Math.floor(Math.random() * 1000);
+    setSelectedImage({
+      url: `https://via.placeholder.com/300x300?text=Image+${randomId}`,
+      name: `Image ${randomId}.jpg`
     });
+    setShowAttachmentMenu(false);
+  };
+
+  const handleViewImage = (image: any) => {
+    setSelectedImage(image);
+  };
+
+  const getGoldBadge = (chat: any) => {
+    if (chat.subscribed && chat.tier) {
+      switch (chat.tier) {
+        case 'gold':
+          return <span className="px-1 py-0.5 bg-yellow-500 text-white text-xs rounded ml-1">Gold</span>;
+        case 'silver':
+          return <span className="px-1 py-0.5 bg-gray-400 text-white text-xs rounded ml-1">Silver</span>;
+        case 'bronze':
+          return <span className="px-1 py-0.5 bg-amber-700 text-white text-xs rounded ml-1">Bronze</span>;
+        default:
+          return null;
+      }
+    }
+    return null;
   };
 
   return (
@@ -197,13 +237,14 @@ const Messages = () => {
                       <div className="flex-1 min-w-0">
                         <div className="flex justify-between">
                           <h3 
-                            className="font-medium text-sm hover:underline cursor-pointer"
+                            className="font-medium text-sm hover:underline cursor-pointer flex items-center"
                             onClick={(e) => {
                               e.stopPropagation();
                               navigateToProfile(chat.name);
                             }}
                           >
                             {chat.name}
+                            {getGoldBadge(chat)}
                           </h3>
                           <span className="text-xs text-gray-500">{chat.time}</span>
                         </div>
@@ -235,10 +276,11 @@ const Messages = () => {
                       </div>
                       <div>
                         <h3 
-                          className="font-medium cursor-pointer hover:underline"
+                          className="font-medium cursor-pointer hover:underline flex items-center"
                           onClick={() => navigateToProfile(chats.find(chat => chat.id === selectedChat)?.name || "")}
                         >
                           {chats.find(chat => chat.id === selectedChat)?.name}
+                          {getGoldBadge(chats.find(chat => chat.id === selectedChat))}
                         </h3>
                         <p className="text-xs text-green-500">Online</p>
                       </div>
@@ -261,7 +303,29 @@ const Messages = () => {
                         className={`flex ${message.isMine ? 'justify-end' : 'justify-start'}`}
                       >
                         <div className={`max-w-[70%] ${message.isMine ? 'bg-purple-500 text-white' : 'bg-gray-100 text-gray-800'} rounded-lg p-3`}>
-                          <p className="text-sm">{message.text}</p>
+                          {message.text && <p className="text-sm">{message.text}</p>}
+                          
+                          {message.image && (
+                            <div className="mt-2 mb-2 relative">
+                              <div 
+                                className="relative cursor-pointer"
+                                onClick={() => handleViewImage(message.image)}
+                              >
+                                <img 
+                                  src={message.image.url} 
+                                  alt="Shared image" 
+                                  className="rounded-md max-h-52 w-auto" 
+                                />
+                                {/* Watermark for non-gold users */}
+                                {!isGoldMember && message.isMine && (
+                                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-30">
+                                    <h1 className="text-white text-2xl font-bold transform -rotate-30">HappyKinks</h1>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                          
                           <p className="text-xs mt-1 opacity-70">{message.time}</p>
                         </div>
                       </div>
@@ -271,17 +335,68 @@ const Messages = () => {
                   {/* Message Input */}
                   <div className="border-t border-gray-100 p-4">
                     <div className="flex flex-col">
+                      {/* Selected Image Preview */}
+                      {selectedImage && (
+                        <div className="mb-3 bg-gray-50 p-2 rounded-md flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className="w-12 h-12 bg-gray-200 rounded overflow-hidden">
+                              <img 
+                                src={selectedImage.url} 
+                                alt="Preview" 
+                                className="w-full h-full object-cover" 
+                              />
+                            </div>
+                            <span className="text-sm truncate">{selectedImage.name}</span>
+                          </div>
+                          <button 
+                            className="p-1 hover:bg-gray-200 rounded-full" 
+                            onClick={() => setSelectedImage(null)}
+                          >
+                            <X className="w-4 h-4 text-gray-500" />
+                          </button>
+                        </div>
+                      )}
+                      
                       {subscriptionDetails.messagesRemaining <= 5 && subscriptionDetails.messagesRemaining > 0 && (
                         <div className="text-xs text-amber-600 mb-2">
                           You have {subscriptionDetails.messagesRemaining} messages remaining
                         </div>
                       )}
                       <div className="flex items-center gap-2">
+                        <div className="relative">
+                          <button 
+                            className="p-2 rounded-full hover:bg-gray-100"
+                            onClick={() => setShowAttachmentMenu(!showAttachmentMenu)}
+                          >
+                            <Paperclip className="w-5 h-5 text-gray-600" />
+                          </button>
+                          
+                          {showAttachmentMenu && (
+                            <div className="absolute bottom-12 left-0 bg-white border border-gray-200 rounded-lg shadow-lg p-2 w-48">
+                              <button 
+                                className="flex items-center gap-2 p-2 w-full text-left hover:bg-gray-50 rounded"
+                                onClick={handleAttachImage}
+                              >
+                                <ImageIcon className="w-4 h-4 text-green-500" />
+                                <span className="text-sm">Photo</span>
+                              </button>
+                              <button 
+                                className="flex items-center gap-2 p-2 w-full text-left hover:bg-gray-50 rounded"
+                              >
+                                <Video className="w-4 h-4 text-blue-500" />
+                                <span className="text-sm">Video</span>
+                              </button>
+                              <button 
+                                className="flex items-center gap-2 p-2 w-full text-left hover:bg-gray-50 rounded"
+                              >
+                                <Paperclip className="w-4 h-4 text-amber-500" />
+                                <span className="text-sm">File</span>
+                              </button>
+                            </div>
+                          )}
+                        </div>
                         <button className="p-2 rounded-full hover:bg-gray-100">
-                          <Image className="w-5 h-5 text-gray-600" />
-                        </button>
-                        <button className="p-2 rounded-full hover:bg-gray-100">
-                          <Paperclip className="w-5 h-5 text-gray-600" />
+                          <ImageIcon className="w-5 h-5 text-gray-600" />
                         </button>
                         <input 
                           type="text" 
@@ -315,6 +430,15 @@ const Messages = () => {
           </div>
         </div>
       </div>
+
+      {/* Full-screen image viewer */}
+      {selectedImage && selectedImage.url && (
+        <MediaViewer 
+          type="image"
+          media={{ url: selectedImage.url }}
+          onClose={() => setSelectedImage(null)}
+        />
+      )}
     </div>
   );
 };

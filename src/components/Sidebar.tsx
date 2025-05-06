@@ -1,14 +1,48 @@
 
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Activity, Image, Play, User, Users, ShoppingBag, Bell, Home, Settings, ChevronLeft, LogOut } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/components/ui/use-toast";
 
 const Sidebar = () => {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { toast } = useToast();
   const currentPath = location.pathname;
   const { user, logout } = useAuth();
+
+  // Active friends data with subscription information
+  const activeFriends = [
+    { id: 1, name: 'Sephiroth', subscribed: true, tier: 'gold' },
+    { id: 2, name: 'Linda Lohan', subscribed: true, tier: 'silver' },
+    { id: 3, name: 'Irina Petrova', subscribed: true, tier: 'bronze' },
+    { id: 4, name: 'Jennie Ferguson', subscribed: false }
+  ];
+
+  const navigateToProfile = (name: string) => {
+    navigate(`/profile?name=${name}`);
+    toast({
+      title: "Profile Navigation",
+      description: `Viewing ${name}'s profile`,
+    });
+  };
+
+  const getFriendBadge = (friend: any) => {
+    if (!friend.subscribed) return null;
+    
+    switch (friend.tier) {
+      case 'gold':
+        return <div className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-yellow-500 border border-[#2B2A33] dark:border-gray-900"></div>;
+      case 'silver':
+        return <div className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-gray-400 border border-[#2B2A33] dark:border-gray-900"></div>;
+      case 'bronze':
+        return <div className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-amber-700 border border-[#2B2A33] dark:border-gray-900"></div>;
+      default:
+        return null;
+    }
+  };
 
   return (
     <div className={`bg-[#2B2A33] min-h-screen ${collapsed ? 'w-[70px]' : 'w-[280px]'} flex flex-col fixed left-0 top-0 transition-all duration-300 ease-in-out dark:bg-gray-900`}>
@@ -74,13 +108,29 @@ const Sidebar = () => {
           <div className="mt-8 px-4">
             <h3 className="text-gray-400 text-xs font-medium mb-3 px-2">ACTIVE FRIENDS</h3>
             <div className="space-y-3">
-              {['Sephiroth', 'Linda Lohan', 'Irina Petrova', 'Jennie Ferguson'].map((name, index) => (
-                <div key={index} className="flex items-center gap-2">
+              {activeFriends.map((friend, index) => (
+                <div 
+                  key={index} 
+                  className="flex items-center gap-2 cursor-pointer hover:bg-gray-800 p-2 rounded-md"
+                  onClick={() => navigateToProfile(friend.name)}
+                >
                   <div className="w-8 h-8 rounded-full bg-gray-600 flex items-center justify-center relative">
                     <User className="w-4 h-4 text-gray-300" />
                     <div className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-green-400 border border-[#2B2A33] dark:border-gray-900"></div>
+                    {getFriendBadge(friend)}
                   </div>
-                  <span className="text-gray-300 text-xs">{name}</span>
+                  <div className="flex flex-col">
+                    <span className="text-gray-300 text-xs">{friend.name}</span>
+                    {friend.subscribed && (
+                      <span className={`text-xs ${
+                        friend.tier === 'gold' ? 'text-yellow-500' :
+                        friend.tier === 'silver' ? 'text-gray-400' :
+                        'text-amber-700'
+                      }`}>
+                        {friend.tier.charAt(0).toUpperCase() + friend.tier.slice(1)}
+                      </span>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>

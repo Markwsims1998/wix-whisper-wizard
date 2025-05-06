@@ -3,9 +3,11 @@ import { Separator } from "@/components/ui/separator";
 import { User, Heart, MessageCircle, Lock } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ui/use-toast";
+import MediaViewer from "@/components/media/MediaViewer";
 
 type Post = {
   id: string;
@@ -17,6 +19,10 @@ type Post = {
   likes: number;
   comments: number;
   category?: 'all' | 'local' | 'hotlist' | 'friends';
+  authorSubscription?: {
+    subscribed: boolean;
+    tier?: string;
+  };
 };
 
 const posts: Post[] = [
@@ -30,6 +36,10 @@ const posts: Post[] = [
     likes: 12,
     comments: 3,
     category: 'all',
+    authorSubscription: {
+      subscribed: true,
+      tier: 'gold'
+    }
   },
   {
     id: '2',
@@ -39,6 +49,10 @@ const posts: Post[] = [
     likes: 1,
     comments: 0,
     category: 'all',
+    authorSubscription: {
+      subscribed: true,
+      tier: 'gold'
+    }
   },
   {
     id: '3',
@@ -48,6 +62,10 @@ const posts: Post[] = [
     likes: 0,
     comments: 0,
     category: 'all',
+    authorSubscription: {
+      subscribed: true,
+      tier: 'gold'
+    }
   },
   {
     id: '4',
@@ -57,6 +75,10 @@ const posts: Post[] = [
     likes: 8,
     comments: 5,
     category: 'local',
+    authorSubscription: {
+      subscribed: true,
+      tier: 'silver'
+    }
   },
   {
     id: '5',
@@ -68,6 +90,10 @@ const posts: Post[] = [
     likes: 14,
     comments: 2,
     category: 'local',
+    authorSubscription: {
+      subscribed: true,
+      tier: 'bronze'
+    }
   },
   {
     id: '6',
@@ -77,6 +103,10 @@ const posts: Post[] = [
     likes: 45,
     comments: 23,
     category: 'hotlist',
+    authorSubscription: {
+      subscribed: true,
+      tier: 'gold'
+    }
   },
   {
     id: '7',
@@ -88,6 +118,9 @@ const posts: Post[] = [
     likes: 78,
     comments: 34,
     category: 'hotlist',
+    authorSubscription: {
+      subscribed: false
+    }
   },
   {
     id: '8',
@@ -97,6 +130,10 @@ const posts: Post[] = [
     likes: 5,
     comments: 3,
     category: 'friends',
+    authorSubscription: {
+      subscribed: true,
+      tier: 'gold'
+    }
   },
   {
     id: '9',
@@ -108,12 +145,19 @@ const posts: Post[] = [
     likes: 12,
     comments: 8,
     category: 'friends',
+    authorSubscription: {
+      subscribed: true,
+      tier: 'silver'
+    }
   },
 ];
 
 const PostFeed = () => {
   const [activeTab, setActiveTab] = useState("all");
+  const [selectedMedia, setSelectedMedia] = useState<any | null>(null);
   const { subscriptionDetails } = useSubscription();
+  const navigate = useNavigate();
+  const { toast } = useToast();
 
   // Filter posts based on the active tab
   const getFilteredPosts = (tabValue: string) => {
@@ -125,10 +169,43 @@ const PostFeed = () => {
 
   // Handle profile click to navigate to the user's profile
   const handleProfileClick = (author: string) => {
-    // In a real app, this would navigate to the user's profile
-    console.log(`Navigating to ${author}'s profile`);
-    // Example implementation would be:
-    // navigate(`/profile/${userId}`);
+    navigate(`/profile?name=${author}`);
+  };
+
+  const handleMediaClick = (post: Post) => {
+    // Only allow viewing if user has appropriate subscription
+    if ((post.mediaType === 'video' && subscriptionDetails.canViewVideos) || 
+        (post.mediaType === 'image' && subscriptionDetails.canViewPhotos)) {
+      setSelectedMedia({
+        type: post.mediaType,
+        url: post.mediaUrl,
+        title: post.content,
+        author: post.author,
+        likes: post.likes
+      });
+    } else {
+      toast({
+        title: "Subscription Required",
+        description: "Please upgrade your subscription to view this content.",
+      });
+      navigate("/shop");
+    }
+  };
+
+  const getSubscriptionBadge = (post: Post) => {
+    if (post.authorSubscription?.subscribed && post.authorSubscription.tier) {
+      switch (post.authorSubscription.tier) {
+        case 'gold':
+          return <span className="ml-1 px-1 py-0.5 bg-yellow-500 text-white text-xs rounded">Gold</span>;
+        case 'silver':
+          return <span className="ml-1 px-1 py-0.5 bg-gray-400 text-white text-xs rounded">Silver</span>;
+        case 'bronze':
+          return <span className="ml-1 px-1 py-0.5 bg-amber-700 text-white text-xs rounded">Bronze</span>;
+        default:
+          return null;
+      }
+    }
+    return null;
   };
 
   return (
@@ -158,10 +235,11 @@ const PostFeed = () => {
                   <div>
                     <div className="flex items-center">
                       <h3 
-                        className="text-md font-medium cursor-pointer hover:underline"
+                        className="text-md font-medium cursor-pointer hover:underline flex items-center"
                         onClick={() => handleProfileClick(post.author)}
                       >
                         {post.author}
+                        {getSubscriptionBadge(post)}
                       </h3>
                       <span className="text-sm text-gray-500 ml-2">{post.content}</span>
                     </div>
@@ -170,7 +248,10 @@ const PostFeed = () => {
                 </div>
                 
                 {post.mediaUrl && post.mediaType === 'video' && (
-                  <div className="relative rounded-lg overflow-hidden bg-black aspect-video mt-2 mb-4">
+                  <div 
+                    className="relative rounded-lg overflow-hidden bg-black aspect-video mt-2 mb-4 cursor-pointer"
+                    onClick={() => handleMediaClick(post)}
+                  >
                     {subscriptionDetails.canViewVideos ? (
                       <>
                         <div className="absolute inset-0 flex items-center justify-center">
@@ -185,17 +266,12 @@ const PostFeed = () => {
                     ) : (
                       <>
                         <img src={post.mediaUrl} alt="Video thumbnail" className="w-full object-cover opacity-70 blur-sm" />
-                        <div 
-                          className="absolute inset-0 flex flex-col items-center justify-center cursor-pointer"
-                          onClick={() => window.location.href = "/shop"}
-                        >
+                        <div className="absolute inset-0 flex flex-col items-center justify-center cursor-pointer">
                           <Lock className="h-12 w-12 text-white/70 mb-2" />
                           <p className="text-white/80 mb-4">Video content requires a subscription</p>
-                          <Link to="/shop">
-                            <Button size="sm" variant="outline" className="bg-white/20 hover:bg-white/30 text-white border-white/20">
-                              View Plans
-                            </Button>
-                          </Link>
+                          <Button size="sm" variant="outline" className="bg-white/20 hover:bg-white/30 text-white border-white/20">
+                            View Plans
+                          </Button>
                         </div>
                       </>
                     )}
@@ -203,23 +279,21 @@ const PostFeed = () => {
                 )}
 
                 {post.mediaUrl && post.mediaType === 'image' && (
-                  <div className="mt-2 mb-4">
+                  <div 
+                    className="mt-2 mb-4 cursor-pointer"
+                    onClick={() => handleMediaClick(post)}
+                  >
                     {subscriptionDetails.canViewPhotos ? (
                       <img src={post.mediaUrl} alt="Post image" className="rounded-lg w-full" />
                     ) : (
                       <div className="relative">
                         <img src={post.mediaUrl} alt="Post image" className="rounded-lg w-full blur-sm filter saturate-50" />
-                        <div 
-                          className="absolute inset-0 flex flex-col items-center justify-center cursor-pointer"
-                          onClick={() => window.location.href = "/shop"}
-                        >
+                        <div className="absolute inset-0 flex flex-col items-center justify-center cursor-pointer">
                           <Lock className="h-12 w-12 text-white/70 mb-2" />
                           <p className="text-white/80 mb-4">Full quality photo requires a subscription</p>
-                          <Link to="/shop">
-                            <Button size="sm" variant="outline" className="bg-white/20 hover:bg-white/30 text-white border-white/20">
-                              View Plans
-                            </Button>
-                          </Link>
+                          <Button size="sm" variant="outline" className="bg-white/20 hover:bg-white/30 text-white border-white/20">
+                            View Plans
+                          </Button>
                         </div>
                       </div>
                     )}
@@ -245,6 +319,20 @@ const PostFeed = () => {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Full-screen media viewer */}
+      {selectedMedia && (
+        <MediaViewer
+          type={selectedMedia.type}
+          media={{
+            url: selectedMedia.url,
+            title: selectedMedia.title,
+            author: selectedMedia.author,
+            likes: selectedMedia.likes
+          }}
+          onClose={() => setSelectedMedia(null)}
+        />
+      )}
     </div>
   );
 };

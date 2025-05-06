@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
@@ -9,6 +8,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import MediaViewer from "@/components/media/MediaViewer";
+import { Message } from "@/components/MessageTypes"; // Import the Message type
 
 const Messages = () => {
   const [selectedChat, setSelectedChat] = useState<number | null>(1);
@@ -52,7 +52,7 @@ const Messages = () => {
     { id: 5, name: 'Jennie Ferguson', message: 'Let me know when you\'re free', time: '2d ago', unread: 0, subscribed: false }
   ];
 
-  const [messages, setMessages] = useState([
+  const [messages, setMessages] = useState<Message[]>([
     { id: 1, sender: 'Sephiroth', text: 'Hey, how are you doing today?', time: '2:30 PM', isMine: false },
     { id: 2, sender: 'me', text: 'I\'m good! Just working on some new features for the site.', time: '2:32 PM', isMine: true },
     { id: 3, sender: 'Sephiroth', text: 'That sounds great! Can\'t wait to see what you come up with.', time: '2:33 PM', isMine: false },
@@ -78,9 +78,10 @@ const Messages = () => {
       const now = new Date();
       const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       
-      let newMessage: any = {
+      let newMessage: Message = {
         id: messages.length + 1,
         sender: 'me',
+        text: messageInput.trim() ? messageInput : "",
         time: timeString,
         isMine: true
       };
@@ -88,9 +89,6 @@ const Messages = () => {
       // Check if there's a message, image, or both
       if (selectedImage) {
         newMessage.image = selectedImage;
-      }
-      if (messageInput.trim()) {
-        newMessage.text = messageInput;
       }
       
       setMessages(prevMessages => [...prevMessages, newMessage]);

@@ -1,7 +1,7 @@
 
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
-import { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Settings as SettingsIcon, User, Bell, Shield, Key, Eye, Globe, CreditCard } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";

@@ -179,6 +179,14 @@ const Messages = () => {
     return null;
   };
 
+  // Helper function to get image URL regardless of type
+  const getImageUrl = (image: string | { url: string; name: string }): string => {
+    if (typeof image === 'string') {
+      return image;
+    }
+    return image.url;
+  };
+
   return (
     <div className="min-h-screen bg-gray-100">
       <Sidebar />
@@ -310,7 +318,7 @@ const Messages = () => {
                                 onClick={() => handleViewImage(message.image)}
                               >
                                 <img 
-                                  src={message.image.url} 
+                                  src={getImageUrl(message.image)} 
                                   alt="Shared image" 
                                   className="rounded-md max-h-52 w-auto" 
                                 />
@@ -430,10 +438,10 @@ const Messages = () => {
       </div>
 
       {/* Full-screen image viewer */}
-      {selectedImage && selectedImage.url && (
+      {selectedImage && (
         <MediaViewer 
           type="image"
-          media={{ url: selectedImage.url }}
+          media={{ url: typeof selectedImage === 'string' ? selectedImage : selectedImage.url }}
           onClose={() => setSelectedImage(null)}
         />
       )}

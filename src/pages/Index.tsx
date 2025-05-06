@@ -4,7 +4,9 @@ import Header from "@/components/Header";
 import MembersList from "@/components/MembersList";
 import PostFeed from "@/components/PostFeed";
 import Sidebar from "@/components/Sidebar";
-import { Image, MessageSquare, Video } from "lucide-react";
+import { Image, MessageSquare, Video, ShoppingCart } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Link } from "react-router-dom";
 
 const Index = () => {
   // Update header position based on sidebar width
@@ -33,18 +35,18 @@ const Index = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-gray-100 flex flex-col">
       <Sidebar />
       <Header />
       
-      <div className="pl-[280px] pt-16 pr-4 pb-10 transition-all duration-300" style={{ paddingLeft: 'var(--sidebar-width, 280px)' }}>
+      <div className="pl-[280px] pt-16 pr-4 pb-10 transition-all duration-300 flex-grow" style={{ paddingLeft: 'var(--sidebar-width, 280px)' }}>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-screen-xl mx-auto">
           <div className="lg:col-span-2">
             {/* Create Post Area */}
-            <div className="bg-white rounded-lg p-4 mb-4">
+            <div className="bg-white rounded-lg p-4 mb-4 shadow-sm">
               <div className="flex items-center gap-3 mb-3">
                 <div className="h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center overflow-hidden">
-                  <img src="https://via.placeholder.com/40" alt="Profile" className="w-full h-full object-cover" />
+                  <img src="https://images.unsplash.com/photo-1649972904349-6e44c42644a7?ixlib=rb-4.0.3&auto=format&fit=crop&w=80&h=80&q=80" alt="Profile" className="w-full h-full object-cover" />
                 </div>
                 <div className="flex-1">
                   <input 
@@ -52,6 +54,12 @@ const Index = () => {
                     placeholder="What's on your mind, Alex?"
                     className="w-full px-4 py-2 bg-gray-100 rounded-full text-sm focus:outline-none"
                   />
+                </div>
+                <div className="relative">
+                  <Link to="/shop">
+                    <ShoppingCart className="h-6 w-6 text-gray-500 hover:text-[#8B5CF6] transition-colors" />
+                    <Badge className="absolute -top-2 -right-2 bg-[#8B5CF6] hover:bg-[#7C3AED]">3</Badge>
+                  </Link>
                 </div>
               </div>
               <div className="flex border-t pt-3">

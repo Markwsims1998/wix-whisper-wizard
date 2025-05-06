@@ -19,6 +19,7 @@ import Settings from "./pages/Settings";
 import Messages from "./pages/Messages";
 import Login from "./pages/Login";
 import { ThemeProvider } from "./contexts/ThemeContext";
+import Footer from "./components/Footer";
 
 const queryClient = new QueryClient();
 
@@ -33,22 +34,75 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+const Layout = ({ children }: { children: React.ReactNode }) => {
+  return (
+    <div className="flex flex-col min-h-screen">
+      {children}
+      <Footer />
+    </div>
+  );
+};
+
 const AppRoutes = () => {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
-      <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-      <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-      <Route path="/photos" element={<ProtectedRoute><Photos /></ProtectedRoute>} />
-      <Route path="/activity" element={<ProtectedRoute><Activity /></ProtectedRoute>} />
-      <Route path="/watch" element={<ProtectedRoute><Watch /></ProtectedRoute>} />
-      <Route path="/people" element={<ProtectedRoute><People /></ProtectedRoute>} />
-      <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
-      <Route path="/shop" element={<ProtectedRoute><Shop /></ProtectedRoute>} />
-      <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-      <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
+      <Route path="/" element={
+        <Layout>
+          <ProtectedRoute><Index /></ProtectedRoute>
+        </Layout>
+      } />
+      <Route path="/profile" element={
+        <Layout>
+          <ProtectedRoute><Profile /></ProtectedRoute>
+        </Layout>
+      } />
+      <Route path="/photos" element={
+        <Layout>
+          <ProtectedRoute><Photos /></ProtectedRoute>
+        </Layout>
+      } />
+      <Route path="/activity" element={
+        <Layout>
+          <ProtectedRoute><Activity /></ProtectedRoute>
+        </Layout>
+      } />
+      <Route path="/watch" element={
+        <Layout>
+          <ProtectedRoute><Watch /></ProtectedRoute>
+        </Layout>
+      } />
+      <Route path="/people" element={
+        <Layout>
+          <ProtectedRoute><People /></ProtectedRoute>
+        </Layout>
+      } />
+      <Route path="/notifications" element={
+        <Layout>
+          <ProtectedRoute><Notifications /></ProtectedRoute>
+        </Layout>
+      } />
+      <Route path="/shop" element={
+        <Layout>
+          <ProtectedRoute><Shop /></ProtectedRoute>
+        </Layout>
+      } />
+      <Route path="/settings" element={
+        <Layout>
+          <ProtectedRoute><Settings /></ProtectedRoute>
+        </Layout>
+      } />
+      <Route path="/messages" element={
+        <Layout>
+          <ProtectedRoute><Messages /></ProtectedRoute>
+        </Layout>
+      } />
       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-      <Route path="*" element={<ProtectedRoute><NotFound /></ProtectedRoute>} />
+      <Route path="*" element={
+        <Layout>
+          <ProtectedRoute><NotFound /></ProtectedRoute>
+        </Layout>
+      } />
     </Routes>
   );
 };

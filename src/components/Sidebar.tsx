@@ -4,6 +4,7 @@ import { Activity, Image, Play, User, Users, ShoppingBag, Bell, Home, Settings, 
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const Sidebar = () => {
   const [collapsed, setCollapsed] = useState(false);
@@ -18,7 +19,10 @@ const Sidebar = () => {
     { id: 1, name: 'Sephiroth', subscribed: true, tier: 'gold' },
     { id: 2, name: 'Linda Lohan', subscribed: true, tier: 'silver' },
     { id: 3, name: 'Irina Petrova', subscribed: true, tier: 'bronze' },
-    { id: 4, name: 'Jennie Ferguson', subscribed: false }
+    { id: 4, name: 'Jennie Ferguson', subscribed: false },
+    { id: 5, name: 'Michael Wong', subscribed: true, tier: 'gold' },
+    { id: 6, name: 'Sarah Taylor', subscribed: false },
+    { id: 7, name: 'Robert Chen', subscribed: true, tier: 'bronze' }
   ];
 
   const navigateToProfile = (name: string) => {
@@ -45,7 +49,7 @@ const Sidebar = () => {
   };
 
   return (
-    <div className={`bg-[#2B2A33] min-h-screen ${collapsed ? 'w-[70px]' : 'w-[280px]'} flex flex-col fixed left-0 top-0 transition-all duration-300 ease-in-out dark:bg-gray-900`}>
+    <div className={`bg-[#2B2A33] min-h-screen ${collapsed ? 'w-[70px]' : 'w-[280px]'} flex flex-col fixed left-0 top-0 transition-all duration-300 ease-in-out dark:bg-gray-900 z-50`}>
       <button 
         onClick={() => setCollapsed(!collapsed)}
         className="absolute -right-4 top-24 bg-[#2B2A33] text-gray-400 p-1 rounded-full z-20 dark:bg-gray-900"
@@ -105,35 +109,40 @@ const Sidebar = () => {
       {/* Recently Active Friends */}
       {!collapsed && (
         <>
-          <div className="mt-8 px-4">
+          <div className="mt-8 px-4 flex-1">
             <h3 className="text-gray-400 text-xs font-medium mb-3 px-2">ACTIVE FRIENDS</h3>
-            <div className="space-y-3">
-              {activeFriends.map((friend, index) => (
-                <div 
-                  key={index} 
-                  className="flex items-center gap-2 cursor-pointer hover:bg-gray-800 p-2 rounded-md"
-                  onClick={() => navigateToProfile(friend.name)}
-                >
-                  <div className="w-8 h-8 rounded-full bg-gray-600 flex items-center justify-center relative">
-                    <User className="w-4 h-4 text-gray-300" />
-                    <div className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-green-400 border border-[#2B2A33] dark:border-gray-900"></div>
-                    {getFriendBadge(friend)}
+            <ScrollArea className="h-[calc(100vh-450px)]">
+              <div className="space-y-3 pr-4">
+                {activeFriends.map((friend, index) => (
+                  <div 
+                    key={index} 
+                    className="flex items-center gap-2 cursor-pointer hover:bg-gray-800 p-2 rounded-md"
+                    onClick={() => navigateToProfile(friend.name)}
+                  >
+                    <div className="w-8 h-8 rounded-full bg-gray-600 flex items-center justify-center relative">
+                      <User className="w-4 h-4 text-gray-300" />
+                      <div className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-green-400 border border-[#2B2A33] dark:border-gray-900"></div>
+                      {getFriendBadge(friend)}
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-gray-300 text-xs">{friend.name}</span>
+                      {friend.subscribed && (
+                        <span className={`text-xs ${
+                          friend.tier === 'gold' ? 'text-yellow-500' :
+                          friend.tier === 'silver' ? 'text-gray-400' :
+                          'text-amber-700'
+                        }`}>
+                          {friend.tier.charAt(0).toUpperCase() + friend.tier.slice(1)}
+                        </span>
+                      )}
+                      {!friend.subscribed && (
+                        <span className="text-xs text-gray-500">Free</span>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex flex-col">
-                    <span className="text-gray-300 text-xs">{friend.name}</span>
-                    {friend.subscribed && (
-                      <span className={`text-xs ${
-                        friend.tier === 'gold' ? 'text-yellow-500' :
-                        friend.tier === 'silver' ? 'text-gray-400' :
-                        'text-amber-700'
-                      }`}>
-                        {friend.tier.charAt(0).toUpperCase() + friend.tier.slice(1)}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            </ScrollArea>
           </div>
 
           <div className="mt-auto mb-6 px-6">

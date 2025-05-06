@@ -1,7 +1,8 @@
 
-import { Star } from "lucide-react";
+import { Star, ShoppingCart, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
+import { useState } from "react";
 
 interface ProductItemProps {
   product: {
@@ -16,12 +17,19 @@ interface ProductItemProps {
 
 const ProductItem = ({ product }: ProductItemProps) => {
   const { toast } = useToast();
+  const [added, setAdded] = useState(false);
 
   const handleAddToCart = () => {
+    setAdded(true);
     toast({
       title: "Added to cart",
       description: `${product.name} has been added to your cart.`,
     });
+    
+    // Reset the state after 2 seconds
+    setTimeout(() => {
+      setAdded(false);
+    }, 2000);
   };
 
   return (
@@ -48,7 +56,24 @@ const ProductItem = ({ product }: ProductItemProps) => {
         </div>
         <div className="flex justify-between items-center mt-3">
           <span className="font-bold">{product.price}</span>
-          <Button size="sm" onClick={handleAddToCart}>Add to Cart</Button>
+          <Button 
+            size="sm" 
+            onClick={handleAddToCart}
+            disabled={added}
+            className={added ? "bg-green-500 hover:bg-green-600" : ""}
+          >
+            {added ? (
+              <>
+                <Check className="h-4 w-4 mr-1" />
+                Added
+              </>
+            ) : (
+              <>
+                <ShoppingCart className="h-4 w-4 mr-1" />
+                Add to Cart
+              </>
+            )}
+          </Button>
         </div>
       </div>
     </div>

@@ -5,5 +5,5 @@ export interface Message {
   text: string;
   time: string;
   isMine: boolean;
-  image?: string;
+  image?: string | { url: string; name: string };
 }

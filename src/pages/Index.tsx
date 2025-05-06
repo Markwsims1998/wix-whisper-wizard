@@ -1,11 +1,10 @@
+
 import { useEffect } from "react";
 import Header from "@/components/Header";
 import MembersList from "@/components/MembersList";
 import PostFeed from "@/components/PostFeed";
 import Sidebar from "@/components/Sidebar";
-import { Image, MessageSquare, Video, ShoppingCart } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Link } from "react-router-dom";
+import { Image, MessageSquare, Video } from "lucide-react";
 
 const Index = () => {
   // Update header position based on sidebar width
@@ -39,8 +38,8 @@ const Index = () => {
       <Header />
       
       <div className="pl-[280px] pt-16 pr-4 pb-10 transition-all duration-300 flex-grow" style={{ paddingLeft: 'var(--sidebar-width, 280px)' }}>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-screen-xl mx-auto w-full">
-          <div className="lg:col-span-2 w-full">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 max-w-screen-xl mx-auto w-full">
+          <div className="lg:col-span-12 w-full">
             {/* Create Post Area */}
             <div className="bg-white rounded-lg p-4 mb-4 shadow-sm w-full">
               <div className="flex items-center gap-3 mb-3">
@@ -53,12 +52,6 @@ const Index = () => {
                     placeholder="What's on your mind, Alex?"
                     className="w-full px-4 py-2 bg-gray-100 rounded-full text-sm focus:outline-none"
                   />
-                </div>
-                <div className="relative">
-                  <Link to="/shop">
-                    <ShoppingCart className="h-6 w-6 text-gray-500 hover:text-[#8B5CF6] transition-colors" />
-                    <Badge className="absolute -top-2 -right-2 bg-[#8B5CF6] hover:bg-[#7C3AED]">3</Badge>
-                  </Link>
                 </div>
               </div>
               <div className="flex border-t pt-3">
@@ -77,9 +70,6 @@ const Index = () => {
               </div>
             </div>
             <PostFeed />
-          </div>
-          <div className="lg:col-span-1">
-            <MembersList />
           </div>
         </div>
       </div>

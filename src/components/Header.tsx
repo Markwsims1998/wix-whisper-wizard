@@ -1,7 +1,8 @@
 
-import { Bell, MessageSquare, Search, LogOut } from "lucide-react";
+import { Bell, MessageSquare, Search, LogOut, ShoppingCart } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { Badge } from "@/components/ui/badge";
 
 const Header = () => {
   const { user, logout } = useAuth();
@@ -28,6 +29,11 @@ const Header = () => {
         <Link to="/messages" className="relative text-gray-600 hover:text-purple-600 transition-colors dark:text-gray-300 dark:hover:text-purple-400">
           <MessageSquare className="w-5 h-5" />
           <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-4 h-4 rounded-full flex items-center justify-center">5</span>
+        </Link>
+
+        <Link to="/shop" className="relative text-gray-600 hover:text-purple-600 transition-colors dark:text-gray-300 dark:hover:text-purple-400">
+          <ShoppingCart className="w-5 h-5" />
+          <Badge className="absolute -top-2 -right-2 bg-[#8B5CF6] hover:bg-[#7C3AED]">3</Badge>
         </Link>
         
         <Link 

@@ -109,7 +109,7 @@ const Sidebar = () => {
       {/* Recently Active Friends */}
       {!collapsed && (
         <>
-          <div className="mt-8 px-4 flex-1 overflow-hidden">
+          <div className="mt-8 px-4 flex-1 min-h-0">
             <h3 className="text-gray-400 text-xs font-medium mb-3 px-2">ACTIVE FRIENDS</h3>
             <ScrollArea className="h-[calc(100vh-450px)]">
               <div className="pr-4 space-y-3">

@@ -1,4 +1,3 @@
-
 import { Link } from 'react-router-dom';
 import { Facebook, Instagram, Twitter, Youtube, Mail } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -7,7 +6,7 @@ const Footer = () => {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="bg-[#2B2A33] text-gray-300 dark:bg-gray-900 w-full mt-auto">
+    <footer className="bg-[#2B2A33] text-gray-300 dark:bg-gray-900 w-full mt-auto" style={{ marginLeft: 'var(--sidebar-width, 280px)', transition: 'margin-left 0.3s ease-in-out' }}>
       <div className="max-w-screen-xl mx-auto px-6 py-10">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div>

@@ -74,18 +74,42 @@ const Messages = () => {
       const now = new Date();
       const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       
-      setMessages([
-        ...messages,
-        {
-          id: messages.length + 1,
-          sender: 'me',
-          text: messageInput,
-          time: timeString,
-          isMine: true
-        }
-      ]);
+      const newMessage = {
+        id: messages.length + 1,
+        sender: 'me',
+        text: messageInput,
+        time: timeString,
+        isMine: true
+      };
       
+      setMessages(prevMessages => [...prevMessages, newMessage]);
       setMessageInput("");
+      
+      // Simulate a reply after a delay
+      setTimeout(() => {
+        const replyTime = new Date();
+        const replyTimeString = replyTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        
+        const replies = [
+          "That's interesting!",
+          "I see what you mean.",
+          "Thanks for letting me know.",
+          "I'll think about it and get back to you.",
+          "That sounds great!"
+        ];
+        
+        const randomReply = replies[Math.floor(Math.random() * replies.length)];
+        
+        const replyMessage = {
+          id: messages.length + 2,
+          sender: chats.find(c => c.id === selectedChat)?.name || 'Unknown',
+          text: randomReply,
+          time: replyTimeString,
+          isMine: false
+        };
+        
+        setMessages(prevMessages => [...prevMessages, replyMessage]);
+      }, 2000);
     } else {
       toast({
         title: "Message not sent",
@@ -105,6 +129,16 @@ const Messages = () => {
     const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
     
     return `${diffHrs}h ${diffMins}m`;
+  };
+  
+  // Function to navigate to a user's profile
+  const navigateToProfile = (name: string) => {
+    // In a real app, this would navigate to the user profile
+    console.log(`Navigate to ${name}'s profile`);
+    toast({
+      title: "Profile Navigation",
+      description: `Navigating to ${name}'s profile...`,
+    });
   };
 
   return (
@@ -151,12 +185,26 @@ const Messages = () => {
                       className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer ${selectedChat === chat.id ? 'bg-purple-50' : 'hover:bg-gray-50'}`}
                       onClick={() => setSelectedChat(chat.id)}
                     >
-                      <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center">
+                      <div 
+                        className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center cursor-pointer"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigateToProfile(chat.name);
+                        }}
+                      >
                         <User className="w-5 h-5 text-purple-600" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex justify-between">
-                          <h3 className="font-medium text-sm">{chat.name}</h3>
+                          <h3 
+                            className="font-medium text-sm hover:underline cursor-pointer"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigateToProfile(chat.name);
+                            }}
+                          >
+                            {chat.name}
+                          </h3>
                           <span className="text-xs text-gray-500">{chat.time}</span>
                         </div>
                         <p className="text-xs text-gray-500 truncate">{chat.message}</p>
@@ -179,11 +227,19 @@ const Messages = () => {
                   {/* Chat Header */}
                   <div className="border-b border-gray-100 p-4 flex justify-between items-center">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center">
+                      <div 
+                        className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center cursor-pointer"
+                        onClick={() => navigateToProfile(chats.find(chat => chat.id === selectedChat)?.name || "")}
+                      >
                         <User className="w-5 h-5 text-purple-600" />
                       </div>
                       <div>
-                        <h3 className="font-medium">{chats.find(chat => chat.id === selectedChat)?.name}</h3>
+                        <h3 
+                          className="font-medium cursor-pointer hover:underline"
+                          onClick={() => navigateToProfile(chats.find(chat => chat.id === selectedChat)?.name || "")}
+                        >
+                          {chats.find(chat => chat.id === selectedChat)?.name}
+                        </h3>
                         <p className="text-xs text-green-500">Online</p>
                       </div>
                     </div>

@@ -1,6 +1,6 @@
 
 import { Separator } from "@/components/ui/separator";
-import { User, Heart, MessageCircle, Share2, Lock } from "lucide-react";
+import { User, Heart, MessageCircle, Lock } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useState } from "react";
 import { Link } from "react-router-dom";
@@ -123,6 +123,14 @@ const PostFeed = () => {
     return posts.filter(post => post.category === tabValue);
   };
 
+  // Handle profile click to navigate to the user's profile
+  const handleProfileClick = (author: string) => {
+    // In a real app, this would navigate to the user's profile
+    console.log(`Navigating to ${author}'s profile`);
+    // Example implementation would be:
+    // navigate(`/profile/${userId}`);
+  };
+
   return (
     <div className="max-w-2xl mx-auto">
       <div className="bg-white rounded-lg p-4 mb-4">
@@ -141,12 +149,20 @@ const PostFeed = () => {
             {getFilteredPosts(activeTab).map((post) => (
               <div key={post.id} className="mb-8">
                 <div className="flex items-start gap-3 mb-3">
-                  <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
+                  <div 
+                    className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden cursor-pointer"
+                    onClick={() => handleProfileClick(post.author)}
+                  >
                     <User className="h-5 w-5 text-gray-500" />
                   </div>
                   <div>
                     <div className="flex items-center">
-                      <h3 className="text-md font-medium">{post.author}</h3>
+                      <h3 
+                        className="text-md font-medium cursor-pointer hover:underline"
+                        onClick={() => handleProfileClick(post.author)}
+                      >
+                        {post.author}
+                      </h3>
                       <span className="text-sm text-gray-500 ml-2">{post.content}</span>
                     </div>
                     <p className="text-xs text-gray-500">{post.timestamp}</p>
@@ -167,15 +183,21 @@ const PostFeed = () => {
                         <img src={post.mediaUrl} alt="Video thumbnail" className="w-full object-cover opacity-70" />
                       </>
                     ) : (
-                      <div className="flex flex-col items-center justify-center h-full p-6 text-center">
-                        <Lock className="h-12 w-12 text-white/50 mb-2" />
-                        <p className="text-white/80 mb-4">Video content requires a subscription</p>
-                        <Link to="/shop">
-                          <Button size="sm" variant="outline" className="bg-white/20 hover:bg-white/30 text-white border-white/20">
-                            View Plans
-                          </Button>
-                        </Link>
-                      </div>
+                      <>
+                        <img src={post.mediaUrl} alt="Video thumbnail" className="w-full object-cover opacity-70 blur-sm" />
+                        <div 
+                          className="absolute inset-0 flex flex-col items-center justify-center cursor-pointer"
+                          onClick={() => window.location.href = "/shop"}
+                        >
+                          <Lock className="h-12 w-12 text-white/70 mb-2" />
+                          <p className="text-white/80 mb-4">Video content requires a subscription</p>
+                          <Link to="/shop">
+                            <Button size="sm" variant="outline" className="bg-white/20 hover:bg-white/30 text-white border-white/20">
+                              View Plans
+                            </Button>
+                          </Link>
+                        </div>
+                      </>
                     )}
                   </div>
                 )}
@@ -185,12 +207,20 @@ const PostFeed = () => {
                     {subscriptionDetails.canViewPhotos ? (
                       <img src={post.mediaUrl} alt="Post image" className="rounded-lg w-full" />
                     ) : (
-                      <div className="flex flex-col items-center justify-center h-[200px] rounded-lg bg-gray-200 p-6 text-center">
-                        <Lock className="h-12 w-12 text-gray-400 mb-2" />
-                        <p className="text-gray-500 mb-4">Photo content requires a subscription</p>
-                        <Link to="/shop">
-                          <Button size="sm" variant="outline">View Plans</Button>
-                        </Link>
+                      <div className="relative">
+                        <img src={post.mediaUrl} alt="Post image" className="rounded-lg w-full blur-sm filter saturate-50" />
+                        <div 
+                          className="absolute inset-0 flex flex-col items-center justify-center cursor-pointer"
+                          onClick={() => window.location.href = "/shop"}
+                        >
+                          <Lock className="h-12 w-12 text-white/70 mb-2" />
+                          <p className="text-white/80 mb-4">Full quality photo requires a subscription</p>
+                          <Link to="/shop">
+                            <Button size="sm" variant="outline" className="bg-white/20 hover:bg-white/30 text-white border-white/20">
+                              View Plans
+                            </Button>
+                          </Link>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -206,9 +236,6 @@ const PostFeed = () => {
                   </button>
                   <button className="flex items-center gap-1 text-gray-500 text-sm">
                     <MessageCircle className="h-4 w-4" /> {post.comments}
-                  </button>
-                  <button className="flex items-center gap-1 text-gray-500 text-sm">
-                    <Share2 className="h-4 w-4" /> Share
                   </button>
                 </div>
                 

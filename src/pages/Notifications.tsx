@@ -1,11 +1,34 @@
 
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
-import { useEffect } from "react";
-import { Bell, User, Heart, MessageCircle, UserPlus, Image } from "lucide-react";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { useEffect, useState } from "react";
+import { Bell, User, Heart, MessageCircle } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ui/use-toast";
+
+type Notification = {
+  id: string;
+  type: 'like' | 'comment' | 'friend' | 'system';
+  content: string;
+  timestamp: string;
+  user?: {
+    name: string;
+    avatar?: string;
+  };
+  read: boolean;
+};
 
 const Notifications = () => {
+  const { toast } = useToast();
+  const [notifications, setNotifications] = useState<Notification[]>([
+    { id: '1', type: 'like', content: 'liked your post', timestamp: '3 mins ago', user: { name: 'Sephiroth' }, read: false },
+    { id: '2', type: 'comment', content: 'commented on your post', timestamp: '1 hour ago', user: { name: 'Linda Lohan' }, read: false },
+    { id: '3', type: 'friend', content: 'accepted your friend request', timestamp: '2 hours ago', user: { name: 'Irina Petrova' }, read: false },
+    { id: '4', type: 'system', content: 'Your subscription has been renewed', timestamp: '1 day ago', read: true },
+    { id: '5', type: 'like', content: 'liked your comment', timestamp: '2 days ago', user: { name: 'Robert Cook' }, read: true },
+  ]);
+  
   // Update header position based on sidebar width
   useEffect(() => {
     const updateHeaderPosition = () => {
@@ -31,14 +54,30 @@ const Notifications = () => {
     };
   }, []);
 
-  const notifications = [
-    { id: 1, type: 'like', user: 'Sephiroth', content: 'liked your post', time: '15 minutes ago', read: false },
-    { id: 2, type: 'comment', user: 'Linda Lohan', content: 'commented on your photo', time: '1 hour ago', read: false },
-    { id: 3, type: 'friend', user: 'Robert Cook', content: 'sent you a friend request', time: '3 hours ago', read: false },
-    { id: 4, type: 'like', user: 'Jennie Ferguson', content: 'liked your comment', time: '5 hours ago', read: true },
-    { id: 5, type: 'photo', user: 'Irina Petrova', content: 'tagged you in a photo', time: '1 day ago', read: true },
-    { id: 6, type: 'comment', user: 'Admin', content: 'replied to your comment', time: '2 days ago', read: true },
-  ];
+  const handleMarkAllAsRead = () => {
+    const updatedNotifications = notifications.map(notification => ({
+      ...notification,
+      read: true
+    }));
+    
+    setNotifications(updatedNotifications);
+    
+    toast({
+      title: "All Notifications Marked as Read",
+      description: "Your notifications have been marked as read.",
+    });
+  };
+
+  const handleMarkAsRead = (id: string) => {
+    const updatedNotifications = notifications.map(notification => 
+      notification.id === id ? { ...notification, read: true } : notification
+    );
+    
+    setNotifications(updatedNotifications);
+  };
+  
+  // Count unread notifications
+  const unreadCount = notifications.filter(n => !n.read).length;
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -53,68 +92,64 @@ const Notifications = () => {
                 <h1 className="text-2xl font-semibold">Notifications</h1>
                 <div className="border-b-2 border-purple-500 w-16 mt-1"></div>
               </div>
-              <button className="flex items-center gap-2 bg-gray-100 text-gray-600 px-4 py-2 rounded-lg hover:bg-gray-200 transition">
-                <Bell className="w-5 h-5" />
-                <span>Mark all as read</span>
-              </button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={handleMarkAllAsRead}
+                disabled={unreadCount === 0}
+              >
+                Mark All as Read
+              </Button>
             </div>
             
-            <Tabs defaultValue="all" className="mb-4">
-              <TabsList className="grid grid-cols-3 w-full bg-gray-100 mb-6">
-                <TabsTrigger value="all" className="text-xs">All</TabsTrigger>
-                <TabsTrigger value="unread" className="text-xs">Unread</TabsTrigger>
-                <TabsTrigger value="read" className="text-xs">Read</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="all">
-                <div className="space-y-2">
-                  {notifications.map((notification) => (
-                    <NotificationItem key={notification.id} notification={notification} />
-                  ))}
+            <div className="space-y-4">
+              {notifications.length === 0 ? (
+                <div className="text-center py-8">
+                  <Bell className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                  <p className="text-gray-500">No notifications to display</p>
                 </div>
-              </TabsContent>
-
-              <TabsContent value="unread">
-                <div className="space-y-2">
-                  {notifications.filter(notification => !notification.read).map((notification) => (
-                    <NotificationItem key={notification.id} notification={notification} />
-                  ))}
-                </div>
-              </TabsContent>
-
-              <TabsContent value="read">
-                <div className="space-y-2">
-                  {notifications.filter(notification => notification.read).map((notification) => (
-                    <NotificationItem key={notification.id} notification={notification} />
-                  ))}
-                </div>
-              </TabsContent>
-            </Tabs>
+              ) : (
+                notifications.map((notification, index) => (
+                  <div key={notification.id}>
+                    <div 
+                      className={`p-3 rounded-lg ${!notification.read ? 'bg-purple-50' : ''} hover:bg-gray-50 transition-colors cursor-pointer`}
+                      onClick={() => handleMarkAsRead(notification.id)}
+                    >
+                      <div className="flex items-center gap-3">
+                        {notification.type !== 'system' ? (
+                          <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
+                            {notification.user?.avatar ? (
+                              <img src={notification.user.avatar} alt={notification.user.name} className="h-full w-full object-cover" />
+                            ) : (
+                              <User className="h-5 w-5 text-gray-500" />
+                            )}
+                          </div>
+                        ) : (
+                          <div className="h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center">
+                            <Bell className="h-5 w-5 text-purple-600" />
+                          </div>
+                        )}
+                        <div className="flex-1">
+                          <div className="flex flex-wrap gap-1">
+                            {notification.user && (
+                              <span className="font-medium">{notification.user.name}</span>
+                            )}
+                            <span>{notification.content}</span>
+                          </div>
+                          <p className="text-xs text-gray-500 mt-1">{notification.timestamp}</p>
+                        </div>
+                        {!notification.read && (
+                          <div className="h-2 w-2 rounded-full bg-purple-600"></div>
+                        )}
+                      </div>
+                    </div>
+                    {index < notifications.length - 1 && <Separator className="my-2" />}
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         </div>
-      </div>
-    </div>
-  );
-};
-
-const NotificationItem = ({ notification }: { notification: any }) => {
-  return (
-    <div className={`flex items-start gap-3 p-3 rounded-lg ${notification.read ? 'bg-white' : 'bg-purple-50'}`}>
-      <div className="h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center overflow-hidden">
-        <User className="h-5 w-5 text-purple-600" />
-      </div>
-      <div className="flex-1">
-        <div className="flex items-center">
-          <h3 className="text-md font-medium">{notification.user}</h3>
-          <span className="text-sm text-gray-500 ml-2">{notification.content}</span>
-        </div>
-        <p className="text-xs text-gray-500">{notification.time}</p>
-      </div>
-      <div className="flex items-center justify-center h-8 w-8 rounded-full bg-gray-100">
-        {notification.type === 'like' && <Heart className="w-4 h-4 text-red-500" />}
-        {notification.type === 'comment' && <MessageCircle className="w-4 h-4 text-blue-500" />}
-        {notification.type === 'friend' && <UserPlus className="w-4 h-4 text-green-500" />}
-        {notification.type === 'photo' && <Image className="w-4 h-4 text-purple-500" />}
       </div>
     </div>
   );

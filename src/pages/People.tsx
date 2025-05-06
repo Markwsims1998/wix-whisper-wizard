@@ -1,11 +1,17 @@
 
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
-import { useEffect } from "react";
-import { Users, User, Search } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Users, User, Search, MapPin } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { useToast } from "@/components/ui/use-toast";
 
 const People = () => {
+  const { toast } = useToast();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [friendRequests, setFriendRequests] = useState<Set<string>>(new Set());
+  const [friendsList, setFriendsList] = useState<Set<string>>(new Set(['1', '2', '3', '4']));
+  
   // Update header position based on sidebar width
   useEffect(() => {
     const updateHeaderPosition = () => {
@@ -43,6 +49,47 @@ const People = () => {
     { id: '9', name: 'Emma Wilson', username: '@emma', timeAgo: '3 years ago' },
     { id: '10', name: 'Michael Brown', username: '@michael', timeAgo: '3 years ago' }
   ];
+  
+  // Handle friend request or message
+  const handleFriendAction = (memberId: string, isFriend: boolean) => {
+    if (isFriend) {
+      // Navigate to messages with this user
+      toast({
+        title: "Opening Messages",
+        description: "Redirecting to your conversation...",
+      });
+      
+      // In a real app, you would navigate to the messages page with this user
+      // navigate(`/messages?user=${memberId}`);
+    } else {
+      // Send friend request
+      const updatedRequests = new Set(friendRequests);
+      updatedRequests.add(memberId);
+      setFriendRequests(updatedRequests);
+      
+      toast({
+        title: "Friend Request Sent",
+        description: "Your friend request has been sent.",
+      });
+    }
+  };
+  
+  // Handle view profile
+  const handleViewProfile = (name: string) => {
+    toast({
+      title: "Profile View",
+      description: `Viewing ${name}'s profile...`,
+    });
+    
+    // In a real app, you would navigate to the profile page
+    // navigate(`/profile/${memberId}`);
+  };
+  
+  // Filter members based on search term
+  const filteredMembers = members.filter(member => 
+    member.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    member.username.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -63,6 +110,8 @@ const People = () => {
                   type="text" 
                   placeholder="Search people..." 
                   className="pl-10 pr-4 py-2 border border-gray-200 rounded-lg w-full focus:outline-none focus:ring-1 focus:ring-purple-500 text-sm"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
             </div>
@@ -77,32 +126,60 @@ const People = () => {
               
               <TabsContent value="all">
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {members.map((member) => (
-                    <MemberCard key={member.id} member={member} />
+                  {filteredMembers.map((member) => (
+                    <MemberCard 
+                      key={member.id} 
+                      member={member} 
+                      isFriendRequested={friendRequests.has(member.id)}
+                      isFriend={friendsList.has(member.id)}
+                      onFriendAction={handleFriendAction}
+                      onViewProfile={handleViewProfile}
+                    />
                   ))}
                 </div>
               </TabsContent>
 
               <TabsContent value="local">
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {members.filter(member => member.isLocal).map((member) => (
-                    <MemberCard key={member.id} member={member} />
+                  {filteredMembers.filter(member => member.isLocal).map((member) => (
+                    <MemberCard 
+                      key={member.id} 
+                      member={member} 
+                      isFriendRequested={friendRequests.has(member.id)}
+                      isFriend={friendsList.has(member.id)}
+                      onFriendAction={handleFriendAction}
+                      onViewProfile={handleViewProfile}
+                    />
                   ))}
                 </div>
               </TabsContent>
 
               <TabsContent value="hotlist">
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {members.filter(member => member.isHotlist).map((member) => (
-                    <MemberCard key={member.id} member={member} />
+                  {filteredMembers.filter(member => member.isHotlist).map((member) => (
+                    <MemberCard 
+                      key={member.id} 
+                      member={member} 
+                      isFriendRequested={friendRequests.has(member.id)}
+                      isFriend={friendsList.has(member.id)}
+                      onFriendAction={handleFriendAction}
+                      onViewProfile={handleViewProfile}
+                    />
                   ))}
                 </div>
               </TabsContent>
 
               <TabsContent value="friends">
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {members.filter(member => member.isFriend).map((member) => (
-                    <MemberCard key={member.id} member={member} />
+                  {filteredMembers.filter(member => friendsList.has(member.id)).map((member) => (
+                    <MemberCard 
+                      key={member.id} 
+                      member={member} 
+                      isFriendRequested={friendRequests.has(member.id)}
+                      isFriend={true}
+                      onFriendAction={handleFriendAction}
+                      onViewProfile={handleViewProfile}
+                    />
                   ))}
                 </div>
               </TabsContent>
@@ -114,26 +191,59 @@ const People = () => {
   );
 };
 
-const MemberCard = ({ member }: { member: any }) => {
+interface MemberCardProps {
+  member: any;
+  isFriendRequested: boolean;
+  isFriend: boolean;
+  onFriendAction: (id: string, isFriend: boolean) => void;
+  onViewProfile: (name: string) => void;
+}
+
+const MemberCard = ({ member, isFriendRequested, isFriend, onFriendAction, onViewProfile }: MemberCardProps) => {
   return (
     <div className="bg-gray-50 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition p-4">
       <div className="flex flex-col items-center">
-        <div className="h-16 w-16 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden mb-3">
+        <div 
+          className="h-16 w-16 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden mb-3 cursor-pointer"
+          onClick={() => onViewProfile(member.name)}
+        >
           <User className="h-8 w-8 text-gray-500" />
         </div>
-        <h3 className="font-medium text-center">{member.name}</h3>
+        <h3 
+          className="font-medium text-center cursor-pointer hover:underline"
+          onClick={() => onViewProfile(member.name)}
+        >
+          {member.name}
+        </h3>
         <p className="text-sm text-gray-500 text-center">{member.username}</p>
         <p className="text-xs text-gray-400 text-center mt-1">Active {member.timeAgo}</p>
         
+        {member.isLocal && (
+          <div className="flex items-center justify-center mt-1 text-xs text-gray-500">
+            <MapPin className="h-3 w-3 mr-1" /> Nearby
+          </div>
+        )}
+        
         <div className="mt-4 flex gap-2">
-          <button className="bg-purple-600 text-white px-3 py-1 text-xs rounded-md hover:bg-purple-700 transition">
-            {member.isFriend ? 'Message' : 'Add Friend'}
+          <button 
+            className={`${
+              isFriend 
+                ? 'bg-purple-600 text-white'
+                : isFriendRequested 
+                  ? 'bg-gray-400 text-white'
+                  : 'bg-purple-600 text-white'
+            } px-3 py-1 text-xs rounded-md hover:opacity-90 transition`}
+            onClick={() => onFriendAction(member.id, isFriend)}
+            disabled={isFriendRequested}
+          >
+            {isFriend ? 'Message' : isFriendRequested ? 'Requested' : 'Add Friend'}
           </button>
-          {!member.isFriend && (
-            <button className="bg-gray-200 text-gray-700 px-3 py-1 text-xs rounded-md hover:bg-gray-300 transition">
-              Profile
-            </button>
-          )}
+          <button 
+            className="bg-gray-200 text-gray-700 px-3 py-1 text-xs rounded-md hover:bg-gray-300 transition"
+            onClick={() => onViewProfile(member.name)}
+          >
+            Profile
+          </button>
         </div>
       </div>
     </div>

@@ -1,4 +1,3 @@
-
 import { useEffect } from "react";
 import Header from "@/components/Header";
 import MembersList from "@/components/MembersList";
@@ -40,10 +39,10 @@ const Index = () => {
       <Header />
       
       <div className="pl-[280px] pt-16 pr-4 pb-10 transition-all duration-300 flex-grow" style={{ paddingLeft: 'var(--sidebar-width, 280px)' }}>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-screen-xl mx-auto">
-          <div className="lg:col-span-2">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-screen-xl mx-auto w-full">
+          <div className="lg:col-span-2 w-full">
             {/* Create Post Area */}
-            <div className="bg-white rounded-lg p-4 mb-4 shadow-sm">
+            <div className="bg-white rounded-lg p-4 mb-4 shadow-sm w-full">
               <div className="flex items-center gap-3 mb-3">
                 <div className="h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center overflow-hidden">
                   <img src="https://images.unsplash.com/photo-1649972904349-6e44c42644a7?ixlib=rb-4.0.3&auto=format&fit=crop&w=80&h=80&q=80" alt="Profile" className="w-full h-full object-cover" />

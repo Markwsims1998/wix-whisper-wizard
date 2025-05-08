@@ -1,5 +1,5 @@
 
-import { Bell, MessageSquare, Search, LogOut, ShoppingCart } from "lucide-react";
+import { Bell, MessageSquare, Search, LogOut } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
@@ -60,15 +60,6 @@ const Header = () => {
         >
           <MessageSquare className="w-5 h-5" />
           <Badge className="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 px-1.5 min-w-[20px] h-5 text-xs">5</Badge>
-        </button>
-
-        <button 
-          onClick={() => handleIconClick("/basket", "shopping cart")} 
-          className="relative text-gray-600 hover:text-purple-600 transition-colors dark:text-gray-300 dark:hover:text-purple-400 bg-gray-100 dark:bg-gray-700 rounded-full p-2"
-          aria-label="Shopping Cart"
-        >
-          <ShoppingCart className="w-5 h-5" />
-          <Badge className="absolute -top-1 -right-1 bg-[#8B5CF6] hover:bg-[#7C3AED] px-1.5 min-w-[20px] h-5 text-xs">3</Badge>
         </button>
         
         <button 

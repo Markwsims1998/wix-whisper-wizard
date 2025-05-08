@@ -9,9 +9,10 @@ import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEffect, useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const Profile = () => {
-  const { subscriptionTier, getTierBadge } = useSubscription();
+  const { subscriptionTier } = useSubscription();
   const { user } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
@@ -20,128 +21,149 @@ const Profile = () => {
   const profileName = queryParams.get('name');
   const [profile, setProfile] = useState<any>(null);
   const [isMyProfile, setIsMyProfile] = useState(true);
+  const [loading, setLoading] = useState(true);
   
   // Get user profile data
   useEffect(() => {
-    if (profileName) {
-      const isCurrentUser = !profileName || profileName === (user?.name || "Alex Johnson");
-      setIsMyProfile(isCurrentUser);
+    const fetchProfileData = async () => {
+      setLoading(true);
       
-      // For demo purposes, let's simulate fetching profile data
-      if (!isCurrentUser) {
-        // Sample profile data for demo
-        const friends = [
-          { name: 'Sephiroth', subscribed: true, tier: 'gold' },
-          { name: 'Linda Lohan', subscribed: true, tier: 'silver' },
-          { name: 'Irina Petrova', subscribed: true, tier: 'bronze' },
-          { name: 'Jennie Ferguson', subscribed: false },
-          { name: 'Robert Cook', subscribed: true, tier: 'bronze' },
-          { name: 'Sophia Lee', subscribed: false },
-          { name: 'John Smith', subscribed: false },
-          { name: 'Michael Brown', subscribed: true, tier: 'silver' },
-        ];
+      try {
+        // Simulate network delay
+        await new Promise(resolve => setTimeout(resolve, 500));
         
-        // Find the friend with matching name
-        const foundFriend = friends.find(f => f.name === profileName);
+        const isCurrentUser = !profileName || profileName === (user?.name || "Alex Johnson");
+        setIsMyProfile(isCurrentUser);
         
-        if (foundFriend) {
+        if (!isCurrentUser) {
+          // Sample profile data for demo when viewing someone else's profile
+          const friends = [
+            { name: 'Sephiroth', subscribed: true, tier: 'gold' },
+            { name: 'Linda Lohan', subscribed: true, tier: 'silver' },
+            { name: 'Irina Petrova', subscribed: true, tier: 'bronze' },
+            { name: 'Jennie Ferguson', subscribed: false },
+            { name: 'Robert Cook', subscribed: true, tier: 'bronze' },
+            { name: 'Sophia Lee', subscribed: false },
+            { name: 'John Smith', subscribed: false },
+            { name: 'Michael Brown', subscribed: true, tier: 'silver' },
+          ];
+          
+          // Find the friend with matching name
+          const foundFriend = friends.find(f => f.name === profileName);
+          
+          if (foundFriend) {
+            setProfile({
+              name: foundFriend.name,
+              username: `@${foundFriend.name.toLowerCase().replace(' ', '')}`,
+              bio: `Hi, I'm ${foundFriend.name}. I love connecting with like-minded people on HappyKinks!`,
+              location: 'London, UK',
+              joinDate: 'January 2023',
+              following: Math.floor(Math.random() * 500),
+              followers: Math.floor(Math.random() * 2000),
+              subscribed: foundFriend.subscribed,
+              tier: foundFriend.subscribed ? foundFriend.tier : null,
+              posts: [
+                {
+                  id: 1,
+                  content: `Hello everyone! Hope you're having a great day!`,
+                  timeAgo: '2 days ago',
+                  likes: Math.floor(Math.random() * 50),
+                  comments: Math.floor(Math.random() * 15)
+                },
+                {
+                  id: 2,
+                  content: `Just attended an amazing workshop last weekend. Learned so much!`,
+                  timeAgo: '1 week ago',
+                  hasImage: true,
+                  likes: Math.floor(Math.random() * 50),
+                  comments: Math.floor(Math.random() * 15)
+                },
+                {
+                  id: 3,
+                  content: `Anyone interested in the upcoming community event next month?`,
+                  timeAgo: '2 weeks ago',
+                  likes: Math.floor(Math.random() * 50),
+                  comments: Math.floor(Math.random() * 15)
+                }
+              ]
+            });
+          } else {
+            // If no matching friend, use a generic profile
+            setProfile({
+              name: profileName,
+              username: `@${profileName?.toLowerCase().replace(' ', '')}`,
+              bio: `Member of the HappyKinks community.`,
+              location: 'Somewhere in the world',
+              joinDate: '2023',
+              following: Math.floor(Math.random() * 500),
+              followers: Math.floor(Math.random() * 2000),
+              subscribed: false,
+              posts: [
+                {
+                  id: 1,
+                  content: `Hello everyone!`,
+                  timeAgo: '3 days ago',
+                  likes: Math.floor(Math.random() * 50),
+                  comments: Math.floor(Math.random() * 15)
+                }
+              ]
+            });
+          }
+        } else {
+          // Current user's profile
           setProfile({
-            name: foundFriend.name,
-            username: `@${foundFriend.name.toLowerCase().replace(' ', '')}`,
-            bio: `Hi, I'm ${foundFriend.name}. I love connecting with like-minded people on HappyKinks!`,
-            location: 'London, UK',
-            joinDate: 'January 2023',
-            following: Math.floor(Math.random() * 500),
-            followers: Math.floor(Math.random() * 2000),
-            subscribed: foundFriend.subscribed,
-            tier: foundFriend.subscribed ? foundFriend.tier : null,
+            name: user?.name || "Alex Johnson",
+            username: user?.username || "@alexjohnson",
+            bio: "Digital enthusiast, photography lover, and coffee addict. Always looking for the next adventure!",
+            location: "San Francisco, CA",
+            joinDate: "January 2022",
+            following: 245,
+            followers: 12400,
+            subscribed: subscriptionTier !== "free",
+            tier: subscriptionTier !== "free" ? subscriptionTier : null,
             posts: [
               {
                 id: 1,
-                content: `Hello everyone! Hope you're having a great day!`,
-                timeAgo: '2 days ago',
-                likes: Math.floor(Math.random() * 50),
-                comments: Math.floor(Math.random() * 15)
+                content: "Just finished reading an amazing book about artificial intelligence. Highly recommend! 📚",
+                timeAgo: "2 days ago",
+                likes: 24,
+                comments: 8
               },
               {
                 id: 2,
-                content: `Just attended an amazing workshop last weekend. Learned so much!`,
-                timeAgo: '1 week ago',
+                content: "Beautiful day for a hike! The views were absolutely breathtaking today. 🏔️",
+                timeAgo: "1 week ago",
                 hasImage: true,
-                likes: Math.floor(Math.random() * 50),
-                comments: Math.floor(Math.random() * 15)
+                likes: 36,
+                comments: 12
               },
               {
                 id: 3,
-                content: `Anyone interested in the upcoming community event next month?`,
-                timeAgo: '2 weeks ago',
-                likes: Math.floor(Math.random() * 50),
-                comments: Math.floor(Math.random() * 15)
-              }
-            ]
-          });
-        } else {
-          // If no matching friend, use a generic profile
-          setProfile({
-            name: profileName,
-            username: `@${profileName?.toLowerCase().replace(' ', '')}`,
-            bio: `Member of the HappyKinks community.`,
-            location: 'Somewhere in the world',
-            joinDate: '2023',
-            following: Math.floor(Math.random() * 500),
-            followers: Math.floor(Math.random() * 2000),
-            subscribed: false,
-            posts: [
-              {
-                id: 1,
-                content: `Hello everyone!`,
-                timeAgo: '3 days ago',
-                likes: Math.floor(Math.random() * 50),
-                comments: Math.floor(Math.random() * 15)
+                content: "Anyone else excited for the upcoming tech conference next month? Looking forward to connecting with like-minded people!",
+                timeAgo: "2 weeks ago",
+                likes: 18,
+                comments: 5
               }
             ]
           });
         }
-      } else {
-        // Current user's profile
-        setProfile({
-          name: user?.name || "Alex Johnson",
-          username: user?.username || "@alexjohnson",
-          bio: "Digital enthusiast, photography lover, and coffee addict. Always looking for the next adventure!",
-          location: "San Francisco, CA",
-          joinDate: "January 2022",
-          following: 245,
-          followers: 12400,
-          subscribed: subscriptionTier !== "free",
-          tier: subscriptionTier !== "free" ? subscriptionTier : null,
-          posts: [
-            {
-              id: 1,
-              content: "Just finished reading an amazing book about artificial intelligence. Highly recommend! 📚",
-              timeAgo: "2 days ago",
-              likes: 24,
-              comments: 8
-            },
-            {
-              id: 2,
-              content: "Beautiful day for a hike! The views were absolutely breathtaking today. 🏔️",
-              timeAgo: "1 week ago",
-              hasImage: true,
-              likes: 36,
-              comments: 12
-            },
-            {
-              id: 3,
-              content: "Anyone else excited for the upcoming tech conference next month? Looking forward to connecting with like-minded people!",
-              timeAgo: "2 weeks ago",
-              likes: 18,
-              comments: 5
-            }
-          ]
+      } catch (error) {
+        console.error('Error fetching profile data:', error);
+        toast({
+          variant: "destructive",
+          title: "Error loading profile",
+          description: "Failed to load profile data. Please try again later.",
         });
+      } finally {
+        setLoading(false);
       }
-    }
-  }, [profileName, user, subscriptionTier]);
+    };
+    
+    // Log the activity
+    console.log(`User activity: Viewed ${profileName || 'own'} profile`);
+    
+    fetchProfileData();
+  }, [profileName, user, subscriptionTier, toast]);
 
   const handleAddFriend = () => {
     toast({
@@ -171,12 +193,27 @@ const Profile = () => {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-100">
+        <Sidebar />
+        <Header />
+        <div className="pl-[280px] pt-24 transition-all duration-300" style={{ paddingLeft: 'var(--sidebar-width, 280px)' }}>
+          <div className="max-w-screen-xl mx-auto px-4 flex items-center justify-center">
+            <div className="animate-spin h-8 w-8 border-4 border-purple-500 rounded-full border-t-transparent"></div>
+            <span className="ml-3 text-lg text-gray-700">Loading profile...</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-100">
       <Sidebar />
       <Header />
       
-      <div className="pl-[280px] pt-16 pb-10">
+      <div className="pl-[280px] pt-16 pb-10 w-full transition-all duration-300" style={{ paddingLeft: 'var(--sidebar-width, 280px)' }}>
         <div className="max-w-screen-xl mx-auto px-4">
           <div className="flex items-center gap-2 py-4">
             <Link to="/" className="flex items-center gap-2">
@@ -296,38 +333,40 @@ const Profile = () => {
               <Separator className="mb-4" />
               
               {/* Posts */}
-              {profile?.posts?.map((post: any) => (
-                <div key={post.id} className="mb-6 pb-6 border-b border-gray-100 last:border-0 last:mb-0 last:pb-0">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center overflow-hidden">
-                      <User className="w-6 h-6 text-purple-600" />
+              <ScrollArea className="w-full">
+                {profile?.posts?.map((post: any) => (
+                  <div key={post.id} className="mb-6 pb-6 border-b border-gray-100 last:border-0 last:mb-0 last:pb-0">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center overflow-hidden">
+                        <User className="w-6 h-6 text-purple-600" />
+                      </div>
+                      <div>
+                        <p className="font-medium">{profile?.name}</p>
+                        <p className="text-xs text-gray-500">
+                          {post.timeAgo}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-medium">{profile?.name}</p>
-                      <p className="text-xs text-gray-500">
-                        {post.timeAgo}
-                      </p>
+                    
+                    <p className="mb-4">{post.content}</p>
+                    
+                    {post.hasImage && (
+                      <div className="mb-4 rounded-lg overflow-hidden">
+                        <img src="https://via.placeholder.com/600x300" alt="Post" className="w-full" />
+                      </div>
+                    )}
+                    
+                    <div className="flex items-center gap-6">
+                      <button className="flex items-center gap-1 text-gray-500 text-sm hover:text-purple-600">
+                        <Heart className="h-4 w-4" /> {post.likes}
+                      </button>
+                      <button className="flex items-center gap-1 text-gray-500 text-sm hover:text-purple-600">
+                        <MessageCircle className="h-4 w-4" /> {post.comments}
+                      </button>
                     </div>
                   </div>
-                  
-                  <p className="mb-4">{post.content}</p>
-                  
-                  {post.hasImage && (
-                    <div className="mb-4 rounded-lg overflow-hidden">
-                      <img src="https://via.placeholder.com/600x300" alt="Post" className="w-full" />
-                    </div>
-                  )}
-                  
-                  <div className="flex items-center gap-6">
-                    <button className="flex items-center gap-1 text-gray-500 text-sm hover:text-purple-600">
-                      <Heart className="h-4 w-4" /> {post.likes}
-                    </button>
-                    <button className="flex items-center gap-1 text-gray-500 text-sm hover:text-purple-600">
-                      <MessageCircle className="h-4 w-4" /> {post.comments}
-                    </button>
-                  </div>
-                </div>
-              ))}
+                ))}
+              </ScrollArea>
             </div>
           </div>
         </div>

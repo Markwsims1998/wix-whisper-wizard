@@ -104,17 +104,6 @@ const Sidebar = () => {
               </button>
             </>
           )}
-
-          {collapsed && (
-            <>
-              <Link to="/messages" className="p-2 rounded-full hover:bg-gray-800 flex items-center justify-center mb-4">
-                <MessageSquare className="w-5 h-5 text-gray-400" />
-              </Link>
-              <button onClick={logout} className="p-2 rounded-full hover:bg-gray-800 flex items-center justify-center">
-                <LogOut className="w-5 h-5 text-gray-400" />
-              </button>
-            </>
-          )}
         </div>
       </div>
 

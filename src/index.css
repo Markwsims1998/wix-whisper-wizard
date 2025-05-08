@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -98,4 +99,53 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Ensure proper scaling for all elements */
+@layer utilities {
+  .responsive-container {
+    width: 100%;
+    max-width: 1280px;
+    margin: 0 auto;
+    padding-left: var(--container-padding, 1rem);
+    padding-right: var(--container-padding, 1rem);
+  }
+  
+  .min-safe-h-screen {
+    /* mobile viewport bug fix */
+    min-height: -webkit-fill-available;
+    min-height: 100vh;
+  }
+  
+  .safe-h-screen {
+    height: 100vh;
+    height: -webkit-fill-available;
+  }
+}
+
+/* Fix for mobile webkit overscrolling */
+html, body {
+  overflow-x: hidden;
+  position: relative;
+  width: 100%;
+}
+
+/* Make sure images don't break layout */
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Improved button styles for mobile */
+button, a {
+  touch-action: manipulation;
+}
+
+/* Improved bottom drawer handle visibility */
+.drawer-handle {
+  width: 48px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 4px;
+  margin: 8px auto;
 }

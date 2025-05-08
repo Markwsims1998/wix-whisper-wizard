@@ -7,6 +7,7 @@ import Sidebar from "@/components/Sidebar";
 import { Image, MessageSquare, Video } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const Index = () => {
   const { user } = useAuth();
@@ -90,26 +91,28 @@ const Index = () => {
           <div className="lg:col-span-4 w-full">
             <div className="bg-white rounded-lg shadow-sm p-4 sticky top-20">
               <h3 className="font-medium text-gray-800 mb-4">Active Friends</h3>
-              <div className="space-y-3">
-                {[1, 2, 3, 4, 5, 6, 7].map((id) => (
-                  <div key={id} className="flex items-center gap-3 cursor-pointer hover:bg-gray-50 p-2 rounded-lg">
-                    <div className="relative">
-                      <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
-                        <img 
-                          src={`https://randomuser.me/api/portraits/men/${id + 20}.jpg`} 
-                          alt={`Friend ${id}`}
-                          className="w-full h-full object-cover" 
-                        />
+              <ScrollArea className="h-[400px] pr-4">
+                <div className="space-y-3">
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((id) => (
+                    <div key={id} className="flex items-center gap-3 cursor-pointer hover:bg-gray-50 p-2 rounded-lg">
+                      <div className="relative">
+                        <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
+                          <img 
+                            src={`https://randomuser.me/api/portraits/men/${id + 20}.jpg`} 
+                            alt={`Friend ${id}`}
+                            className="w-full h-full object-cover" 
+                          />
+                        </div>
+                        <div className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-green-400 border-2 border-white"></div>
                       </div>
-                      <div className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-green-400 border-2 border-white"></div>
+                      <div>
+                        <p className="text-sm font-medium">Friend {id}</p>
+                        <p className="text-xs text-gray-500">Online</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-sm font-medium">Friend {id}</p>
-                      <p className="text-xs text-gray-500">Online</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              </ScrollArea>
             </div>
           </div>
         </div>

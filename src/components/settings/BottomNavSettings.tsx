@@ -1,0 +1,145 @@
+
+import React, { useState, useEffect } from 'react';
+import { Activity, Image, Play, User, Users, ShoppingBag, Bell, Home, Settings, MessageSquare, DollarSign } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ui/use-toast";
+
+// Interface for navigation items
+interface NavItem {
+  icon: React.ElementType;
+  label: string;
+  path: string;
+  value: string;
+}
+
+// All available navigation options
+const allNavOptions: NavItem[] = [
+  { icon: Home, label: "Home", path: "/", value: "home" },
+  { icon: Activity, label: "Activity", path: "/activity", value: "activity" },
+  { icon: Image, label: "Photos", path: "/photos", value: "photos" },
+  { icon: Play, label: "Watch", path: "/watch", value: "watch" },
+  { icon: Users, label: "People", path: "/people", value: "people" },
+  { icon: Bell, label: "Notifications", path: "/notifications", value: "notifications" },
+  { icon: ShoppingBag, label: "Shop", path: "/shop", value: "shop" },
+  { icon: Settings, label: "Settings", path: "/settings", value: "settings" },
+  { icon: User, label: "Profile", path: "/profile", value: "profile" },
+  { icon: MessageSquare, label: "Messages", path: "/messages", value: "messages" },
+];
+
+// Default selection
+const defaultNavItems = ["home", "photos", "watch", "shop"];
+
+const BottomNavSettings = () => {
+  const [selectedItems, setSelectedItems] = useState<string[]>(defaultNavItems);
+  const { toast } = useToast();
+
+  // Load saved preferences
+  useEffect(() => {
+    try {
+      const savedPrefs = localStorage.getItem('bottomNavPreferences');
+      if (savedPrefs) {
+        const parsedPrefs = JSON.parse(savedPrefs);
+        const values = parsedPrefs.map((item: NavItem) => item.value);
+        setSelectedItems(values);
+      }
+    } catch (error) {
+      console.error("Error loading navigation preferences:", error);
+    }
+  }, []);
+
+  const handleSelectChange = (position: number, value: string) => {
+    const newSelectedItems = [...selectedItems];
+    newSelectedItems[position] = value;
+    setSelectedItems(newSelectedItems);
+  };
+
+  const savePreferences = () => {
+    try {
+      // Convert selected item values to full nav item objects
+      const navItems = selectedItems.map(value => {
+        const foundItem = allNavOptions.find(option => option.value === value);
+        return foundItem ? { 
+          icon: foundItem.icon, 
+          label: foundItem.label, 
+          path: foundItem.path,
+          value: foundItem.value
+        } : null;
+      }).filter(Boolean);
+
+      localStorage.setItem('bottomNavPreferences', JSON.stringify(navItems));
+      
+      toast({
+        title: "Preferences Saved",
+        description: "Your navigation bar preferences have been saved. They will be applied next time you load the app.",
+        variant: "default",
+      });
+    } catch (error) {
+      console.error("Error saving navigation preferences:", error);
+      toast({
+        title: "Error Saving Preferences",
+        description: "There was a problem saving your preferences. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Mobile Navigation Settings</CardTitle>
+        <CardDescription>
+          Customize which icons appear in your mobile bottom navigation bar
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-1 gap-6">
+          {[0, 1, 2, 3].map((index) => (
+            <div key={index} className="flex flex-col space-y-1.5">
+              <Label htmlFor={`position-${index}`}>Position {index + 1}</Label>
+              <Select
+                value={selectedItems[index]}
+                onValueChange={(value) => handleSelectChange(index, value)}
+              >
+                <SelectTrigger id={`position-${index}`} className="flex items-center gap-2">
+                  <SelectValue placeholder="Select an option" />
+                </SelectTrigger>
+                <SelectContent position="popper">
+                  {allNavOptions.map((option) => (
+                    <SelectItem 
+                      key={option.value} 
+                      value={option.value}
+                      className="flex items-center gap-2"
+                    >
+                      <div className="flex items-center gap-2">
+                        <option.icon className="w-4 h-4" />
+                        <span>{option.label}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ))}
+        </div>
+        
+        <div className="flex justify-end mt-6">
+          <Button onClick={savePreferences} className="bg-purple-600 hover:bg-purple-700">
+            Save Preferences
+          </Button>
+        </div>
+        
+        <div className="mt-6 p-4 bg-gray-100 dark:bg-gray-800 rounded-md">
+          <p className="text-sm text-gray-600 dark:text-gray-300">
+            Changes will be applied the next time you reload the app. To see your changes immediately,
+            refresh the page after saving.
+          </p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
+export default BottomNavSettings;

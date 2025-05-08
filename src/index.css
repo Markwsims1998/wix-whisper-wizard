@@ -131,6 +131,10 @@
   .text-balance {
     text-wrap: balance;
   }
+  
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 1.5rem);
+  }
 }
 
 /* Fix for mobile webkit overscrolling */
@@ -163,11 +167,11 @@ button, a {
 /* Mobile optimization */
 @media (max-width: 768px) {
   body {
-    padding-bottom: 60px; /* Space for bottom nav */
+    padding-bottom: 80px; /* Space for bottom nav */
   }
   
   .safe-bottom {
-    padding-bottom: calc(env(safe-area-inset-bottom) + 70px);
+    padding-bottom: calc(env(safe-area-inset-bottom) + 80px);
   }
 
   /* Improve touch targets on mobile */

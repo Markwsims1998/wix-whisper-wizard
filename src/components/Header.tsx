@@ -1,16 +1,14 @@
 
-import { Bell, MessageSquare, Search, LogOut } from "lucide-react";
+import { Bell, MessageSquare, Search } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useToast } from "@/components/ui/use-toast";
 
 const Header = () => {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
-  const { toast } = useToast();
 
   // Log user navigation
   useEffect(() => {

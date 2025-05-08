@@ -13,7 +13,7 @@ const Footer = () => {
       style={!isMobile ? { marginLeft: 'var(--sidebar-width, 280px)', width: 'calc(100% - var(--sidebar-width, 280px))', transition: 'margin-left 0.3s ease-in-out, width 0.3s ease-in-out' } : {}}
     >
       <div className="container mx-auto px-4 py-6 md:py-8">
-        <div className={`${isMobile ? 'grid grid-cols-2 gap-6' : 'grid grid-cols-1 md:grid-cols-4 gap-8'}`}>
+        <div className={`${isMobile ? 'grid grid-cols-1 gap-6' : 'grid grid-cols-1 md:grid-cols-4 gap-8'}`}>
           <div>
             <h3 className="text-lg font-semibold mb-4">HappyKinks</h3>
             <p className="text-sm text-gray-400">
@@ -61,10 +61,10 @@ const Footer = () => {
               <div>
                 <h3 className="text-lg font-semibold mb-4">Help</h3>
                 <ul className="space-y-2 text-sm">
-                  <li><a href="#" className="hover:text-white transition-colors">Support Center</a></li>
-                  <li><a href="#" className="hover:text-white transition-colors">Community Guidelines</a></li>
-                  <li><a href="#" className="hover:text-white transition-colors">Safety Tips</a></li>
-                  <li><a href="#" className="hover:text-white transition-colors">Contact Us</a></li>
+                  <li><Link to="/help/support" className="hover:text-white transition-colors">Support Center</Link></li>
+                  <li><Link to="/help/guidelines" className="hover:text-white transition-colors">Community Guidelines</Link></li>
+                  <li><Link to="/help/safety" className="hover:text-white transition-colors">Safety Tips</Link></li>
+                  <li><Link to="/help/contact" className="hover:text-white transition-colors">Contact Us</Link></li>
                 </ul>
               </div>
             </>
@@ -74,9 +74,9 @@ const Footer = () => {
         <div className="border-t border-gray-700 mt-6 pt-4 flex flex-col md:flex-row justify-between items-center">
           <p className="text-sm text-gray-400">© {currentYear} HappyKinks. All rights reserved.</p>
           <div className="flex space-x-4 mt-3 md:mt-0 text-sm">
-            <a href="#" className="text-gray-400 hover:text-white transition-colors">Terms</a>
-            <a href="#" className="text-gray-400 hover:text-white transition-colors">Privacy</a>
-            <a href="#" className="text-gray-400 hover:text-white transition-colors">Cookies</a>
+            <Link to="/terms" className="text-gray-400 hover:text-white transition-colors">Terms</Link>
+            <Link to="/privacy" className="text-gray-400 hover:text-white transition-colors">Privacy</Link>
+            <Link to="/cookies" className="text-gray-400 hover:text-white transition-colors">Cookies</Link>
           </div>
         </div>
       </div>

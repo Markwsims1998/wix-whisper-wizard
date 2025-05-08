@@ -1,7 +1,7 @@
 
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Activity, Image, Play, User, Users, ShoppingBag, Bell, Home, Settings, ChevronLeft, LogOut, MessageSquare } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -13,13 +13,45 @@ import {
   DrawerClose
 } from "@/components/ui/drawer";
 
+// Define a type for the bottom navigation items
+interface NavItem {
+  icon: React.ElementType;
+  label: string;
+  path: string;
+}
+
+// Default bottom navigation items
+const defaultBottomNavItems: NavItem[] = [
+  { icon: Home, label: "Home", path: "/" },
+  { icon: Image, label: "Photos", path: "/photos" },
+  { icon: Play, label: "Watch", path: "/watch" },
+  { icon: ShoppingBag, label: "Shop", path: "/shop" },
+];
+
 const Sidebar = () => {
   const [collapsed, setCollapsed] = useState(false);
+  const [bottomNavItems, setBottomNavItems] = useState<NavItem[]>(defaultBottomNavItems);
   const location = useLocation();
   const navigate = useNavigate();
   const { toast } = useToast();
   const currentPath = location.pathname;
   const { user, logout } = useAuth();
+  
+  // Get user's custom navigation preferences from localStorage
+  useEffect(() => {
+    const savedNavPrefs = localStorage.getItem('bottomNavPreferences');
+    if (savedNavPrefs) {
+      try {
+        const parsedPrefs = JSON.parse(savedNavPrefs);
+        // Validate the structure before setting
+        if (Array.isArray(parsedPrefs) && parsedPrefs.length === 4) {
+          setBottomNavItems(parsedPrefs);
+        }
+      } catch (error) {
+        console.error("Error parsing navigation preferences:", error);
+      }
+    }
+  }, []);
 
   return (
     <>
@@ -112,7 +144,14 @@ const Sidebar = () => {
       <div className="md:hidden fixed bottom-4 left-0 right-0 z-50 flex justify-center">
         <Drawer direction="bottom">
           <DrawerTrigger className="bg-purple-600 text-white px-6 py-3 rounded-full shadow-lg flex items-center gap-2">
-            <span>Menu</span>
+            {/* Logo instead of text */}
+            <div className="w-8 h-8 rounded-full bg-[#8B5CF6] flex items-center justify-center">
+              <div className="w-7 h-7 rounded-full bg-[#2B2A33] flex items-center justify-center">
+                <div className="w-5 h-5 rounded-full bg-[#8B5CF6] relative">
+                  <div className="absolute top-0 right-0 w-1 h-1 rounded-full bg-green-400"></div>
+                </div>
+              </div>
+            </div>
           </DrawerTrigger>
           <DrawerContent className="bg-[#2B2A33] text-white rounded-t-xl max-h-[85vh] overflow-y-auto">
             <div className="p-4">
@@ -171,26 +210,17 @@ const Sidebar = () => {
       </div>
 
       {/* Floating Navigation Bar for Mobile */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-[#2B2A33] border-t border-gray-800 flex justify-around items-center py-2 px-4 z-40">
-        <Link to="/" className="flex flex-col items-center text-gray-400 hover:text-purple-400">
-          <Home className="w-6 h-6" />
-          <span className="text-xs mt-1">Home</span>
-        </Link>
-        <Link to="/photos" className="flex flex-col items-center text-gray-400 hover:text-purple-400">
-          <Image className="w-6 h-6" />
-          <span className="text-xs mt-1">Photos</span>
-        </Link>
-        <div className="invisible">
-          <Play className="w-6 h-6" />
-        </div>
-        <Link to="/watch" className="flex flex-col items-center text-gray-400 hover:text-purple-400">
-          <Play className="w-6 h-6" />
-          <span className="text-xs mt-1">Watch</span>
-        </Link>
-        <Link to="/shop" className="flex flex-col items-center text-gray-400 hover:text-purple-400">
-          <ShoppingBag className="w-6 h-6" />
-          <span className="text-xs mt-1">Shop</span>
-        </Link>
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-[#2B2A33] border-t border-gray-800 flex justify-around items-center py-2 px-4 z-40 pb-safe">
+        {bottomNavItems.map((item, index) => (
+          <Link 
+            key={index} 
+            to={item.path} 
+            className={`flex flex-col items-center ${currentPath === item.path ? 'text-purple-400' : 'text-gray-400'} hover:text-purple-400`}
+          >
+            <item.icon className="w-6 h-6" />
+            <span className="text-xs mt-1">{item.label}</span>
+          </Link>
+        ))}
       </div>
     </>
   );

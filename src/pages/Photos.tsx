@@ -2,7 +2,7 @@
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
 import { useEffect, useState } from "react";
-import { Image, Heart, Lock, User, MessageCircle } from "lucide-react";
+import { Image, Heart, Lock, User } from "lucide-react";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
@@ -41,18 +41,18 @@ const Photos = () => {
   }, []);
 
   const photoGallery = [
-    { id: 1, url: 'https://via.placeholder.com/300x300', likes: 24, author: 'Admin', category: 'all', comments: 5 },
-    { id: 2, url: 'https://via.placeholder.com/300x200', likes: 18, author: 'Sephiroth', category: 'all', comments: 3 },
-    { id: 3, url: 'https://via.placeholder.com/200x300', likes: 32, author: 'Linda Lohan', category: 'all', comments: 8 },
-    { id: 4, url: 'https://via.placeholder.com/300x300', likes: 15, author: 'Irina Petrova', category: 'all', comments: 2 },
-    { id: 5, url: 'https://via.placeholder.com/300x200', likes: 27, author: 'Jennie Ferguson', category: 'top', comments: 7 },
-    { id: 6, url: 'https://via.placeholder.com/200x300', likes: 45, author: 'Robert Cook', category: 'top', comments: 12 },
-    { id: 7, url: 'https://via.placeholder.com/300x300', likes: 38, author: 'Sophia Lee', category: 'top', comments: 9 },
-    { id: 8, url: 'https://via.placeholder.com/300x200', likes: 21, author: 'Michael Brown', category: 'recent', comments: 4 },
-    { id: 9, url: 'https://via.placeholder.com/200x300', likes: 14, author: 'Emma Wilson', category: 'recent', comments: 2 },
-    { id: 10, url: 'https://via.placeholder.com/300x300', likes: 9, author: 'John Smith', category: 'recent', comments: 1 },
-    { id: 11, url: 'https://via.placeholder.com/300x200', likes: 7, author: 'Alice Johnson', category: 'friends', comments: 3 },
-    { id: 12, url: 'https://via.placeholder.com/200x300', likes: 16, author: 'David Miller', category: 'friends', comments: 5 }
+    { id: 1, url: 'https://via.placeholder.com/300x300', likes: 24, author: 'Admin', category: 'all', postId: '101' },
+    { id: 2, url: 'https://via.placeholder.com/300x200', likes: 18, author: 'Sephiroth', category: 'all', postId: '102' },
+    { id: 3, url: 'https://via.placeholder.com/200x300', likes: 32, author: 'Linda Lohan', category: 'all', postId: '103' },
+    { id: 4, url: 'https://via.placeholder.com/300x300', likes: 15, author: 'Irina Petrova', category: 'all', postId: '104' },
+    { id: 5, url: 'https://via.placeholder.com/300x200', likes: 27, author: 'Jennie Ferguson', category: 'top', postId: '105' },
+    { id: 6, url: 'https://via.placeholder.com/200x300', likes: 45, author: 'Robert Cook', category: 'top', postId: '106' },
+    { id: 7, url: 'https://via.placeholder.com/300x300', likes: 38, author: 'Sophia Lee', category: 'top', postId: '107' },
+    { id: 8, url: 'https://via.placeholder.com/300x200', likes: 21, author: 'Michael Brown', category: 'recent', postId: '108' },
+    { id: 9, url: 'https://via.placeholder.com/200x300', likes: 14, author: 'Emma Wilson', category: 'recent', postId: '109' },
+    { id: 10, url: 'https://via.placeholder.com/300x300', likes: 9, author: 'John Smith', category: 'recent', postId: '110' },
+    { id: 11, url: 'https://via.placeholder.com/300x200', likes: 7, author: 'Alice Johnson', category: 'friends', postId: '111' },
+    { id: 12, url: 'https://via.placeholder.com/200x300', likes: 16, author: 'David Miller', category: 'friends', postId: '112' }
   ];
 
   // Filter photos based on the active tab
@@ -77,12 +77,18 @@ const Photos = () => {
     console.log("Liked photo:", photoId);
   };
 
+  // Log user activity
+  useEffect(() => {
+    console.log("User activity: Viewed Photos page");
+    // In a real app, this would call an API to record the activity
+  }, []);
+
   return (
     <div className="min-h-screen bg-gray-100">
       <Sidebar />
       <Header />
       
-      <div className="pl-[280px] pt-16 pr-4 pb-10 transition-all duration-300" style={{ paddingLeft: 'var(--sidebar-width, 280px)' }}>
+      <div className="pl-[280px] pt-16 pr-4 pb-20 md:pb-10 transition-all duration-300" style={{ paddingLeft: 'var(--sidebar-width, 280px)' }}>
         <div className="max-w-screen-xl mx-auto">
           <div className="bg-white rounded-lg p-6 mb-6">
             <div className="flex justify-between items-center mb-6">
@@ -136,17 +142,12 @@ const Photos = () => {
                         </div>
                       </div>
                       <div className="p-3">
-                        <div className="flex items-start gap-3">
-                          <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
-                            <User className="h-4 w-4 text-gray-500" />
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
+                            <User className="h-5 w-5 text-gray-500" />
                           </div>
                           <div>
                             <p className="text-sm font-medium">Uploaded by {photo.author}</p>
-                            <div className="flex items-center gap-2 mt-1">
-                              <button className="flex items-center gap-1 text-gray-500 text-xs">
-                                <MessageCircle className="h-3 w-3" /> {photo.comments}
-                              </button>
-                            </div>
                           </div>
                         </div>
                       </div>
@@ -166,6 +167,7 @@ const Photos = () => {
           media={selectedPhoto}
           onClose={() => setSelectedPhoto(null)}
           onLike={() => handleLikePhoto(selectedPhoto.id)}
+          postId={selectedPhoto.postId}
         />
       )}
     </div>

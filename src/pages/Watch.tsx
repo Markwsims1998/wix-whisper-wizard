@@ -2,7 +2,7 @@
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
 import { useEffect, useState } from "react";
-import { Play, User, Heart, MessageCircle, Lock, X } from "lucide-react";
+import { Play, User, Heart, Lock } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { Button } from "@/components/ui/button";
@@ -38,11 +38,17 @@ const Watch = () => {
     };
   }, []);
 
+  // Log user activity
+  useEffect(() => {
+    console.log("User activity: Viewed Watch page");
+    // In a real app, this would call an API to record the activity
+  }, []);
+
   const videos = [
-    { id: 1, thumbnail: 'https://via.placeholder.com/600x340', title: 'Getting Started with HappyKinks', author: 'Admin', views: '1.2k', likes: 45, comments: 12 },
-    { id: 2, thumbnail: 'https://via.placeholder.com/600x340', title: 'Community Guidelines', author: 'Sephiroth', views: '856', likes: 32, comments: 8 },
-    { id: 3, thumbnail: 'https://via.placeholder.com/600x340', title: 'Meet & Greet Event', author: 'Linda Lohan', views: '2.4k', likes: 76, comments: 24 },
-    { id: 4, thumbnail: 'https://via.placeholder.com/600x340', title: 'Workshop Announcement', author: 'Irina Petrova', views: '987', likes: 28, comments: 5 }
+    { id: 1, thumbnail: 'https://via.placeholder.com/600x340', title: 'Getting Started with HappyKinks', author: 'Admin', views: '1.2k', likes: 45, postId: '201' },
+    { id: 2, thumbnail: 'https://via.placeholder.com/600x340', title: 'Community Guidelines', author: 'Sephiroth', views: '856', likes: 32, postId: '202' },
+    { id: 3, thumbnail: 'https://via.placeholder.com/600x340', title: 'Meet & Greet Event', author: 'Linda Lohan', views: '2.4k', likes: 76, postId: '203' },
+    { id: 4, thumbnail: 'https://via.placeholder.com/600x340', title: 'Workshop Announcement', author: 'Irina Petrova', views: '987', likes: 28, postId: '204' }
   ];
 
   const handleVideoClick = (video: any) => {
@@ -59,7 +65,7 @@ const Watch = () => {
       <Sidebar />
       <Header />
       
-      <div className="pl-[280px] pt-16 pr-4 pb-10 transition-all duration-300" style={{ paddingLeft: 'var(--sidebar-width, 280px)' }}>
+      <div className="pl-[280px] pt-16 pr-4 pb-20 md:pb-10 transition-all duration-300" style={{ paddingLeft: 'var(--sidebar-width, 280px)' }}>
         <div className="max-w-screen-xl mx-auto">
           <div className="bg-white rounded-lg p-6 mb-6">
             <div className="flex justify-between items-center mb-6">
@@ -108,21 +114,18 @@ const Watch = () => {
                   </div>
                   <div className="p-4">
                     <div className="flex items-start gap-3">
-                      <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
-                        <User className="h-4 w-4 text-gray-500" />
+                      <div className="h-12 w-12 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
+                        <User className="h-5 w-5 text-gray-500" />
                       </div>
                       <div>
                         <h3 className="font-medium">{video.title}</h3>
                         <p className="text-sm text-gray-500">{video.author} • {video.views} views</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-4 mt-3">
-                      <button className="flex items-center gap-1 text-gray-500 text-xs">
-                        <Heart className="h-3 w-3" /> {video.likes}
-                      </button>
-                      <button className="flex items-center gap-1 text-gray-500 text-xs">
-                        <MessageCircle className="h-3 w-3" /> {video.comments}
-                      </button>
+                    <div className="flex items-center mt-3">
+                      <div className="flex items-center text-gray-500 text-sm bg-gray-100 px-3 py-1 rounded-full">
+                        <Heart className="h-4 w-4 mr-1 text-red-400" /> {video.likes}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -138,6 +141,7 @@ const Watch = () => {
           type="video"
           media={selectedVideo}
           onClose={() => setSelectedVideo(null)}
+          postId={selectedVideo.postId}
         />
       )}
     </div>

@@ -31,7 +31,7 @@ const Header = () => {
   };
 
   return (
-    <header className="bg-white shadow-sm py-3 px-6 flex items-center justify-between fixed top-0 right-0 z-10 transition-all duration-300 dark:bg-gray-800 dark:text-white" style={{ left: 'var(--sidebar-width, 280px)' }}>
+    <header className="bg-white shadow-sm py-3 px-6 flex items-center justify-between fixed top-0 right-0 z-10 transition-all duration-300 dark:bg-gray-800 dark:text-white" style={{ left: 'var(--sidebar-width, 280px)', width: 'calc(100% - var(--sidebar-width, 280px))' }}>
       <div className="flex-1 max-w-md">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -43,7 +43,7 @@ const Header = () => {
         </div>
       </div>
 
-      <div className="flex items-center gap-5">
+      <div className="flex items-center gap-4">
         <button 
           onClick={() => handleIconClick("/notifications", "notifications")} 
           className="relative text-gray-600 hover:text-purple-600 transition-colors dark:text-gray-300 dark:hover:text-purple-400 bg-gray-100 dark:bg-gray-700 rounded-full p-2"
@@ -75,18 +75,6 @@ const Header = () => {
             )}
           </div>
           <span className="font-medium hidden md:block">{user?.name || 'User'}</span>
-        </button>
-
-        <button 
-          onClick={() => {
-            logout();
-            console.log("User activity: Logged out");
-            // In a real application, this would call an API to record the activity
-          }}
-          className="text-gray-600 hover:text-red-600 transition-colors dark:text-gray-300 dark:hover:text-red-400 bg-gray-100 dark:bg-gray-700 rounded-full p-2 hidden md:flex"
-          title="Logout"
-        >
-          <LogOut className="w-5 h-5" />
         </button>
       </div>
     </header>

@@ -50,6 +50,8 @@
     --sidebar-border: 220 13% 91%;
 
     --sidebar-ring: 217.2 91.2% 59.8%;
+    
+    --sidebar-width: 280px;
   }
 
   .dark {
@@ -121,6 +123,14 @@
     height: 100vh;
     height: -webkit-fill-available;
   }
+  
+  .glass-effect {
+    @apply backdrop-blur-md bg-white/10 border border-white/20;
+  }
+  
+  .text-balance {
+    text-wrap: balance;
+  }
 }
 
 /* Fix for mobile webkit overscrolling */
@@ -148,4 +158,70 @@ button, a {
   background: rgba(255, 255, 255, 0.5);
   border-radius: 4px;
   margin: 8px auto;
+}
+
+/* Mobile optimization */
+@media (max-width: 768px) {
+  body {
+    padding-bottom: 60px; /* Space for bottom nav */
+  }
+  
+  .safe-bottom {
+    padding-bottom: calc(env(safe-area-inset-bottom) + 70px);
+  }
+
+  /* Improve touch targets on mobile */
+  button, 
+  a, 
+  input[type="checkbox"], 
+  input[type="radio"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* Fix for iOS notch */
+@supports (padding: max(0px)) {
+  body {
+    padding-left: min(0vmin, env(safe-area-inset-left));
+    padding-right: min(0vmin, env(safe-area-inset-right));
+    padding-top: min(0vmin, env(safe-area-inset-top));
+    padding-bottom: min(0vmin, env(safe-area-inset-bottom));
+  }
+}
+
+/* Fix for scaling elements on various screen sizes */
+@media (min-width: 640px) and (max-width: 1024px) {
+  .card-grid {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  }
+}
+
+@media (max-width: 639px) {
+  .card-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Prevent text overflow */
+.ellipsis {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;  
+  overflow: hidden;
+}
+
+/* Better form element focus states */
+input:focus, 
+select:focus, 
+textarea:focus, 
+button:focus {
+  outline: 2px solid rgba(139, 92, 246, 0.5);
+  outline-offset: 2px;
 }

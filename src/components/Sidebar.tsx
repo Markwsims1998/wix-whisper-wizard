@@ -62,7 +62,8 @@ const Sidebar = () => {
           </nav>
         </div>
 
-        {!collapsed && <Separator className="my-4 bg-gray-700" />}
+        {/* Separator for collapsed and expanded states */}
+        <Separator className={collapsed ? "my-4 bg-gray-700 w-full" : "my-4 bg-gray-700"} />
         
         {/* User Profile at bottom */}
         <div className={`mt-auto mb-6 ${collapsed ? 'px-2 flex justify-center' : 'px-6'}`}>
@@ -107,11 +108,11 @@ const Sidebar = () => {
         </div>
       </div>
 
-      {/* Mobile Drawer Sidebar */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 flex justify-center p-2">
+      {/* Mobile Bottom Drawer Menu */}
+      <div className="md:hidden fixed bottom-4 left-0 right-0 z-50 flex justify-center">
         <Drawer direction="bottom">
-          <DrawerTrigger className="w-20 h-1 bg-gray-300 rounded-lg mx-auto flex justify-center items-center">
-            <span className="sr-only">Open menu</span>
+          <DrawerTrigger className="bg-purple-600 text-white px-6 py-3 rounded-full shadow-lg flex items-center gap-2">
+            <span>Menu</span>
           </DrawerTrigger>
           <DrawerContent className="bg-[#2B2A33] text-white rounded-t-xl max-h-[85vh] overflow-y-auto">
             <div className="p-4">
@@ -167,6 +168,29 @@ const Sidebar = () => {
             </div>
           </DrawerContent>
         </Drawer>
+      </div>
+
+      {/* Floating Navigation Bar for Mobile */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-[#2B2A33] border-t border-gray-800 flex justify-around items-center py-2 px-4 z-40">
+        <Link to="/" className="flex flex-col items-center text-gray-400 hover:text-purple-400">
+          <Home className="w-6 h-6" />
+          <span className="text-xs mt-1">Home</span>
+        </Link>
+        <Link to="/photos" className="flex flex-col items-center text-gray-400 hover:text-purple-400">
+          <Image className="w-6 h-6" />
+          <span className="text-xs mt-1">Photos</span>
+        </Link>
+        <div className="invisible">
+          <Play className="w-6 h-6" />
+        </div>
+        <Link to="/watch" className="flex flex-col items-center text-gray-400 hover:text-purple-400">
+          <Play className="w-6 h-6" />
+          <span className="text-xs mt-1">Watch</span>
+        </Link>
+        <Link to="/shop" className="flex flex-col items-center text-gray-400 hover:text-purple-400">
+          <ShoppingBag className="w-6 h-6" />
+          <span className="text-xs mt-1">Shop</span>
+        </Link>
       </div>
     </>
   );

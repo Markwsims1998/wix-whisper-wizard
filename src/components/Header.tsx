@@ -3,9 +3,32 @@ import { Bell, MessageSquare, Search, LogOut, ShoppingCart } from "lucide-react"
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useToast } from "@/components/ui/use-toast";
 
 const Header = () => {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
+  // Log user navigation
+  useEffect(() => {
+    const logActivity = () => {
+      console.log("User activity: Header component loaded");
+      // In a real application, this would call an API to record the activity
+    };
+
+    logActivity();
+  }, []);
+
+  const handleIconClick = (destination: string, name: string) => {
+    navigate(destination);
+    
+    // Log the activity
+    console.log(`User activity: Clicked on ${name}`);
+    // In a real application, this would call an API to record the activity
+  };
 
   return (
     <header className="bg-white shadow-sm py-3 px-6 flex items-center justify-between fixed top-0 right-0 z-10 transition-all duration-300 dark:bg-gray-800 dark:text-white" style={{ left: 'var(--sidebar-width, 280px)' }}>
@@ -20,39 +43,56 @@ const Header = () => {
         </div>
       </div>
 
-      <div className="flex items-center gap-4">
-        <Link to="/notifications" className="relative text-gray-600 hover:text-purple-600 transition-colors dark:text-gray-300 dark:hover:text-purple-400">
+      <div className="flex items-center gap-5">
+        <button 
+          onClick={() => handleIconClick("/notifications", "notifications")} 
+          className="relative text-gray-600 hover:text-purple-600 transition-colors dark:text-gray-300 dark:hover:text-purple-400 bg-gray-100 dark:bg-gray-700 rounded-full p-2"
+          aria-label="Notifications"
+        >
           <Bell className="w-5 h-5" />
-          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-4 h-4 rounded-full flex items-center justify-center">3</span>
-        </Link>
+          <Badge className="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 px-1.5 min-w-[20px] h-5 text-xs">3</Badge>
+        </button>
         
-        <Link to="/messages" className="relative text-gray-600 hover:text-purple-600 transition-colors dark:text-gray-300 dark:hover:text-purple-400">
+        <button 
+          onClick={() => handleIconClick("/messages", "messages")} 
+          className="relative text-gray-600 hover:text-purple-600 transition-colors dark:text-gray-300 dark:hover:text-purple-400 bg-gray-100 dark:bg-gray-700 rounded-full p-2"
+          aria-label="Messages"
+        >
           <MessageSquare className="w-5 h-5" />
-          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-4 h-4 rounded-full flex items-center justify-center">5</span>
-        </Link>
+          <Badge className="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 px-1.5 min-w-[20px] h-5 text-xs">5</Badge>
+        </button>
 
-        <Link to="/shop" className="relative text-gray-600 hover:text-purple-600 transition-colors dark:text-gray-300 dark:hover:text-purple-400">
+        <button 
+          onClick={() => handleIconClick("/basket", "shopping cart")} 
+          className="relative text-gray-600 hover:text-purple-600 transition-colors dark:text-gray-300 dark:hover:text-purple-400 bg-gray-100 dark:bg-gray-700 rounded-full p-2"
+          aria-label="Shopping Cart"
+        >
           <ShoppingCart className="w-5 h-5" />
-          <Badge className="absolute -top-2 -right-2 bg-[#8B5CF6] hover:bg-[#7C3AED]">3</Badge>
-        </Link>
+          <Badge className="absolute -top-1 -right-1 bg-[#8B5CF6] hover:bg-[#7C3AED] px-1.5 min-w-[20px] h-5 text-xs">3</Badge>
+        </button>
         
-        <Link 
-          to="/profile" 
+        <button 
+          onClick={() => handleIconClick("/profile", "profile")}
           className="flex items-center gap-2 text-gray-800 hover:text-purple-600 transition-colors dark:text-gray-300 dark:hover:text-purple-400"
+          aria-label="Profile"
         >
           <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center overflow-hidden dark:bg-purple-900">
             {user?.profilePicture ? (
               <img src={user.profilePicture} alt="Profile" className="w-full h-full object-cover" />
             ) : (
-              <span className="font-medium text-purple-600 dark:text-purple-300">{user?.name.charAt(0)}</span>
+              <span className="font-medium text-purple-600 dark:text-purple-300">{user?.name?.charAt(0) || 'A'}</span>
             )}
           </div>
-          <span className="font-medium">{user?.name || 'User'}</span>
-        </Link>
+          <span className="font-medium hidden md:block">{user?.name || 'User'}</span>
+        </button>
 
         <button 
-          onClick={logout}
-          className="text-gray-600 hover:text-red-600 transition-colors dark:text-gray-300 dark:hover:text-red-400"
+          onClick={() => {
+            logout();
+            console.log("User activity: Logged out");
+            // In a real application, this would call an API to record the activity
+          }}
+          className="text-gray-600 hover:text-red-600 transition-colors dark:text-gray-300 dark:hover:text-red-400 bg-gray-100 dark:bg-gray-700 rounded-full p-2 hidden md:flex"
           title="Logout"
         >
           <LogOut className="w-5 h-5" />

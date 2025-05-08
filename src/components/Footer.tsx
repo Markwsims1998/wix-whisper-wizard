@@ -1,3 +1,4 @@
+
 import { Link } from 'react-router-dom';
 import { Facebook, Instagram, Twitter, Youtube, Mail } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -6,8 +7,8 @@ const Footer = () => {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="bg-[#2B2A33] text-gray-300 dark:bg-gray-900 w-full mt-auto" style={{ marginLeft: 'var(--sidebar-width, 280px)', transition: 'margin-left 0.3s ease-in-out' }}>
-      <div className="max-w-screen-xl mx-auto px-6 py-10">
+    <footer className="bg-[#2B2A33] text-gray-300 dark:bg-gray-900 w-full" style={{ marginLeft: 'var(--sidebar-width, 280px)', transition: 'margin-left 0.3s ease-in-out' }}>
+      <div className="container mx-auto px-4 py-8 md:py-10">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div>
             <h3 className="text-lg font-semibold mb-4">HappyKinks</h3>
@@ -62,7 +63,7 @@ const Footer = () => {
           </div>
         </div>
         
-        <div className="border-t border-gray-700 mt-10 pt-6 flex flex-col md:flex-row justify-between items-center">
+        <div className="border-t border-gray-700 mt-8 pt-6 flex flex-col md:flex-row justify-between items-center">
           <p className="text-sm text-gray-400">© {currentYear} HappyKinks. All rights reserved.</p>
           <div className="flex space-x-6 mt-4 md:mt-0 text-sm">
             <a href="#" className="text-gray-400 hover:text-white transition-colors">Terms of Service</a>

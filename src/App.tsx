@@ -17,6 +17,7 @@ import Watch from "./pages/Watch";
 import People from "./pages/People";
 import Notifications from "./pages/Notifications";
 import Shop from "./pages/Shop";
+import Basket from "./pages/Basket";
 import Settings from "./pages/Settings";
 import Messages from "./pages/Messages";
 import Login from "./pages/Login";
@@ -53,16 +54,31 @@ const AppRoutes = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    // Log initial app load
+    console.log("User activity: Application loaded");
+    // In a real application, this would call an API to record the activity
+
     // Simulate initial app loading
     const timer = setTimeout(() => {
       setIsLoading(false);
-    }, 1000);
+    }, 1500); // Extended loading time for better UX
 
     return () => clearTimeout(timer);
   }, []);
 
   if (isLoading) {
-    return <LoadingSpinner fullScreen />;
+    return (
+      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center">
+        <div className="flex flex-col items-center">
+          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 animate-spin flex items-center justify-center">
+            <div className="w-16 h-16 rounded-full bg-black/80 flex items-center justify-center">
+              <span className="text-2xl font-bold text-white">HK</span>
+            </div>
+          </div>
+          <p className="text-white font-medium mt-4 text-lg">Loading...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -106,6 +122,11 @@ const AppRoutes = () => {
       <Route path="/shop" element={
         <Layout>
           <ProtectedRoute><Shop /></ProtectedRoute>
+        </Layout>
+      } />
+      <Route path="/basket" element={
+        <Layout>
+          <ProtectedRoute><Basket /></ProtectedRoute>
         </Layout>
       } />
       <Route path="/settings" element={

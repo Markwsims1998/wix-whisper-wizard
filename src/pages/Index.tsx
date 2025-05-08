@@ -5,8 +5,13 @@ import MembersList from "@/components/MembersList";
 import PostFeed from "@/components/PostFeed";
 import Sidebar from "@/components/Sidebar";
 import { Image, MessageSquare, Video } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 const Index = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
   // Update header position based on sidebar width
   useEffect(() => {
     const updateHeaderPosition = () => {
@@ -17,8 +22,15 @@ const Index = () => {
       }
     };
 
-    // Initial update
+    // Log user activity
+    const logActivity = () => {
+      console.log("User activity: Visited home page");
+      // In a real application, this would call an API to record the activity
+    };
+
+    // Initial update and logging
     updateHeaderPosition();
+    logActivity();
 
     // Set up observer to detect sidebar width changes
     const observer = new ResizeObserver(updateHeaderPosition);
@@ -39,17 +51,21 @@ const Index = () => {
       
       <div className="pl-[280px] pt-16 pr-4 pb-10 transition-all duration-300 flex-grow" style={{ paddingLeft: 'var(--sidebar-width, 280px)' }}>
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 max-w-screen-xl mx-auto w-full">
-          <div className="lg:col-span-12 w-full">
+          <div className="lg:col-span-8 w-full">
             {/* Create Post Area */}
             <div className="bg-white rounded-lg p-4 mb-4 shadow-sm w-full">
               <div className="flex items-center gap-3 mb-3">
-                <div className="h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center overflow-hidden">
-                  <img src="https://images.unsplash.com/photo-1649972904349-6e44c42644a7?ixlib=rb-4.0.3&auto=format&fit=crop&w=80&h=80&q=80" alt="Profile" className="w-full h-full object-cover" />
+                <div className="h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center overflow-hidden cursor-pointer" onClick={() => navigate("/profile")}>
+                  {user?.profilePicture ? (
+                    <img src={user.profilePicture} alt="Profile" className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="font-medium text-purple-600 dark:text-purple-300">{user?.name?.charAt(0) || 'A'}</span>
+                  )}
                 </div>
                 <div className="flex-1">
                   <input 
                     type="text"
-                    placeholder="What's on your mind, Alex?"
+                    placeholder={`What's on your mind, ${user?.name?.split(' ')[0] || 'Alex'}?`}
                     className="w-full px-4 py-2 bg-gray-100 rounded-full text-sm focus:outline-none"
                   />
                 </div>
@@ -70,6 +86,31 @@ const Index = () => {
               </div>
             </div>
             <PostFeed />
+          </div>
+          <div className="lg:col-span-4 w-full">
+            <div className="bg-white rounded-lg shadow-sm p-4 sticky top-20">
+              <h3 className="font-medium text-gray-800 mb-4">Active Friends</h3>
+              <div className="space-y-3">
+                {[1, 2, 3, 4, 5, 6, 7].map((id) => (
+                  <div key={id} className="flex items-center gap-3 cursor-pointer hover:bg-gray-50 p-2 rounded-lg">
+                    <div className="relative">
+                      <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
+                        <img 
+                          src={`https://randomuser.me/api/portraits/men/${id + 20}.jpg`} 
+                          alt={`Friend ${id}`}
+                          className="w-full h-full object-cover" 
+                        />
+                      </div>
+                      <div className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-green-400 border-2 border-white"></div>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">Friend {id}</p>
+                      <p className="text-xs text-gray-500">Online</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </div>

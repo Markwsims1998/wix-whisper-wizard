@@ -12,6 +12,8 @@ interface AuthUser {
   email: string;
   role: string;
   profilePicture?: string;
+  relationshipStatus?: string;
+  relationshipPartners?: string[];
 }
 
 interface AuthContextType {
@@ -21,6 +23,7 @@ interface AuthContextType {
   logout: () => void;
   isAuthenticated: boolean;
   loading: boolean;
+  updateUserProfile: (updates: Partial<AuthUser>) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -48,7 +51,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Fetch the user's profile from the profiles table
       const { data: profile, error } = await supabase
         .from('profiles')
-        .select('username, full_name, avatar_url, subscription_tier')
+        .select(`
+          username, 
+          full_name, 
+          avatar_url, 
+          subscription_tier,
+          bio,
+          location,
+          relationship_status,
+          relationship_partners
+        `)
         .eq('id', supabaseUser.id)
         .single();
       
@@ -64,7 +76,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         name: profile?.full_name || supabaseUser.email?.split('@')[0] || 'User',
         email: supabaseUser.email || '',
         role: supabaseUser.email?.includes('admin') ? 'admin' : 'user',
-        profilePicture: profile?.avatar_url
+        profilePicture: profile?.avatar_url,
+        relationshipStatus: profile?.relationship_status,
+        relationshipPartners: profile?.relationship_partners
       };
     } catch (err) {
       console.error('Error transforming user:', err);
@@ -134,6 +148,45 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       subscription.unsubscribe();
     };
   }, [navigate]);
+
+  // Update user profile function
+  const updateUserProfile = async (updates: Partial<AuthUser>): Promise<boolean> => {
+    if (!user?.id) return false;
+    
+    try {
+      // Convert the update object keys to snake_case for database
+      const profileUpdates: Record<string, any> = {};
+      
+      if (updates.name !== undefined) profileUpdates.full_name = updates.name;
+      if (updates.username !== undefined) profileUpdates.username = updates.username;
+      if (updates.profilePicture !== undefined) profileUpdates.avatar_url = updates.profilePicture;
+      if (updates.relationshipStatus !== undefined) profileUpdates.relationship_status = updates.relationshipStatus;
+      if (updates.relationshipPartners !== undefined) profileUpdates.relationship_partners = updates.relationshipPartners;
+      
+      const { error } = await supabase
+        .from('profiles')
+        .update(profileUpdates)
+        .eq('id', user.id);
+        
+      if (error) {
+        console.error('Error updating profile:', error);
+        toast({
+          title: "Failed to update profile",
+          description: error.message,
+          variant: "destructive",
+        });
+        return false;
+      }
+      
+      // Update local state
+      setUser(prev => prev ? { ...prev, ...updates } : null);
+      
+      return true;
+    } catch (error) {
+      console.error('Unexpected error updating profile:', error);
+      return false;
+    }
+  };
 
   // Login function
   const login = async (email: string, password: string): Promise<boolean> => {
@@ -262,7 +315,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       signup, 
       logout, 
       isAuthenticated, 
-      loading 
+      loading,
+      updateUserProfile
     }}>
       {children}
     </AuthContext.Provider>

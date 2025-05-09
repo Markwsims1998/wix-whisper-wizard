@@ -311,6 +311,7 @@ export type Database = {
           privacy_settings: Json | null
           relationship_partners: string[] | null
           relationship_status: string | null
+          role: string | null
           show_featured_content: boolean | null
           subscription_tier: string | null
           updated_at: string
@@ -331,6 +332,7 @@ export type Database = {
           privacy_settings?: Json | null
           relationship_partners?: string[] | null
           relationship_status?: string | null
+          role?: string | null
           show_featured_content?: boolean | null
           subscription_tier?: string | null
           updated_at?: string
@@ -351,6 +353,7 @@ export type Database = {
           privacy_settings?: Json | null
           relationship_partners?: string[] | null
           relationship_status?: string | null
+          role?: string | null
           show_featured_content?: boolean | null
           subscription_tier?: string | null
           updated_at?: string
@@ -425,7 +428,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      is_admin: {
+        Args: { user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never

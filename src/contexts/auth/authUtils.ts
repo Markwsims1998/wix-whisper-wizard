@@ -25,7 +25,8 @@ export const transformUser = async (supabaseUser: User | null): Promise<AuthUser
         show_featured_content,
         bottom_nav_preferences,
         notification_preferences,
-        privacy_settings
+        privacy_settings,
+        role
       `)
       .eq('id', supabaseUser.id)
       .single();
@@ -35,9 +36,9 @@ export const transformUser = async (supabaseUser: User | null): Promise<AuthUser
       return null;
     }
     
-    // Define admin emails - markwsims1998@gmail.com is explicitly set as an admin
+    // Define admin emails - for fallback if role isn't set
     const adminEmails = ['markwsims1998@gmail.com', 'admin@example.com'];
-    const isAdmin = adminEmails.includes(supabaseUser.email || '');
+    const isAdminEmail = adminEmails.includes(supabaseUser.email || '');
     
     // Create a user object with data from auth and profile
     // Parse JSON fields with safe defaults
@@ -46,7 +47,7 @@ export const transformUser = async (supabaseUser: User | null): Promise<AuthUser
       username: profile?.username || supabaseUser.email?.split('@')[0] || '',
       name: profile?.full_name || supabaseUser.email?.split('@')[0] || 'User',
       email: supabaseUser.email || '',
-      role: isAdmin ? 'admin' : 'user',
+      role: profile?.role || (isAdminEmail ? 'admin' : 'user'),
       profilePicture: profile?.avatar_url,
       relationshipStatus: profile?.relationship_status,
       relationshipPartners: profile?.relationship_partners,
@@ -88,6 +89,7 @@ export const convertToProfileUpdates = (updates: Partial<AuthUser>): Record<stri
   if (updates.bottomNavPreferences !== undefined) profileUpdates.bottom_nav_preferences = updates.bottomNavPreferences;
   if (updates.notificationPreferences !== undefined) profileUpdates.notification_preferences = updates.notificationPreferences;
   if (updates.privacySettings !== undefined) profileUpdates.privacy_settings = updates.privacySettings;
+  if (updates.role !== undefined) profileUpdates.role = updates.role;
 
   return profileUpdates;
 };

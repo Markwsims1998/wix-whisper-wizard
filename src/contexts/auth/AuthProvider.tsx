@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from "@/components/ui/use-toast";
@@ -204,6 +203,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // Update a user's role directly - admin only function
+  const updateUserRole = async (targetUserId: string, newRole: 'admin' | 'moderator' | 'user'): Promise<boolean> => {
+    if (!user || user.role !== 'admin') {
+      console.error('Only admins can update user roles');
+      return false;
+    }
+    
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ role: newRole })
+        .eq('id', targetUserId);
+        
+      if (error) {
+        console.error('Error updating user role:', error);
+        return false;
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Unexpected error updating user role:', error);
+      return false;
+    }
+  };
+
   // Login function
   const login = async (email: string, password: string): Promise<boolean> => {
     console.log('Login attempt with email:', email);
@@ -344,7 +368,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       loading,
       updateUserProfile,
       refreshUserProfile,
-      updatePassword
+      updatePassword,
+      updateUserRole
     }}>
       {children}
     </AuthContext.Provider>

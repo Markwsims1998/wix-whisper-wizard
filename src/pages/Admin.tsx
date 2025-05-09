@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
@@ -15,7 +16,6 @@ import AdminReports from "@/components/admin/AdminReports";
 import AdminSettings from "@/components/admin/AdminSettings";
 import AdminSubscriptions from "@/components/admin/AdminSubscriptions";
 import AdminMarketingSettings from "@/components/admin/AdminMarketingSettings";
-import { supabase } from "@/integrations/supabase/client";
 
 // Add CSS variables for the admin sidebar
 const initAdminStyles = () => {

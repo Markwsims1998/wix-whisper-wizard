@@ -1,4 +1,3 @@
-
 import { supabase } from '@/lib/supabaseClient';
 
 export interface Video {
@@ -20,33 +19,28 @@ export interface Video {
 
 export const fetchVideos = async (category: string = 'all'): Promise<Video[]> => {
   try {
-    // Use a raw query approach instead of strongly typed selects
-    const queryString = `
-      SELECT
-        videos.*,
-        profiles.id as user_id,
-        profiles.username,
-        profiles.full_name,
-        profiles.avatar_url
-      FROM videos
-      LEFT JOIN profiles ON videos.user_id = profiles.id
-      ${category !== 'all' ? "WHERE videos.category = '" + category + "'" : ''}
-    `;
-
-    // Execute the query
-    const { data, error } = await supabase.rpc('get_videos_with_users', { 
-      category_filter: category !== 'all' ? category : null 
-    }).catch(() => {
-      // Fallback to the placeholder data if the RPC function doesn't exist yet
-      return { data: null, error: new Error('RPC function not found') };
-    });
+    let query = supabase.from('videos');
     
-    if (error || !data) {
+    // Add category filter if needed
+    if (category !== 'all') {
+      query = query.eq('category', category);
+    }
+    
+    // Execute the query
+    const { data, error } = await query.select('*');
+    
+    if (error) {
       console.error('Error fetching videos:', error);
       return getPlaceholderVideos();
     }
 
-    // Transform the data to match our Video interface
+    // If no data returned, return hardcoded placeholder data
+    if (!data || data.length === 0) {
+      return getPlaceholderVideos();
+    }
+
+    // Since we don't have direct user data from the query,
+    // we'll use the placeholder user data for now
     return data.map((item: any): Video => ({
       id: item.id,
       title: item.title || 'Untitled Video',
@@ -57,10 +51,10 @@ export const fetchVideos = async (category: string = 'all'): Promise<Video[]> =>
       likes_count: item.likes_count || 0,
       created_at: item.created_at,
       user: {
-        id: item.user_id,
-        username: item.username || 'unknown',
-        full_name: item.full_name || 'Unknown User',
-        avatar_url: item.avatar_url
+        id: item.user_id || '101',
+        username: 'user',
+        full_name: 'Demo User',
+        avatar_url: null
       }
     }));
   } catch (err) {

@@ -54,13 +54,32 @@ export const getActiveFriends = async (userId: string): Promise<FriendProfile[]>
   }
 };
 
+// Type for user settings updates
+export interface UserSettingsUpdate {
+  dark_mode?: boolean;
+  use_system_theme?: boolean;
+  show_featured_content?: boolean;
+  bottom_nav_preferences?: string[];
+  notification_preferences?: {
+    email: boolean;
+    push: boolean;
+    friendRequests: boolean;
+    messages: boolean;
+  };
+  privacy_settings?: {
+    profileVisibility: 'public' | 'friends' | 'private';
+    postVisibility: 'public' | 'friends' | 'private';
+    searchEngineVisible: boolean;
+  };
+}
+
 /**
  * Update user settings
  * @param userId The user ID
  * @param settings The settings to update
  * @returns Success status
  */
-export const updateUserSettings = async (userId: string, settings: any): Promise<boolean> => {
+export const updateUserSettings = async (userId: string, settings: UserSettingsUpdate): Promise<boolean> => {
   if (!userId) return false;
   
   try {

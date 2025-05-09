@@ -1,9 +1,9 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { User, Session } from '@supabase/supabase-js';
+import { Json } from '@/integrations/supabase/types';
 
 interface AuthUser {
   id: string;
@@ -54,6 +54,29 @@ export const useAuth = () => {
   return context;
 };
 
+// Helper function to safely parse JSON or return a default value
+const safeJsonParse = <T,>(jsonValue: Json | null, defaultValue: T): T => {
+  if (!jsonValue) return defaultValue;
+  
+  try {
+    // If it's already an object, return it cast as T
+    if (typeof jsonValue === 'object' && jsonValue !== null) {
+      return jsonValue as unknown as T;
+    }
+    
+    // If it's a string, try to parse it
+    if (typeof jsonValue === 'string') {
+      return JSON.parse(jsonValue) as T;
+    }
+    
+    // Otherwise, return default
+    return defaultValue;
+  } catch (e) {
+    console.error('Error parsing JSON:', e);
+    return defaultValue;
+  }
+};
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [session, setSession] = useState<Session | null>(null); // Track the full session
@@ -98,7 +121,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const adminEmails = ['markwsims1998@gmail.com', 'admin@example.com'];
       const isAdmin = adminEmails.includes(supabaseUser.email || '');
       
+      // Default values for preferences
+      const defaultNotificationPrefs = {
+        email: true,
+        push: true,
+        friendRequests: true,
+        messages: true
+      };
+      
+      const defaultPrivacySettings = {
+        profileVisibility: 'public' as const,
+        postVisibility: 'public' as const,
+        searchEngineVisible: true
+      };
+      
       // Create a user object with data from auth and profile
+      // Parse JSON fields with safe defaults
       return {
         id: supabaseUser.id,
         username: profile?.username || supabaseUser.email?.split('@')[0] || '',
@@ -114,8 +152,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         useSystemTheme: profile?.use_system_theme,
         showFeaturedContent: profile?.show_featured_content,
         bottomNavPreferences: profile?.bottom_nav_preferences,
-        notificationPreferences: profile?.notification_preferences,
-        privacySettings: profile?.privacy_settings
+        notificationPreferences: safeJsonParse(
+          profile?.notification_preferences, 
+          defaultNotificationPrefs
+        ),
+        privacySettings: safeJsonParse(
+          profile?.privacy_settings, 
+          defaultPrivacySettings
+        )
       };
     } catch (err) {
       console.error('Error transforming user:', err);

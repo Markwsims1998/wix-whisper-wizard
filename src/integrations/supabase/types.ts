@@ -301,42 +301,60 @@ export type Database = {
         Row: {
           avatar_url: string | null
           bio: string | null
+          bottom_nav_preferences: string[] | null
           created_at: string
+          dark_mode: boolean | null
           full_name: string | null
           id: string
           location: string | null
+          notification_preferences: Json | null
+          privacy_settings: Json | null
           relationship_partners: string[] | null
           relationship_status: string | null
+          show_featured_content: boolean | null
           subscription_tier: string | null
           updated_at: string
+          use_system_theme: boolean | null
           username: string
           website: string | null
         }
         Insert: {
           avatar_url?: string | null
           bio?: string | null
+          bottom_nav_preferences?: string[] | null
           created_at?: string
+          dark_mode?: boolean | null
           full_name?: string | null
           id: string
           location?: string | null
+          notification_preferences?: Json | null
+          privacy_settings?: Json | null
           relationship_partners?: string[] | null
           relationship_status?: string | null
+          show_featured_content?: boolean | null
           subscription_tier?: string | null
           updated_at?: string
+          use_system_theme?: boolean | null
           username: string
           website?: string | null
         }
         Update: {
           avatar_url?: string | null
           bio?: string | null
+          bottom_nav_preferences?: string[] | null
           created_at?: string
+          dark_mode?: boolean | null
           full_name?: string | null
           id?: string
           location?: string | null
+          notification_preferences?: Json | null
+          privacy_settings?: Json | null
           relationship_partners?: string[] | null
           relationship_status?: string | null
+          show_featured_content?: boolean | null
           subscription_tier?: string | null
           updated_at?: string
+          use_system_theme?: boolean | null
           username?: string
           website?: string | null
         }

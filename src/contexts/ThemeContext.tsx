@@ -57,6 +57,11 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
     };
     
+    // Ensure default page load is light mode
+    if (theme === 'light') {
+      document.documentElement.classList.remove('dark');
+    }
+    
     // Use event listener for preference changes
     mediaQuery.addEventListener('change', handleChange);
     

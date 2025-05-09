@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 import { Badge } from "@/components/ui/badge";
@@ -73,7 +74,6 @@ export const useSubscription = () => {
   return context;
 };
 
-// Only modifying the upgradeSubscription function to be more robust with authentication
 export const SubscriptionProvider: React.FC<{children: React.ReactNode}> = ({ children }) => {
   const { user, isAuthenticated } = useAuth();
   const [subscriptionTier, setSubscriptionTier] = useState<SubscriptionTier>("free");
@@ -86,10 +86,13 @@ export const SubscriptionProvider: React.FC<{children: React.ReactNode}> = ({ ch
     const loadSubscription = async () => {
       setIsLoading(true);
       
-      if (!isAuthenticated || !user) {
+      if (!isAuthenticated || !user?.id) {
         console.log("SubscriptionContext: No authenticated user, setting free tier");
         setSubscriptionTier("free");
-        setSubscriptionDetails(subscriptionPlans.free);
+        setSubscriptionDetails({
+          ...subscriptionPlans.free,
+          messageResetTime: new Date(Date.now() + 24 * 60 * 60 * 1000)
+        });
         setIsLoading(false);
         return;
       }
@@ -111,7 +114,7 @@ export const SubscriptionProvider: React.FC<{children: React.ReactNode}> = ({ ch
         }
         
         if (data) {
-          const storedTier = data.subscription_tier as SubscriptionTier || "free";
+          const storedTier = (data.subscription_tier as SubscriptionTier) || "free";
           console.log("SubscriptionContext: Loaded subscription tier from database:", storedTier);
           
           // Get stored messages remaining and reset time
@@ -136,6 +139,7 @@ export const SubscriptionProvider: React.FC<{children: React.ReactNode}> = ({ ch
                 messagesRemaining: subscriptionPlans.free.maxMessages,
                 messageResetTime: newResetTime
               });
+              setSubscriptionTier(storedTier);
               setIsLoading(false);
               return;
             }
@@ -150,7 +154,10 @@ export const SubscriptionProvider: React.FC<{children: React.ReactNode}> = ({ ch
         } else {
           console.log("SubscriptionContext: No subscription data found, defaulting to free tier");
           setSubscriptionTier("free");
-          setSubscriptionDetails(subscriptionPlans.free);
+          setSubscriptionDetails({
+            ...subscriptionPlans.free,
+            messageResetTime: new Date(Date.now() + 24 * 60 * 60 * 1000)
+          });
         }
       } catch (err) {
         console.error("Error loading subscription:", err);
@@ -169,7 +176,7 @@ export const SubscriptionProvider: React.FC<{children: React.ReactNode}> = ({ ch
       requestedTier: tier
     });
     
-    if (!isAuthenticated || !user) {
+    if (!isAuthenticated || !user?.id) {
       console.error("Cannot upgrade subscription: No authenticated user");
       toast({
         title: "Authentication Required",

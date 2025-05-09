@@ -22,15 +22,16 @@ const Shop = () => {
   const [cartItems, setCartItems] = useState<number>(3);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Add debug logging for authentication state
+  // Debugging logs
   useEffect(() => {
-    console.log("Shop - Current authentication state:", { 
+    console.log("Shop - Auth state updated:", { 
       isAuthenticated, 
       userId: user?.id, 
-      userEmail: user?.email 
+      userEmail: user?.email,
+      subscriptionTier
     });
     setErrorMessage(null);
-  }, [user, isAuthenticated]);
+  }, [user, isAuthenticated, subscriptionTier]);
   
   const handleSubscribe = async (tier: SubscriptionTier) => {
     console.log("Subscribe button clicked for tier:", tier);
@@ -52,7 +53,12 @@ const Shop = () => {
       // Update subscription in database via context
       const success = await upgradeSubscription(tier);
       
-      if (!success) {
+      if (success) {
+        toast({
+          title: "Subscription Updated",
+          description: `Your subscription has been successfully updated to ${tier} tier.`,
+        });
+      } else {
         setErrorMessage("There was a problem updating your subscription. Please try again.");
         toast({
           title: "Subscription Error",

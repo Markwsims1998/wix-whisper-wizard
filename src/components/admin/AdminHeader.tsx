@@ -1,6 +1,6 @@
 
 import React, { useState } from "react";
-import { Bell, Search, Settings, Sun, Moon, User, LogOut, ChevronDown } from "lucide-react";
+import { Bell, Search, Settings, Sun, Moon, User, LogOut, ChevronDown, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { 
@@ -17,7 +17,7 @@ import { useAuth } from "@/contexts/AuthContext";
 
 const AdminHeader = () => {
   const { theme, setTheme } = useTheme();
-  const { signOut } = useAuth();
+  const { logout } = useAuth(); // Changed from signOut to logout based on AuthContext
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   
@@ -33,7 +33,7 @@ const AdminHeader = () => {
 
   const handleSignOut = () => {
     // Sign out the user
-    signOut();
+    logout(); // Changed from signOut to logout
     navigate("/login");
   };
 

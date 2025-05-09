@@ -3,6 +3,8 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 import { Badge } from "@/components/ui/badge";
 import { Award, Diamond, Badge as BadgeIcon } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/components/ui/use-toast";
 
 export type SubscriptionTier = "gold" | "silver" | "bronze" | "free";
 
@@ -19,7 +21,7 @@ interface SubscriptionDetails {
 interface SubscriptionContextType {
   subscriptionTier: SubscriptionTier;
   subscriptionDetails: SubscriptionDetails;
-  upgradeSubscription: (tier: SubscriptionTier) => void;
+  upgradeSubscription: (tier: SubscriptionTier) => Promise<boolean>;
   consumeMessage: () => boolean;
   resetMessagesUsed: () => void;
   getTierIcon: (tier: SubscriptionTier) => React.ReactNode;
@@ -76,81 +78,125 @@ export const SubscriptionProvider: React.FC<{children: React.ReactNode}> = ({ ch
   const { user } = useAuth();
   const [subscriptionTier, setSubscriptionTier] = useState<SubscriptionTier>("free");
   const [subscriptionDetails, setSubscriptionDetails] = useState<SubscriptionDetails>(subscriptionPlans.free);
+  const { toast } = useToast();
   
-  // Load subscription from localStorage on init
+  // Load subscription from Supabase on init
   useEffect(() => {
-    if (user) {
-      const storedTier = localStorage.getItem(`subscription_tier_${user.id}`) as SubscriptionTier | null;
-      if (storedTier && subscriptionPlans[storedTier]) {
-        setSubscriptionTier(storedTier);
+    const loadSubscription = async () => {
+      if (!user) return;
+      
+      try {
+        // Get subscription from Supabase profiles table
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('subscription_tier, bottom_nav_preferences')
+          .eq('id', user.id)
+          .single();
         
-        // Get stored messages remaining and reset time
-        const messagesRemaining = Number(localStorage.getItem(`messages_remaining_${user.id}`)) || 
-          subscriptionPlans[storedTier].maxMessages;
-        
-        const messageResetTimeStr = localStorage.getItem(`message_reset_time_${user.id}`);
-        let messageResetTime: Date | undefined;
-        
-        if (messageResetTimeStr) {
-          messageResetTime = new Date(messageResetTimeStr);
-          
-          // Check if reset time has passed for free tier
-          if (storedTier === "free" && new Date() > messageResetTime) {
-            // Reset messages if 24 hours have passed
-            const newResetTime = new Date(Date.now() + 24 * 60 * 60 * 1000);
-            localStorage.setItem(`messages_remaining_${user.id}`, String(subscriptionPlans.free.maxMessages));
-            localStorage.setItem(`message_reset_time_${user.id}`, newResetTime.toISOString());
-            messageResetTime = newResetTime;
-            setSubscriptionDetails({
-              ...subscriptionPlans[storedTier],
-              messagesRemaining: subscriptionPlans.free.maxMessages,
-              messageResetTime: newResetTime
-            });
-            return;
-          }
+        if (error) {
+          console.error("Error loading subscription:", error);
+          return;
         }
         
-        setSubscriptionDetails({
-          ...subscriptionPlans[storedTier],
-          messagesRemaining,
-          messageResetTime
-        });
-      } else {
-        // Set default free plan
-        const newResetTime = new Date(Date.now() + 24 * 60 * 60 * 1000);
-        localStorage.setItem(`subscription_tier_${user.id}`, "free");
-        localStorage.setItem(`messages_remaining_${user.id}`, String(subscriptionPlans.free.maxMessages));
-        localStorage.setItem(`message_reset_time_${user.id}`, newResetTime.toISOString());
-        
-        setSubscriptionTier("free");
-        setSubscriptionDetails({
-          ...subscriptionPlans.free,
-          messageResetTime: newResetTime
-        });
+        if (data) {
+          const storedTier = data.subscription_tier as SubscriptionTier || "free";
+          if (subscriptionPlans[storedTier]) {
+            setSubscriptionTier(storedTier);
+            
+            // Get stored messages remaining and reset time
+            const messagesRemaining = Number(localStorage.getItem(`messages_remaining_${user.id}`)) || 
+              subscriptionPlans[storedTier].maxMessages;
+            
+            const messageResetTimeStr = localStorage.getItem(`message_reset_time_${user.id}`);
+            let messageResetTime: Date | undefined;
+            
+            if (messageResetTimeStr) {
+              messageResetTime = new Date(messageResetTimeStr);
+              
+              // Check if reset time has passed for free tier
+              if (storedTier === "free" && new Date() > messageResetTime) {
+                // Reset messages if 24 hours have passed
+                const newResetTime = new Date(Date.now() + 24 * 60 * 60 * 1000);
+                localStorage.setItem(`messages_remaining_${user.id}`, String(subscriptionPlans.free.maxMessages));
+                localStorage.setItem(`message_reset_time_${user.id}`, newResetTime.toISOString());
+                messageResetTime = newResetTime;
+                setSubscriptionDetails({
+                  ...subscriptionPlans[storedTier],
+                  messagesRemaining: subscriptionPlans.free.maxMessages,
+                  messageResetTime: newResetTime
+                });
+                return;
+              }
+            }
+            
+            setSubscriptionDetails({
+              ...subscriptionPlans[storedTier],
+              messagesRemaining,
+              messageResetTime
+            });
+          }
+        }
+      } catch (err) {
+        console.error("Error loading subscription:", err);
       }
-    }
-  }, [user]);
-
-  const upgradeSubscription = (tier: SubscriptionTier) => {
-    if (!user) return;
-    
-    setSubscriptionTier(tier);
-    const newDetails = {
-      ...subscriptionPlans[tier],
-      messagesRemaining: subscriptionPlans[tier].maxMessages
     };
     
-    // For free tier, set message reset time
-    if (tier === "free") {
-      newDetails.messageResetTime = new Date(Date.now() + 24 * 60 * 60 * 1000);
-      localStorage.setItem(`message_reset_time_${user.id}`, newDetails.messageResetTime.toISOString());
-    } else {
-      localStorage.removeItem(`message_reset_time_${user.id}`);
-    }
+    loadSubscription();
+  }, [user]);
+
+  const upgradeSubscription = async (tier: SubscriptionTier): Promise<boolean> => {
+    if (!user) return false;
     
-    setSubscriptionDetails(newDetails);
-    localStorage.setItem(`subscription_tier_${user.id}`, tier);
-    localStorage.setItem(`messages_remaining_${user.id}`, String(newDetails.messagesRemaining));
+    try {
+      // Update subscription in Supabase
+      const { error } = await supabase
+        .from('profiles')
+        .update({ subscription_tier: tier })
+        .eq('id', user.id);
+        
+      if (error) {
+        console.error("Error updating subscription in database:", error);
+        toast({
+          title: "Error",
+          description: "Could not update your subscription. Please try again.",
+          variant: "destructive",
+        });
+        return false;
+      }
+      
+      // Update local state
+      setSubscriptionTier(tier);
+      const newDetails = {
+        ...subscriptionPlans[tier],
+        messagesRemaining: subscriptionPlans[tier].maxMessages
+      };
+      
+      // For free tier, set message reset time
+      if (tier === "free") {
+        newDetails.messageResetTime = new Date(Date.now() + 24 * 60 * 60 * 1000);
+        localStorage.setItem(`message_reset_time_${user.id}`, newDetails.messageResetTime.toISOString());
+      } else {
+        localStorage.removeItem(`message_reset_time_${user.id}`);
+      }
+      
+      setSubscriptionDetails(newDetails);
+      localStorage.setItem(`messages_remaining_${user.id}`, String(newDetails.messagesRemaining));
+
+      toast({
+        title: "Subscription Updated",
+        description: `Your subscription has been updated to ${tier} tier.`,
+      });
+      
+      return true;
+    } catch (err) {
+      console.error("Error updating subscription:", err);
+      toast({
+        title: "Error",
+        description: "Could not update your subscription. Please try again.",
+        variant: "destructive",
+      });
+      return false;
+    }
   };
 
   const consumeMessage = (): boolean => {

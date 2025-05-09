@@ -3,9 +3,7 @@ import { Link } from "react-router-dom";
 import { X } from "lucide-react";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { Button } from "@/components/ui/button";
-import { useState, useEffect } from "react";
-import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import { useState } from "react";
 
 interface AdDisplayProps {
   className?: string;
@@ -14,49 +12,11 @@ interface AdDisplayProps {
 const AdDisplay = ({ className = "" }: AdDisplayProps) => {
   const { subscriptionTier } = useSubscription();
   const [showAd, setShowAd] = useState(true);
-  const { user } = useAuth();
-  const [userSubscription, setUserSubscription] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  // Check subscription directly from Supabase if connected
-  useEffect(() => {
-    const checkSubscription = async () => {
-      if (!user?.id) {
-        setIsLoading(false);
-        return;
-      }
-
-      try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('subscription_tier')
-          .eq('id', user.id)
-          .single();
-
-        if (error) {
-          console.error('Error fetching subscription:', error);
-          setIsLoading(false);
-          return;
-        }
-
-        if (data) {
-          setUserSubscription(data.subscription_tier || 'free');
-        }
-      } catch (err) {
-        console.error('Unexpected error checking subscription:', err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    checkSubscription();
-  }, [user]);
-
-  // Determine whether to show ads based on subscription tier
-  const actualTier = userSubscription || subscriptionTier;
-  const showAds = actualTier === "free" || actualTier === "bronze";
   
-  if (!showAds || !showAd || isLoading) return null;
+  // Determine whether to show ads based on subscription tier
+  const showAds = subscriptionTier === "free" || subscriptionTier === "bronze";
+  
+  if (!showAds || !showAd) return null;
 
   const handleDismissAd = () => {
     setShowAd(false);

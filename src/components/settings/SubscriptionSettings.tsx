@@ -12,16 +12,18 @@ const SubscriptionSettings = () => {
   const { toast } = useToast();
   const { subscriptionTier, subscriptionDetails, upgradeSubscription } = useSubscription();
   
-  const cancelSubscription = () => {
-    // Update the subscription to free tier
-    upgradeSubscription('free');
+  const cancelSubscription = async () => {
+    // Update the subscription to free tier in the database
+    const success = await upgradeSubscription('free');
     
-    // Show toast notification
-    toast({
-      title: "Subscription Cancelled",
-      description: "Your subscription has been cancelled successfully.",
-      variant: "default",
-    });
+    if (success) {
+      // Show toast notification
+      toast({
+        title: "Subscription Cancelled",
+        description: "Your subscription has been cancelled successfully.",
+        variant: "default",
+      });
+    }
   };
   
   return (

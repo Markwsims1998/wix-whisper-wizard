@@ -19,17 +19,29 @@ const Shop = () => {
   const [showSubscriptions, setShowSubscriptions] = useState(subscriptionTier === "free");
   const [cartItems, setCartItems] = useState<number>(3);
 
-  const handleSubscribe = (tier: SubscriptionTier) => {
+  const handleSubscribe = async (tier: SubscriptionTier) => {
     setProcessing(true);
-    // Simulate payment processing
-    setTimeout(() => {
-      upgradeSubscription(tier);
+    try {
+      // Update subscription in database via context
+      const success = await upgradeSubscription(tier);
+      
+      if (!success) {
+        toast({
+          title: "Subscription Error",
+          description: "There was a problem updating your subscription. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error updating subscription:", error);
       toast({
-        title: "Subscription Updated",
-        description: `Your subscription has been updated to ${tier} tier.`,
+        title: "Subscription Error",
+        description: "There was a problem updating your subscription. Please try again.",
+        variant: "destructive",
       });
+    } finally {
       setProcessing(false);
-    }, 1500);
+    }
   };
 
   const tierDetails = [
@@ -222,7 +234,7 @@ const Shop = () => {
                             disabled={processing || subscriptionTier === tierInfo.tier}
                             onClick={() => handleSubscribe(tierInfo.tier)}
                           >
-                            {subscriptionTier === tierInfo.tier ? "Current Plan" : "Subscribe"}
+                            {processing ? "Processing..." : subscriptionTier === tierInfo.tier ? "Current Plan" : "Subscribe"}
                           </Button>
                         </div>
                       </div>

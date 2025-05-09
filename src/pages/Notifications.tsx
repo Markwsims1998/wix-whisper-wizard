@@ -1,8 +1,7 @@
-
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
 import { useEffect, useState } from "react";
-import { Bell, User, Heart, MessageCircle } from "lucide-react";
+import { Bell, User, MessageCircle } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
@@ -12,7 +11,7 @@ import { formatDistanceToNow } from "date-fns";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import AdDisplay from "@/components/AdDisplay";
 
-type NotificationType = 'like' | 'comment' | 'friend' | 'system';
+type NotificationType = 'like' | 'comment' | 'follow' | 'system';
 
 type Notification = {
   id: string;
@@ -101,7 +100,7 @@ const Notifications = () => {
             let type: NotificationType = 'system';
             if (item.activity_type === 'like') type = 'like';
             else if (item.activity_type === 'comment') type = 'comment';
-            else if (item.activity_type === 'follow') type = 'friend';
+            else if (item.activity_type === 'follow') type = 'follow';
             
             return {
               id: item.id,

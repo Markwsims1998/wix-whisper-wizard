@@ -2,8 +2,10 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { User } from '@supabase/supabase-js';
 
-interface User {
+interface AuthUser {
   id: string;
   username: string;
   name: string;
@@ -13,8 +15,9 @@ interface User {
 }
 
 interface AuthContextType {
-  user: User | null;
-  login: (username: string, password: string) => Promise<boolean>;
+  user: AuthUser | null;
+  login: (email: string, password: string) => Promise<boolean>;
+  signup: (email: string, password: string, name: string) => Promise<boolean>;
   logout: () => void;
   isAuthenticated: boolean;
   loading: boolean;
@@ -31,88 +34,236 @@ export const useAuth = () => {
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Check if user is already logged in on component mount
-  useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-      setIsAuthenticated(true);
-    } else {
-      // If not logged in and not on login page, redirect to login
-      if (window.location.pathname !== '/login') {
-        navigate('/login');
-      }
-    }
-    setLoading(false);
-  }, [navigate]);
-
-  const login = async (username: string, password: string): Promise<boolean> => {
-    // For demo purposes only - in a real app, this would be an API call
-    setLoading(true);
+  // Transform Supabase user to app user model
+  const transformUser = async (supabaseUser: User | null): Promise<AuthUser | null> => {
+    if (!supabaseUser) return null;
+    
     try {
-      if (username.toLowerCase() === 'admin' && password === 'admin') {
-        const userData: User = {
-          id: '1',
-          username: 'alexjohnson',
-          name: 'Alex Johnson',
-          email: 'alex@example.com',
-          role: 'admin',
-          profilePicture: ''
-        };
+      // Fetch the user's profile from the profiles table
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('username, full_name, avatar_url, subscription_tier')
+        .eq('id', supabaseUser.id)
+        .single();
+      
+      if (error) {
+        console.error('Error fetching user profile:', error);
+        return null;
+      }
+      
+      // Create a user object with data from auth and profile
+      return {
+        id: supabaseUser.id,
+        username: profile?.username || supabaseUser.email?.split('@')[0] || '',
+        name: profile?.full_name || supabaseUser.email?.split('@')[0] || 'User',
+        email: supabaseUser.email || '',
+        role: supabaseUser.email?.includes('admin') ? 'admin' : 'user',
+        profilePicture: profile?.avatar_url
+      };
+    } catch (err) {
+      console.error('Error transforming user:', err);
+      return null;
+    }
+  };
+
+  // Listen for authentication state changes
+  useEffect(() => {
+    // First, set up the auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        setLoading(true);
         
-        setUser(userData);
-        setIsAuthenticated(true);
-        localStorage.setItem('user', JSON.stringify(userData));
-        
-        // Initialize subscription data on first login
-        if (!localStorage.getItem(`subscription_tier_${userData.id}`)) {
-          localStorage.setItem(`subscription_tier_${userData.id}`, "free");
-          const messagesLimit = 100;
-          localStorage.setItem(`messages_remaining_${userData.id}`, String(messagesLimit));
-          const resetTime = new Date(Date.now() + 24 * 60 * 60 * 1000);
-          localStorage.setItem(`message_reset_time_${userData.id}`, resetTime.toISOString());
+        if (session?.user) {
+          const appUser = await transformUser(session.user);
+          setUser(appUser);
+          setIsAuthenticated(true);
+          
+          // If user just signed up, redirect to home
+          if (event === 'SIGNED_IN' || event === 'SIGNED_UP') {
+            navigate('/home');
+          }
+        } else {
+          setUser(null);
+          setIsAuthenticated(false);
+          
+          // Don't redirect if already on login page
+          if (window.location.pathname !== '/login' && 
+              window.location.pathname !== '/' && 
+              window.location.pathname !== '/feedback') {
+            navigate('/login');
+          }
         }
         
-        toast({
-          title: "Login successful",
-          description: "Welcome back, Alex!",
-        });
-        
-        return true;
+        setLoading(false);
+      }
+    );
+
+    // Then check for existing session
+    const initializeAuth = async () => {
+      setLoading(true);
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (session?.user) {
+        const appUser = await transformUser(session.user);
+        setUser(appUser);
+        setIsAuthenticated(true);
       } else {
+        setUser(null);
+        setIsAuthenticated(false);
+        
+        // Don't redirect if already on login page
+        if (window.location.pathname !== '/login' && 
+            window.location.pathname !== '/' && 
+            window.location.pathname !== '/feedback') {
+          navigate('/login');
+        }
+      }
+      
+      setLoading(false);
+    };
+
+    initializeAuth();
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [navigate]);
+
+  // Login function
+  const login = async (email: string, password: string): Promise<boolean> => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+      
+      if (error) {
         toast({
           title: "Login failed",
-          description: "Invalid username or password",
+          description: error.message,
           variant: "destructive",
         });
         return false;
       }
+      
+      if (data.user) {
+        const appUser = await transformUser(data.user);
+        setUser(appUser);
+        setIsAuthenticated(true);
+        
+        toast({
+          title: "Login successful",
+          description: `Welcome back${appUser?.name ? ', ' + appUser.name : ''}!`,
+        });
+        
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('Unexpected login error:', error);
+      toast({
+        title: "Login failed",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+      return false;
     } finally {
       setLoading(false);
     }
   };
 
-  const logout = () => {
-    setUser(null);
-    setIsAuthenticated(false);
-    localStorage.removeItem('user');
-    localStorage.removeItem('theme');
-    navigate('/login');
-    
-    toast({
-      title: "Logged out",
-      description: "You have been successfully logged out",
-    });
+  // Signup function
+  const signup = async (email: string, password: string, name: string): Promise<boolean> => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: name,
+            username: email.split('@')[0]
+          }
+        }
+      });
+      
+      if (error) {
+        toast({
+          title: "Signup failed",
+          description: error.message,
+          variant: "destructive",
+        });
+        return false;
+      }
+      
+      if (data.user) {
+        toast({
+          title: "Signup successful",
+          description: "Your account has been created successfully!",
+        });
+        
+        // User will be set by the onAuthStateChange listener
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('Unexpected signup error:', error);
+      toast({
+        title: "Signup failed",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Logout function
+  const logout = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error('Error signing out:', error);
+        toast({
+          title: "Logout failed",
+          description: error.message,
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      setUser(null);
+      setIsAuthenticated(false);
+      navigate('/login');
+      
+      toast({
+        title: "Logged out",
+        description: "You have been successfully logged out",
+      });
+    } catch (error) {
+      console.error('Unexpected logout error:', error);
+    }
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isAuthenticated, loading }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      login, 
+      signup, 
+      logout, 
+      isAuthenticated, 
+      loading 
+    }}>
       {children}
     </AuthContext.Provider>
   );

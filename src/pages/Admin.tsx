@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, User, Settings, Database, Activity, AlertTriangle, Ban, Shield, CreditCard, Image, Megaphone } from "lucide-react";
+import { ArrowLeft, User, Settings, Database, Activity, AlertTriangle, Ban, Shield, CreditCard, Megaphone } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ import AdminReports from "@/components/admin/AdminReports";
 import AdminSettings from "@/components/admin/AdminSettings";
 import AdminSubscriptions from "@/components/admin/AdminSubscriptions";
 import AdminMarketingSettings from "@/components/admin/AdminMarketingSettings";
+import { supabase } from "@/integrations/supabase/client";
 
 // Add CSS variables for the admin sidebar
 const initAdminStyles = () => {
@@ -58,22 +59,24 @@ const Admin = () => {
     return cleanup;
   }, []);
 
-  // Simulate checking if user is an admin
+  // Check if user is an admin
   useEffect(() => {
-    // In a real app, this would check server-side authorization
     const checkAdminStatus = async () => {
       try {
         setIsLoading(true);
-        // Simulating an API call
-        await new Promise(resolve => setTimeout(resolve, 500));
         
-        // For demo purposes, we'll consider the user is an admin
-        setIsAdmin(true);
-        setIsLoading(false);
+        // First check if the user exists
+        if (!user) {
+          setIsAdmin(false);
+          setIsLoading(false);
+          return;
+        }
         
-        // In a real application, you would verify admin status with backend
-        // If not an admin, redirect
-        if (false) { // Change to !isAdmin in real app
+        // Check if email contains "admin" for quick admin access
+        // In a real app, you would check a roles table or admin flag
+        if (user.email.includes('admin')) {
+          setIsAdmin(true);
+        } else {
           toast({
             title: "Access Denied",
             description: "You don't have permission to access the admin portal.",
@@ -89,11 +92,13 @@ const Admin = () => {
           variant: "destructive",
         });
         navigate("/");
+      } finally {
+        setIsLoading(false);
       }
     };
 
     checkAdminStatus();
-  }, [navigate, toast]);
+  }, [navigate, toast, user]);
 
   const handleTabChange = (value: string) => {
     setActiveTab(value);

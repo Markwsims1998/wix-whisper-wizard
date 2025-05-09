@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +24,7 @@ interface ContentUploaderProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   type?: 'photo' | 'video';
+  onSuccess?: () => void; // Added the onSuccess callback prop
 }
 
 // Mock users for tagging
@@ -36,7 +36,7 @@ const suggestedUsers = [
   { id: 5, name: "Taylor Kim", username: "t_kim", avatar: "https://randomuser.me/api/portraits/women/28.jpg" }
 ];
 
-const ContentUploader = ({ open, onOpenChange, type = 'photo' }: ContentUploaderProps) => {
+const ContentUploader = ({ open, onOpenChange, type = 'photo', onSuccess }: ContentUploaderProps) => {
   const [contentType, setContentType] = useState<'photo' | 'video'>(type);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -165,6 +165,11 @@ const ContentUploader = ({ open, onOpenChange, type = 'photo' }: ContentUploader
       title: `${contentType.charAt(0).toUpperCase() + contentType.slice(1)} Uploaded`,
       description: "Your content has been successfully uploaded.",
     });
+    
+    // Call onSuccess callback if provided
+    if (onSuccess) {
+      onSuccess();
+    }
     
     // Close the dialog and reset form
     resetForm();

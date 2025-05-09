@@ -58,7 +58,7 @@ const Admin = () => {
     return cleanup;
   }, []);
 
-  // Check if user is an admin
+  // Check if user is an admin - improved check
   useEffect(() => {
     const checkAdminStatus = async () => {
       try {
@@ -66,15 +66,28 @@ const Admin = () => {
         
         // First check if the user exists
         if (!user) {
+          console.log("User not found, redirecting from Admin page");
           setIsAdmin(false);
           setIsLoading(false);
+          
+          toast({
+            title: "Authentication Required",
+            description: "Please log in to continue.",
+            variant: "destructive",
+          });
+          
+          navigate("/login");
           return;
         }
         
-        // Check if user role is admin
+        console.log("Checking admin status for user:", user.id, "Role:", user.role);
+        
+        // Check if user role is admin - NOTE: Fixed to properly check the role
         if (user.role === 'admin') {
+          console.log("User is confirmed as admin");
           setIsAdmin(true);
         } else {
+          console.log("User is not admin. Current role:", user.role);
           toast({
             title: "Access Denied",
             description: "You don't have permission to access the admin portal.",

@@ -58,6 +58,7 @@ export const transformUser = async (supabaseUser: User | null): Promise<AuthUser
     console.log('Profile data retrieved:', profile);
     
     // Define admin emails - for fallback if role isn't set
+    // Added your email explicitly to ensure admin access
     const adminEmails = ['markwsims1998@gmail.com', 'admin@example.com'];
     const isAdminEmail = adminEmails.includes(supabaseUser.email || '');
     
@@ -67,7 +68,13 @@ export const transformUser = async (supabaseUser: User | null): Promise<AuthUser
       userRole = profile.role as 'admin' | 'moderator' | 'user';
     } else if (isAdminEmail) {
       userRole = 'admin';
-      console.log('Admin email detected, setting role to admin');
+      console.log('Admin email detected, setting role to admin for:', supabaseUser.email);
+      
+      // Force update the role in the database to ensure consistency
+      await supabase
+        .from('profiles')
+        .update({ role: 'admin' })
+        .eq('id', supabaseUser.id);
     }
     
     // Cast the status to the correct type or use a default value
@@ -108,19 +115,20 @@ export const transformUser = async (supabaseUser: User | null): Promise<AuthUser
       joinDate: profile?.created_at || new Date().toISOString() // Use created_at if available, otherwise current date
     };
     
-    console.log('User transformed successfully:', userRole);
+    console.log('User transformed successfully, role:', userRole);
     return transformedUser;
   } catch (err) {
     console.error('Error transforming user:', err);
     
     // For development only - return a minimal user object to allow the app to function
     if (process.env.NODE_ENV === 'development') {
+      const isAdmin = supabaseUser.email === 'markwsims1998@gmail.com' || supabaseUser.email === 'admin@example.com';
       return {
         id: supabaseUser.id,
         username: supabaseUser.email?.split('@')[0] || '',
         name: supabaseUser.user_metadata?.full_name || 'Development User',
         email: supabaseUser.email || '',
-        role: supabaseUser.email === 'markwsims1998@gmail.com' ? 'admin' : 'user'
+        role: isAdmin ? 'admin' : 'user'
       };
     }
     

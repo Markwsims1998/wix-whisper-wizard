@@ -70,10 +70,15 @@ const Activity = () => {
       setIsLoading(true);
       
       try {
+        // Modified query to use specific field hints for the actor relationship
         const { data, error } = await supabase
           .from('activities')
           .select(`
-            *,
+            id,
+            activity_type,
+            content,
+            created_at,
+            read,
             actor:actor_id (
               id,
               full_name,

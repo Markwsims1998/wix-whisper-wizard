@@ -11,8 +11,8 @@ export const defaultNotificationPrefs = {
 
 // Default privacy settings
 export const defaultPrivacySettings = {
-  profileVisibility: 'public',
-  postVisibility: 'public',
+  profileVisibility: 'public' as 'public' | 'friends' | 'private',
+  postVisibility: 'public' as 'public' | 'friends' | 'private',
   searchEngineVisible: true
 };
 
@@ -69,7 +69,7 @@ export interface AuthContextType {
   signup: (email: string, password: string, fullName: string) => Promise<boolean>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
-  refreshUserProfile?: () => Promise<void>;
-  updateUserProfile?: (updates: Partial<AuthUser>) => Promise<boolean>;
-  updatePassword?: (newPassword: string) => Promise<boolean>;
+  refreshUserProfile: () => Promise<void>;
+  updateUserProfile: (updates: Partial<AuthUser>) => Promise<boolean>;
+  updatePassword: (newPassword: string) => Promise<boolean>;
 }

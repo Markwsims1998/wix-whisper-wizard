@@ -96,8 +96,35 @@ export const transformUser = async (supabaseUser: User | null): Promise<AuthUser
       userStatus = profile.status as 'active' | 'banned';
     }
     
-    // Create a user object with data from auth and profile
     // Parse JSON fields with safe defaults
+    const notificationPrefs = safeJsonParse(
+      JSON.stringify(profile?.notification_preferences), 
+      defaultNotificationPrefs
+    );
+    
+    // Handle privacy settings with proper typing
+    let privacySettings = defaultPrivacySettings;
+    if (profile?.privacy_settings) {
+      const parsedSettings = safeJsonParse(
+        JSON.stringify(profile.privacy_settings), 
+        defaultPrivacySettings
+      );
+      
+      // Ensure the enum values are of the correct type
+      privacySettings = {
+        profileVisibility: (parsedSettings.profileVisibility === 'public' || 
+          parsedSettings.profileVisibility === 'friends' || 
+          parsedSettings.profileVisibility === 'private') ? 
+          parsedSettings.profileVisibility : 'public',
+        postVisibility: (parsedSettings.postVisibility === 'public' || 
+          parsedSettings.postVisibility === 'friends' || 
+          parsedSettings.postVisibility === 'private') ? 
+          parsedSettings.postVisibility : 'public',
+        searchEngineVisible: !!parsedSettings.searchEngineVisible
+      };
+    }
+    
+    // Create a user object with data from auth and profile
     const transformedUser: AuthUser = {
       id: supabaseUser.id,
       username: profile?.username || supabaseUser.email?.split('@')[0] || '',
@@ -113,14 +140,8 @@ export const transformUser = async (supabaseUser: User | null): Promise<AuthUser
       useSystemTheme: profile?.use_system_theme,
       showFeaturedContent: profile?.show_featured_content,
       bottomNavPreferences: profile?.bottom_nav_preferences,
-      notificationPreferences: safeJsonParse(
-        JSON.stringify(profile?.notification_preferences), 
-        defaultNotificationPrefs
-      ),
-      privacySettings: safeJsonParse(
-        JSON.stringify(profile?.privacy_settings), 
-        defaultPrivacySettings
-      ),
+      notificationPreferences: notificationPrefs,
+      privacySettings: privacySettings,
       status: userStatus,
       lastSignIn: profile?.last_sign_in_at,
       following: 0, // Added default values for profile stats

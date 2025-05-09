@@ -1,5 +1,6 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Session, User } from '@supabase/supabase-js';
+import { Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabaseClient';
 import { useToast } from "@/hooks/use-toast";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
@@ -21,7 +22,7 @@ export const useAuth = () => {
 // AuthProvider component
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const { toast } = useToast();
@@ -32,8 +33,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { data: { session: currentSession } } = await supabase.auth.getSession();
       if (currentSession?.user) {
         setSession(currentSession);
-        setUser(currentSession.user);
-        setIsAuthenticated(true);
+        // Transform the Supabase user to our AuthUser type
+        const authUser = await transformUser(currentSession.user);
+        setUser(authUser);
+        setIsAuthenticated(!!authUser);
         console.log("User refreshed:", currentSession.user.email);
       }
     } catch (error) {
@@ -42,13 +45,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // Add a refreshUserProfile function
-  const refreshUserProfile = async () => {
+  const refreshUserProfile = async (): Promise<void> => {
     try {
       await refreshUser();
-      return true;
     } catch (error) {
       console.error("Error refreshing profile:", error);
-      return false;
     }
   };
 
@@ -103,13 +104,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     // First set up the auth state change listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, currentSession) => {
+      async (event, currentSession) => {
         console.log("Auth state changed:", event, !!currentSession);
         
-        // Update state synchronously
+        // Update session state synchronously
         setSession(currentSession);
-        setUser(currentSession?.user || null);
-        setIsAuthenticated(!!currentSession?.user);
+        
+        // Transform the user if available
+        if (currentSession?.user) {
+          const authUser = await transformUser(currentSession.user);
+          setUser(authUser);
+          setIsAuthenticated(!!authUser);
+        } else {
+          setUser(null);
+          setIsAuthenticated(false);
+        }
         
         // If user just signed in, show toast
         if (event === 'SIGNED_IN' && currentSession?.user) {
@@ -144,8 +153,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         if (existingSession?.user) {
           setSession(existingSession);
-          setUser(existingSession.user);
-          setIsAuthenticated(true);
+          // Transform the Supabase user to our AuthUser type
+          const authUser = await transformUser(existingSession.user);
+          setUser(authUser);
+          setIsAuthenticated(!!authUser);
           console.log("User authenticated from stored session:", existingSession.user.email);
         }
       } catch (error) {

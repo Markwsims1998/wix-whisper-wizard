@@ -97,7 +97,10 @@ export const transformUser = async (supabaseUser: User | null): Promise<AuthUser
         defaultPrivacySettings
       ),
       status: userStatus,
-      lastSignIn: profile?.last_sign_in_at
+      lastSignIn: profile?.last_sign_in_at,
+      following: 0, // Added default values for profile stats
+      followers: 0, // These will be populated from relationship counts in future updates
+      joinDate: profile?.created_at || new Date().toISOString()
     };
   } catch (err) {
     console.error('Error transforming user:', err);

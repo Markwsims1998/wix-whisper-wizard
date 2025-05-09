@@ -1,4 +1,3 @@
-
 import { Session } from "@supabase/supabase-js";
 import React from "react";
 
@@ -44,6 +43,9 @@ export interface AuthUser {
   };
   status?: 'active' | 'banned';
   lastSignIn?: string;
+  following?: number;
+  followers?: number;
+  joinDate?: string;
 }
 
 export interface SubscriptionContextType {

@@ -75,7 +75,7 @@ export const useSubscription = () => {
 };
 
 export const SubscriptionProvider: React.FC<{children: React.ReactNode}> = ({ children }) => {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, loading: authLoading } = useAuth();
   const [subscriptionTier, setSubscriptionTier] = useState<SubscriptionTier>("free");
   const [subscriptionDetails, setSubscriptionDetails] = useState<SubscriptionDetails>(subscriptionPlans.free);
   const [isLoading, setIsLoading] = useState(true);
@@ -84,6 +84,12 @@ export const SubscriptionProvider: React.FC<{children: React.ReactNode}> = ({ ch
   // Function to refresh subscription from database - can be called externally
   const refreshSubscription = useCallback(async () => {
     setIsLoading(true);
+    
+    // Wait for auth to finish loading before making any decisions
+    if (authLoading) {
+      console.log("SubscriptionContext: Auth is still loading, deferring subscription check");
+      return;
+    }
     
     if (!isAuthenticated) {
       console.log("SubscriptionContext: No authenticated user, setting free tier");
@@ -180,24 +186,27 @@ export const SubscriptionProvider: React.FC<{children: React.ReactNode}> = ({ ch
     } finally {
       setIsLoading(false);
     }
-  }, [isAuthenticated, toast]);
+  }, [isAuthenticated, authLoading, toast]);
   
-  // Load subscription from Supabase on init and when user changes
+  // Load subscription from Supabase when authentication state changes
   useEffect(() => {
-    refreshSubscription();
-  }, [user, isAuthenticated, refreshSubscription]);
+    if (!authLoading) { // Only proceed when auth state is determined
+      refreshSubscription();
+    }
+  }, [user, isAuthenticated, authLoading, refreshSubscription]);
 
   // Setup a more frequent refresh of the subscription data to catch changes
   useEffect(() => {
+    // Only set up the interval when auth is done loading and user is authenticated
+    if (authLoading || !isAuthenticated) return;
+    
     // Refresh subscription every 30 seconds to catch any external changes
     const refreshInterval = setInterval(() => {
-      if (isAuthenticated) {
-        refreshSubscription();
-      }
+      refreshSubscription();
     }, 30000); // 30 seconds
     
     return () => clearInterval(refreshInterval);
-  }, [isAuthenticated, refreshSubscription]);
+  }, [isAuthenticated, authLoading, refreshSubscription]);
 
   const upgradeSubscription = async (tier: SubscriptionTier): Promise<boolean> => {
     console.log("SubscriptionContext: Attempting to upgrade subscription", {

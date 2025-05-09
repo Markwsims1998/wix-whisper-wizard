@@ -64,11 +64,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     );
 
-    // Check for existing session
+    // Check for existing session - Move this inside the useEffect to ensure auth state is checked on each mount
     const initializeAuth = async () => {
       console.log('Initializing auth...');
       
       try {
+        // Important: explicitly get the session from supabase
         const { data: { session: existingSession }, error } = await supabase.auth.getSession();
         
         if (error) {
@@ -85,6 +86,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setUser(appUser);
             setSession(existingSession);
             setIsAuthenticated(true);
+            console.log('User authenticated from stored session:', appUser?.name);
           } catch (error) {
             console.error('Error transforming user:', error);
           }
@@ -96,6 +98,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     };
 
+    // Run initialization
     initializeAuth();
 
     return () => {

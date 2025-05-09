@@ -1,31 +1,42 @@
-import { Session } from "@supabase/supabase-js";
-import React from "react";
 
-export interface AuthContextType {
-  user: AuthUser | null;
-  login: (email: string, password: string) => Promise<boolean>;
-  signup: (email: string, password: string, name: string) => Promise<boolean>;
-  logout: () => Promise<void>;
-  isAuthenticated: boolean;
-  loading: boolean;
-  updateUserProfile: (updates: Partial<AuthUser>) => Promise<boolean>;
-  refreshUserProfile: () => Promise<void>;
-  updatePassword: (newPassword: string) => Promise<boolean>;
-  updateUserRole?: (targetUserId: string, newRole: 'admin' | 'moderator' | 'user') => Promise<boolean>;
-}
+import { User, Session } from '@supabase/supabase-js';
 
+// Default notification preferences
+export const defaultNotificationPrefs = {
+  email: true,
+  push: true,
+  friendRequests: true,
+  messages: true
+};
+
+// Default privacy settings
+export const defaultPrivacySettings = {
+  profileVisibility: 'public',
+  postVisibility: 'public',
+  searchEngineVisible: true
+};
+
+// Helper for safely parsing JSON
+export const safeJsonParse = <T>(jsonString: string, defaultValue: T): T => {
+  try {
+    return JSON.parse(jsonString) as T;
+  } catch {
+    return defaultValue;
+  }
+};
+
+// Enhanced user type with additional profile information
 export interface AuthUser {
   id: string;
-  email: string;
-  username: string;
-  name: string;
-  role: 'admin' | 'moderator' | 'user';
+  username?: string;
+  name?: string;
+  email?: string;
+  role?: 'admin' | 'moderator' | 'user';
   profilePicture?: string;
-  locationData?: string;
-  location?: string;
-  bio?: string;
   relationshipStatus?: string;
   relationshipPartners?: string[];
+  location?: string;
+  bio?: string;
   darkMode?: boolean;
   useSystemTheme?: boolean;
   showFeaturedContent?: boolean;
@@ -48,37 +59,17 @@ export interface AuthUser {
   joinDate?: string;
 }
 
-export interface SubscriptionContextType {
-  subscriptionTier: 'free' | 'bronze' | 'silver' | 'gold';
-  isSubscribed: boolean;
-  isLoading: boolean;
-  error: string | null;
-  // Add methods to manage the subscription here
-  updateSubscription: (newTier: 'free' | 'bronze' | 'silver' | 'gold') => Promise<void>;
+// Auth context type definition
+export interface AuthContextType {
+  session: Session | null;
+  user: AuthUser | null;
+  loading: boolean;
+  isAuthenticated: boolean;
+  login: (email: string, password: string) => Promise<boolean>;
+  signup: (email: string, password: string, fullName: string) => Promise<boolean>;
+  logout: () => Promise<void>;
+  refreshUser: () => Promise<void>;
+  refreshUserProfile?: () => Promise<void>;
+  updateUserProfile?: (updates: Partial<AuthUser>) => Promise<boolean>;
+  updatePassword?: (newPassword: string) => Promise<boolean>;
 }
-
-export interface SubscriptionProviderProps {
-    children: React.ReactNode;
-}
-
-export const defaultNotificationPrefs = {
-  email: true,
-  push: false,
-  friendRequests: true,
-  messages: true,
-};
-
-export const defaultPrivacySettings = {
-  profileVisibility: 'public' as 'public' | 'friends' | 'private',
-  postVisibility: 'public' as 'public' | 'friends' | 'private',
-  searchEngineVisible: true,
-};
-  
-export const safeJsonParse = (jsonString: string | null | undefined, defaultValue: any) => {
-  try {
-    return jsonString ? JSON.parse(jsonString) : defaultValue;
-  } catch (error) {
-    console.error('Error parsing JSON:', error);
-    return defaultValue;
-  }
-};

@@ -1,21 +1,10 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabaseClient';
 import { useToast } from "@/hooks/use-toast";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-
-// Define the Auth Context type
-type AuthContextType = {
-  session: Session | null;
-  user: User | null;
-  loading: boolean;
-  isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<boolean>;
-  signup: (email: string, password: string, fullName: string) => Promise<boolean>;
-  logout: () => Promise<void>;
-  refreshUser: () => Promise<void>;
-};
+import { AuthContextType, AuthUser } from './types';
+import { transformUser, convertToProfileUpdates } from './authUtils';
 
 // Create the context with a default value
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -52,7 +41,63 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Setup auth state listener first
+  // Add a refreshUserProfile function
+  const refreshUserProfile = async () => {
+    try {
+      await refreshUser();
+      return true;
+    } catch (error) {
+      console.error("Error refreshing profile:", error);
+      return false;
+    }
+  };
+
+  // Add updateUserProfile function
+  const updateUserProfile = async (updates: Partial<AuthUser>): Promise<boolean> => {
+    try {
+      if (!user?.id) return false;
+      
+      const profileUpdates = convertToProfileUpdates(updates);
+      
+      const { error } = await supabase
+        .from('profiles')
+        .update(profileUpdates)
+        .eq('id', user.id);
+        
+      if (error) {
+        console.error("Error updating profile:", error);
+        return false;
+      }
+      
+      // Refresh user data to reflect changes
+      await refreshUser();
+      return true;
+    } catch (error) {
+      console.error("Error in updateUserProfile:", error);
+      return false;
+    }
+  };
+  
+  // Add updatePassword function
+  const updatePassword = async (newPassword: string): Promise<boolean> => {
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword
+      });
+      
+      if (error) {
+        console.error("Error updating password:", error);
+        return false;
+      }
+      
+      return true;
+    } catch (error) {
+      console.error("Error in updatePassword:", error);
+      return false;
+    }
+  };
+
+  // Setup auth state listener
   useEffect(() => {
     console.log("Setting up auth state listener...");
     
@@ -211,7 +256,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // Authentication context value
-  const value = {
+  const value: AuthContextType = {
     session,
     user,
     loading,
@@ -219,7 +264,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     login,
     signup,
     logout,
-    refreshUser
+    refreshUser,
+    refreshUserProfile,
+    updateUserProfile,
+    updatePassword
   };
 
   // Render the provider with the context value

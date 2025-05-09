@@ -1,3 +1,4 @@
+
 import { Separator } from "@/components/ui/separator";
 import { User, Heart, MessageCircle, Lock, Gift } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -280,64 +281,64 @@ const PostFeed = () => {
                                   </div>
                                 </div>
                               </div>
+                              <img 
+                                src={post.media[0].thumbnail_url || post.media[0].file_url} 
+                                alt="Video thumbnail" 
+                                className="w-full object-cover opacity-70"
+                              />
                             </div>
+                          ) : (
+                            <div className="relative rounded-lg overflow-hidden bg-black aspect-video">
+                              <img 
+                                src={post.media[0].thumbnail_url || post.media[0].file_url} 
+                                alt="Video thumbnail" 
+                                className="w-full object-cover opacity-70 blur-sm"
+                              />
+                              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                <Lock className="h-12 w-12 text-white/70 mb-2" />
+                                <p className="text-white/80 mb-4">Video content requires a subscription</p>
+                                <Button 
+                                  size="sm" 
+                                  variant="outline" 
+                                  className="bg-white/20 hover:bg-white/30 text-white border-white/20"
+                                >
+                                  View Plans
+                                </Button>
+                              </div>
+                            </div>
+                          )
+                        )}
+                        
+                        {post.media[0].media_type === 'gif' && (
+                          <div className="mt-2 mb-4 rounded-lg overflow-hidden">
                             <img 
-                              src={post.media[0].thumbnail_url || post.media[0].file_url} 
-                              alt="Video thumbnail" 
-                              className="w-full object-cover opacity-70"
+                              src={post.media[0].file_url} 
+                              alt="GIF" 
+                              className="w-full max-h-80 object-contain rounded-lg bg-gray-100 dark:bg-gray-900"
                             />
                           </div>
-                        ) : (
-                          <div className="relative rounded-lg overflow-hidden bg-black aspect-video">
-                            <img 
-                              src={post.media[0].thumbnail_url || post.media[0].file_url} 
-                              alt="Video thumbnail" 
-                              className="w-full object-cover opacity-70 blur-sm"
-                            />
-                            <div className="absolute inset-0 flex flex-col items-center justify-center">
-                              <Lock className="h-12 w-12 text-white/70 mb-2" />
-                              <p className="text-white/80 mb-4">Video content requires a subscription</p>
-                              <Button 
-                                size="sm" 
-                                variant="outline" 
-                                className="bg-white/20 hover:bg-white/30 text-white border-white/20"
-                              >
-                                View Plans
-                              </Button>
-                            </div>
-                          </div>
-                        )
-                      )}
-                      
-                      {post.media[0].media_type === 'gif' && (
-                        <div className="mt-2 mb-4 rounded-lg overflow-hidden">
-                          <img 
-                            src={post.media[0].file_url} 
-                            alt="GIF" 
-                            className="w-full max-h-80 object-contain rounded-lg bg-gray-100 dark:bg-gray-900"
-                          />
-                        </div>
-                      )}
+                        )}
+                      </div>
+                    )}
+                    
+                    <div className="flex items-center gap-4">
+                      <button 
+                        className="flex items-center gap-1 text-gray-500 text-sm hover:text-red-500"
+                        onClick={() => handleLikePost(post.id)}
+                      >
+                        <Heart className="h-4 w-4" /> {post.likes_count}
+                      </button>
+                      <button className="flex items-center gap-1 text-gray-500 text-sm hover:text-blue-500">
+                        <MessageCircle className="h-4 w-4" /> {post.comments_count}
+                      </button>
                     </div>
-                  )}
-                  
-                  <div className="flex items-center gap-4">
-                    <button 
-                      className="flex items-center gap-1 text-gray-500 text-sm hover:text-red-500"
-                      onClick={() => handleLikePost(post.id)}
-                    >
-                      <Heart className="h-4 w-4" /> {post.likes_count}
-                    </button>
-                    <button className="flex items-center gap-1 text-gray-500 text-sm hover:text-blue-500">
-                      <MessageCircle className="h-4 w-4" /> {post.comments_count}
-                    </button>
+                    
+                    {post.id !== posts[posts.length - 1].id && <Separator className="my-6" />}
                   </div>
-                  
-                  {post.id !== posts[posts.length - 1].id && <Separator className="my-6" />}
-                </div>
-              ))
-            )}
-          </TabsContent>
+                ))
+              )}
+            </TabsContent>
+          </RefreshableFeed>
         </Tabs>
       </div>
 

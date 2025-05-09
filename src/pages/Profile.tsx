@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/auth/AuthProvider';
 import { useToast } from '@/components/ui/use-toast';
@@ -604,13 +605,16 @@ const Profile = () => {
   
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
+      <div className="flex min-h-screen bg-gray-100 dark:bg-gray-900">
         <Sidebar />
-        <Header />
-        <div className="pl-[280px] pt-16 pb-10 transition-all duration-300" style={{ paddingLeft: 'var(--sidebar-width, 280px)' }}>
-          <div className="container max-w-4xl mx-auto">
-            <LoadingProfile />
+        <div className="flex-1 flex flex-col">
+          <Header />
+          <div className="flex-1 pt-16 pb-10 transition-all duration-300">
+            <div className="container max-w-4xl mx-auto">
+              <LoadingProfile />
+            </div>
           </div>
+          <Footer />
         </div>
       </div>
     );
@@ -618,79 +622,81 @@ const Profile = () => {
 
   if (!profileData) {
     return (
-      <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
+      <div className="flex min-h-screen bg-gray-100 dark:bg-gray-900">
         <Sidebar />
-        <Header />
-        <div className="pl-[280px] pt-16 pb-10 transition-all duration-300" style={{ paddingLeft: 'var(--sidebar-width, 280px)' }}>
-          <div className="container max-w-4xl mx-auto">
-            <div className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow text-center">
-              <h2 className="text-2xl font-semibold mb-4">Profile Not Found</h2>
-              <p className="text-gray-600 dark:text-gray-300">
-                The profile you're looking for doesn't exist or you don't have permission to view it.
-              </p>
+        <div className="flex-1 flex flex-col">
+          <Header />
+          <div className="flex-1 pt-16 pb-10 transition-all duration-300">
+            <div className="container max-w-4xl mx-auto">
+              <div className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow text-center">
+                <h2 className="text-2xl font-semibold mb-4">Profile Not Found</h2>
+                <p className="text-gray-600 dark:text-gray-300">
+                  The profile you're looking for doesn't exist or you don't have permission to view it.
+                </p>
+              </div>
             </div>
           </div>
+          <Footer />
         </div>
-        <Footer />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
+    <div className="flex min-h-screen bg-gray-100 dark:bg-gray-900">
       <Sidebar />
-      <Header />
-      
-      <div className="pl-[280px] pt-16 pr-4 pb-36 md:pb-10 transition-all duration-300" style={{ paddingLeft: 'var(--sidebar-width, 280px)' }}>
-        <div className="container max-w-4xl mx-auto">
-          <ProfileHeader 
-            profile={profileData}
-            isMyProfile={isMyProfile}
-            relationshipStatusText={getRelationshipStatusText()}
-            handleAddFriend={handleAddFriend}
-            handleMessage={handleMessage}
-            setEditRelationshipOpen={setEditRelationshipOpen}
-            getSubscriptionBadge={getSubscriptionBadge}
-          />
-          
-          {isMyProfile && (
-            <CreatePost 
+      <div className="flex-1 flex flex-col">
+        <Header />
+        <div className="flex-1 pt-16 pb-10 transition-all duration-300">
+          <div className="container max-w-4xl mx-auto">
+            <ProfileHeader 
               profile={profileData}
-              newPostText={newPostText}
-              setNewPostText={setNewPostText}
-              handleCreatePost={handleCreatePost}
+              isMyProfile={isMyProfile}
+              relationshipStatusText={getRelationshipStatusText()}
+              handleAddFriend={handleAddFriend}
+              handleMessage={handleMessage}
+              setEditRelationshipOpen={setEditRelationshipOpen}
+              getSubscriptionBadge={getSubscriptionBadge}
             />
-          )}
-          
-          <PostsList 
-            posts={posts}
-            isMyProfile={isMyProfile}
-            profile={profileData}
-            handleLikePost={handleLikePost}
-          />
-          
-          {isMyProfile && (
-            <RelationshipDialog 
-              open={editRelationshipOpen} 
-              setOpen={setEditRelationshipOpen}
-              selectedRelationshipStatus={selectedRelationshipStatus}
-              setSelectedRelationshipStatus={setSelectedRelationshipStatus}
-              relationshipPartners={relationshipPartners}
-              handleRemovePartner={handleRemovePartner}
-              availablePartners={availablePartners}
-              partnerSearchOpen={partnerSearchOpen}
-              setPartnerSearchOpen={setPartnerSearchOpen}
-              searchQuery={searchQuery}
-              setSearchQuery={setSearchQuery}
-              handleAddPartner={handleAddPartner}
-              relationshipStatuses={relationshipStatuses}
-              handleSaveRelationship={handleSaveRelationship}
+            
+            {isMyProfile && (
+              <CreatePost 
+                profile={profileData}
+                newPostText={newPostText}
+                setNewPostText={setNewPostText}
+                handleCreatePost={handleCreatePost}
+              />
+            )}
+            
+            <PostsList 
+              posts={posts}
+              isMyProfile={isMyProfile}
+              profile={profileData}
+              handleLikePost={handleLikePost}
             />
-          )}
+            
+            {isMyProfile && (
+              <RelationshipDialog 
+                open={editRelationshipOpen} 
+                setOpen={setEditRelationshipOpen}
+                selectedRelationshipStatus={selectedRelationshipStatus}
+                setSelectedRelationshipStatus={setSelectedRelationshipStatus}
+                relationshipPartners={relationshipPartners}
+                handleRemovePartner={handleRemovePartner}
+                availablePartners={availablePartners}
+                partnerSearchOpen={partnerSearchOpen}
+                setPartnerSearchOpen={setPartnerSearchOpen}
+                searchQuery={searchQuery}
+                setSearchQuery={setSearchQuery}
+                handleAddPartner={handleAddPartner}
+                relationshipStatuses={relationshipStatuses}
+                handleSaveRelationship={handleSaveRelationship}
+              />
+            )}
+          </div>
         </div>
+        <Footer />
       </div>
-      
-      <Footer />
     </div>
   );
 };

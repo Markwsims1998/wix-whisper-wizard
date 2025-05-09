@@ -1,31 +1,51 @@
 
 import { useState, useEffect } from "react";
-import { Award, Diamond, Badge as BadgeIcon, Check, ChevronDown, ChevronUp, ShoppingCart } from "lucide-react";
+import { Award, Diamond, Badge as BadgeIcon, Check, ChevronDown, ChevronUp, ShoppingCart, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
 import { useSubscription, SubscriptionTier, subscriptionPlans } from "@/contexts/SubscriptionContext";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import ProductItem from "@/components/shop/ProductItem";
 import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Shop = () => {
+  const { user } = useAuth();
   const { subscriptionTier, upgradeSubscription, getTierBadge } = useSubscription();
   const { toast } = useToast();
   const [processing, setProcessing] = useState(false);
   const [showSubscriptions, setShowSubscriptions] = useState(subscriptionTier === "free");
   const [cartItems, setCartItems] = useState<number>(3);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  // Check for authentication and clear error on mount
+  useEffect(() => {
+    setErrorMessage(null);
+  }, [user]);
+  
   const handleSubscribe = async (tier: SubscriptionTier) => {
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to subscribe to a plan.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setErrorMessage(null);
     setProcessing(true);
+    
     try {
       // Update subscription in database via context
       const success = await upgradeSubscription(tier);
       
       if (!success) {
+        setErrorMessage("There was a problem updating your subscription. Please try again.");
         toast({
           title: "Subscription Error",
           description: "There was a problem updating your subscription. Please try again.",
@@ -34,6 +54,7 @@ const Shop = () => {
       }
     } catch (error) {
       console.error("Error updating subscription:", error);
+      setErrorMessage("There was a problem updating your subscription. Please try again.");
       toast({
         title: "Subscription Error",
         description: "There was a problem updating your subscription. Please try again.",
@@ -161,8 +182,33 @@ const Shop = () => {
             </div>
           </div>
           
+          {/* Error Message */}
+          {errorMessage && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Error</AlertTitle>
+              <AlertDescription>{errorMessage}</AlertDescription>
+            </Alert>
+          )}
+          
+          {/* Authentication Warning */}
+          {!user && (
+            <Alert className="mb-4 bg-yellow-50 border-yellow-200">
+              <AlertCircle className="h-4 w-4 text-yellow-600" />
+              <AlertTitle>Authentication Required</AlertTitle>
+              <AlertDescription className="flex flex-col sm:flex-row sm:justify-between sm:items-center">
+                <span>
+                  Please sign in to subscribe to a plan or make purchases.
+                </span>
+                <Link to="/login" className="mt-2 sm:mt-0">
+                  <Button size="sm" variant="outline">Login</Button>
+                </Link>
+              </AlertDescription>
+            </Alert>
+          )}
+          
           {/* Subscription Status Alert */}
-          {subscriptionTier !== "free" && (
+          {user && subscriptionTier !== "free" && (
             <Alert className="mb-4 bg-green-50 border-green-200">
               <Check className="h-4 w-4 text-green-600" />
               <AlertTitle className="flex items-center">
@@ -231,7 +277,7 @@ const Shop = () => {
                           <Button 
                             className="w-full" 
                             variant={subscriptionTier === tierInfo.tier ? "outline" : "default"}
-                            disabled={processing || subscriptionTier === tierInfo.tier}
+                            disabled={processing || subscriptionTier === tierInfo.tier || !user}
                             onClick={() => handleSubscribe(tierInfo.tier)}
                           >
                             {processing ? "Processing..." : subscriptionTier === tierInfo.tier ? "Current Plan" : "Subscribe"}

@@ -4,7 +4,7 @@ import { useAuth } from './AuthContext';
 import { Badge } from "@/components/ui/badge";
 import { Award, Diamond, Badge as BadgeIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
 export type SubscriptionTier = "gold" | "silver" | "bronze" | "free";
 
@@ -148,21 +148,39 @@ export const SubscriptionProvider: React.FC<{children: React.ReactNode}> = ({ ch
     if (!user) return false;
     
     try {
+      // Add more detailed logging for debugging
+      console.log(`Attempting to update subscription to ${tier} for user ${user.id}`);
+      
+      // Verify user is authenticated before attempting update
+      const session = await supabase.auth.getSession();
+      if (!session.data.session) {
+        console.error("No valid session found for user");
+        toast({
+          title: "Authentication Error",
+          description: "Please sign in again to update your subscription.",
+          variant: "destructive",
+        });
+        return false;
+      }
+      
       // Update subscription in Supabase
-      const { error } = await supabase
+      const { error, data } = await supabase
         .from('profiles')
         .update({ subscription_tier: tier })
-        .eq('id', user.id);
+        .eq('id', user.id)
+        .select();
         
       if (error) {
         console.error("Error updating subscription in database:", error);
         toast({
-          title: "Error",
+          title: "Update Failed",
           description: "Could not update your subscription. Please try again.",
           variant: "destructive",
         });
         return false;
       }
+      
+      console.log("Database update successful:", data);
       
       // Update local state
       setSubscriptionTier(tier);
@@ -191,7 +209,7 @@ export const SubscriptionProvider: React.FC<{children: React.ReactNode}> = ({ ch
     } catch (err) {
       console.error("Error updating subscription:", err);
       toast({
-        title: "Error",
+        title: "Update Failed",
         description: "Could not update your subscription. Please try again.",
         variant: "destructive",
       });

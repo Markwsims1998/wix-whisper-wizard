@@ -3,20 +3,28 @@ import { Link } from "react-router-dom";
 import { X } from "lucide-react";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface AdDisplayProps {
   className?: string;
 }
 
 const AdDisplay = ({ className = "" }: AdDisplayProps) => {
+  const { user } = useAuth();
   const { subscriptionTier } = useSubscription();
   const [showAd, setShowAd] = useState(true);
+  const [isLoaded, setIsLoaded] = useState(false);
+  
+  useEffect(() => {
+    // Set loaded state once subscription data has been loaded
+    setIsLoaded(true);
+  }, [subscriptionTier]);
   
   // Determine whether to show ads based on subscription tier
   const showAds = subscriptionTier === "free" || subscriptionTier === "bronze";
   
-  if (!showAds || !showAd) return null;
+  if (!isLoaded || !showAds || !showAd) return null;
 
   const handleDismissAd = () => {
     setShowAd(false);

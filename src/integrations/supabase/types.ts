@@ -174,31 +174,47 @@ export type Database = {
       }
       media: {
         Row: {
+          category: string | null
+          content_type: Database["public"]["Enums"]["media_content_type"] | null
           created_at: string
           file_url: string
           id: string
           media_type: string
           post_id: string | null
           thumbnail_url: string | null
+          title: string | null
           user_id: string
+          views: number | null
         }
         Insert: {
+          category?: string | null
+          content_type?:
+            | Database["public"]["Enums"]["media_content_type"]
+            | null
           created_at?: string
           file_url: string
           id?: string
           media_type: string
           post_id?: string | null
           thumbnail_url?: string | null
+          title?: string | null
           user_id: string
+          views?: number | null
         }
         Update: {
+          category?: string | null
+          content_type?:
+            | Database["public"]["Enums"]["media_content_type"]
+            | null
           created_at?: string
           file_url?: string
           id?: string
           media_type?: string
           post_id?: string | null
           thumbnail_url?: string | null
+          title?: string | null
           user_id?: string
+          views?: number | null
         }
         Relationships: [
           {
@@ -440,7 +456,7 @@ export type Database = {
       }
     }
     Enums: {
-      [_ in never]: never
+      media_content_type: "photo" | "video"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -555,6 +571,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      media_content_type: ["photo", "video"],
+    },
   },
 } as const

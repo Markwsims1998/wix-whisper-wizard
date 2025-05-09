@@ -99,6 +99,25 @@ export interface Post {
   };
 }
 
+// Video type definition
+export interface VideoType {
+  id: string;
+  title: string;
+  thumbnail_url: string;
+  video_url: string;
+  category: string;
+  views: number;
+  likes_count: number;
+  created_at: string;
+  user_id: string;
+  user?: {
+    id: string;
+    username: string;
+    full_name: string;
+    avatar_url: string | null;
+  };
+}
+
 // Auth context type definition
 export interface AuthContextType {
   session: Session | null;

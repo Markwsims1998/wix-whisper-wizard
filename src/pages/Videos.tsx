@@ -1,7 +1,7 @@
 
+import { useEffect, useState } from "react";
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
-import { useEffect, useState } from "react";
 import { Play } from "lucide-react";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { Button } from "@/components/ui/button";
@@ -9,13 +9,18 @@ import MediaViewer from "@/components/media/MediaViewer";
 import ContentUploader from "@/components/media/ContentUploader";
 import VideoCard from "@/components/videos/VideoCard";
 import VideoFilter from "@/components/videos/VideoFilter";
+import { fetchVideos, Video } from "@/services/videoService";
+import { useToast } from "@/hooks/use-toast";
 
 const Videos = () => {
   const { subscriptionDetails } = useSubscription();
   const canViewVideos = subscriptionDetails.canViewVideos;
-  const [selectedVideo, setSelectedVideo] = useState<any | null>(null);
+  const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [uploaderOpen, setUploaderOpen] = useState(false);
+  const [videos, setVideos] = useState<Video[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
 
   // Categories for filtering
   const categories = [
@@ -52,33 +57,47 @@ const Videos = () => {
     };
   }, []);
 
-  // Log user activity
+  // Fetch videos from API when category changes
   useEffect(() => {
-    console.log("User activity: Viewed Videos page");
-    // In a real app, this would call an API to record the activity
-  }, []);
-
-  const videos = [
-    { id: 1, thumbnail: 'https://via.placeholder.com/600x340', title: 'Getting Started with HappyKinks', author: 'Admin', views: '1.2k', likes: 45, postId: '201', category: 'tutorials' },
-    { id: 2, thumbnail: 'https://via.placeholder.com/600x340', title: 'Community Guidelines', author: 'Sephiroth', views: '856', likes: 32, postId: '202', category: 'tutorials' },
-    { id: 3, thumbnail: 'https://via.placeholder.com/600x340', title: 'Meet & Greet Event', author: 'Linda Lohan', views: '2.4k', likes: 76, postId: '203', category: 'events' },
-    { id: 4, thumbnail: 'https://via.placeholder.com/600x340', title: 'Workshop Announcement', author: 'Irina Petrova', views: '987', likes: 28, postId: '204', category: 'workshops' },
-    { id: 5, thumbnail: 'https://via.placeholder.com/600x340', title: 'Interview with Community Leaders', author: 'Mike Johnson', views: '1.5k', likes: 52, postId: '205', category: 'interviews' },
-    { id: 6, thumbnail: 'https://via.placeholder.com/600x340', title: 'Local Meetup Highlights', author: 'Sarah Lee', views: '732', likes: 41, postId: '206', category: 'meetups' }
-  ];
+    const loadVideos = async () => {
+      setIsLoading(true);
+      try {
+        const data = await fetchVideos(selectedCategory);
+        setVideos(data);
+      } catch (error) {
+        console.error("Error loading videos:", error);
+        toast({
+          title: "Error loading videos",
+          description: "There was a problem loading the videos. Please try again.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    loadVideos();
+  }, [selectedCategory, toast]);
 
   // Filter videos based on selected category
-  const filteredVideos = selectedCategory === 'all' 
-    ? videos 
-    : videos.filter(video => video.category === selectedCategory);
+  const filteredVideos = videos;
 
-  const handleVideoClick = (video: any) => {
+  const handleVideoClick = (video: Video) => {
     if (canViewVideos) {
       setSelectedVideo(video);
     } else {
       // Redirect to shop if not subscribed
       window.location.href = "/shop";
     }
+  };
+
+  const handleUploadSuccess = () => {
+    toast({
+      title: "Upload successful",
+      description: "Your video has been uploaded successfully.",
+    });
+    // Refresh videos list
+    fetchVideos(selectedCategory).then(data => setVideos(data));
   };
 
   return (
@@ -114,16 +133,23 @@ const Videos = () => {
               </div>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {filteredVideos.map(video => (
-                <VideoCard 
-                  key={video.id}
-                  video={video}
-                  canViewVideos={canViewVideos}
-                  onVideoClick={handleVideoClick}
-                />
-              ))}
-            </div>
+            {isLoading ? (
+              <div className="flex flex-col items-center justify-center py-12">
+                <div className="w-16 h-16 border-4 border-purple-200 border-t-purple-500 rounded-full animate-spin mb-4"></div>
+                <p className="text-gray-500 dark:text-gray-400">Loading videos...</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {filteredVideos.map(video => (
+                  <VideoCard 
+                    key={video.id}
+                    video={video}
+                    canViewVideos={canViewVideos}
+                    onVideoClick={handleVideoClick}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -132,9 +158,15 @@ const Videos = () => {
       {selectedVideo && (
         <MediaViewer 
           type="video"
-          media={selectedVideo}
+          media={{
+            ...selectedVideo,
+            thumbnail: selectedVideo.thumbnail_url,
+            author: selectedVideo.user?.full_name || 'Unknown',
+            authorPic: selectedVideo.user?.avatar_url || undefined,
+            postId: selectedVideo.id
+          }}
           onClose={() => setSelectedVideo(null)}
-          postId={selectedVideo.postId}
+          postId={selectedVideo.id}
         />
       )}
 
@@ -143,6 +175,7 @@ const Videos = () => {
         open={uploaderOpen} 
         onOpenChange={setUploaderOpen}
         type="video"
+        onSuccess={handleUploadSuccess}
       />
     </div>
   );

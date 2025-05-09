@@ -2,20 +2,12 @@
 import { User, Heart, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Video } from "@/services/videoService";
 
 interface VideoCardProps {
-  video: {
-    id: number;
-    thumbnail: string;
-    title: string;
-    author: string;
-    views: string;
-    likes: number;
-    postId: string;
-    category: string;
-  };
+  video: Video;
   canViewVideos: boolean;
-  onVideoClick: (video: any) => void;
+  onVideoClick: (video: Video) => void;
 }
 
 const VideoCard = ({ video, canViewVideos, onVideoClick }: VideoCardProps) => {
@@ -26,7 +18,7 @@ const VideoCard = ({ video, canViewVideos, onVideoClick }: VideoCardProps) => {
     >
       <div className="relative">
         <img 
-          src={video.thumbnail} 
+          src={video.thumbnail_url} 
           alt={video.title} 
           className="w-full h-48 object-cover"
         />
@@ -59,12 +51,14 @@ const VideoCard = ({ video, canViewVideos, onVideoClick }: VideoCardProps) => {
           </div>
           <div className="flex-1">
             <h3 className="font-medium">{video.title}</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-300">{video.author} • {video.views} views</p>
+            <p className="text-sm text-gray-500 dark:text-gray-300">
+              {video.user?.full_name || 'Unknown User'} • {video.views} views
+            </p>
           </div>
         </div>
         <div className="flex items-center mt-3">
           <div className="flex items-center text-gray-500 dark:text-gray-300 text-sm bg-gray-100 dark:bg-gray-600 px-3 py-1 rounded-full">
-            <Heart className="h-4 w-4 mr-1 text-red-400" /> {video.likes}
+            <Heart className="h-4 w-4 mr-1 text-red-400" /> {video.likes_count}
           </div>
         </div>
       </div>

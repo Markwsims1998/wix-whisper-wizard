@@ -1,7 +1,7 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/auth/AuthProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Eye, EyeOff, ShieldCheck } from "lucide-react";
@@ -22,12 +22,13 @@ const Login = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // If already authenticated and not loading, redirect to home
-  if (isAuthenticated && !loading) {
-    console.log("User is authenticated, redirecting to home");
-    navigate("/home");
-    return null;
-  }
+  // Use useEffect to handle redirect after authentication
+  useEffect(() => {
+    if (isAuthenticated && !loading) {
+      console.log("User is authenticated, redirecting to home");
+      navigate("/home");
+    }
+  }, [isAuthenticated, loading, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -112,6 +113,7 @@ const Login = () => {
     );
   }
 
+  // Render login form
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900 p-4">
       <div className="w-full max-w-md">

@@ -33,35 +33,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // First, set up the auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, newSession) => {
+      (event, newSession) => {
         console.log('Auth state changed:', event, !!newSession);
         
         if (newSession?.user) {
           // Use setTimeout to prevent potential deadlocks
           setTimeout(async () => {
-            const appUser = await transformUser(newSession.user);
-            if (appUser) {
-              setUser(appUser);
-              setSession(newSession);
-              setIsAuthenticated(true);
-              
-              // If user just signed in, redirect to home
-              if (event === 'SIGNED_IN') {
-                navigate('/home');
+            try {
+              const appUser = await transformUser(newSession.user);
+              if (appUser) {
+                setUser(appUser);
+                setSession(newSession);
+                setIsAuthenticated(true);
+                
+                // If user just signed in, redirect to home
+                if (event === 'SIGNED_IN') {
+                  navigate('/home');
+                }
               }
+            } catch (error) {
+              console.error('Error transforming user:', error);
+              setLoading(false);
             }
           }, 0);
         } else {
           setUser(null);
           setSession(null);
           setIsAuthenticated(false);
-          
-          // Don't redirect if already on login page or public pages
-          if (window.location.pathname !== '/login' && 
-              window.location.pathname !== '/' && 
-              window.location.pathname !== '/feedback') {
-            navigate('/login');
-          }
         }
         
         setLoading(false);
@@ -84,27 +82,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.log('Session exists:', !!existingSession);
         
         if (existingSession?.user) {
-          const appUser = await transformUser(existingSession.user);
-          if (appUser) {
-            setUser(appUser);
-            setSession(existingSession);
-            setIsAuthenticated(true);
-          }
-        } else {
-          setUser(null);
-          setSession(null);
-          setIsAuthenticated(false);
-          
-          // Don't redirect if already on login page or public pages
-          if (window.location.pathname !== '/login' && 
-              window.location.pathname !== '/' && 
-              window.location.pathname !== '/feedback') {
-            navigate('/login');
+          try {
+            const appUser = await transformUser(existingSession.user);
+            if (appUser) {
+              setUser(appUser);
+              setSession(existingSession);
+              setIsAuthenticated(true);
+            }
+          } catch (error) {
+            console.error('Error transforming user:', error);
           }
         }
+        
+        setLoading(false);
       } catch (err) {
         console.error('Unexpected error during auth initialization:', err);
-      } finally {
         setLoading(false);
       }
     };
@@ -246,25 +238,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           description: error.message,
           variant: "destructive",
         });
+        setLoading(false);
         return false;
       }
       
       if (data.user) {
-        const appUser = await transformUser(data.user);
-        if (appUser) {
-          setUser(appUser);
-          setSession(data.session);
-          setIsAuthenticated(true);
+        try {
+          const appUser = await transformUser(data.user);
+          if (appUser) {
+            setUser(appUser);
+            setSession(data.session);
+            setIsAuthenticated(true);
+            
+            toast({
+              title: "Login successful",
+              description: `Welcome back${appUser?.name ? ', ' + appUser.name : ''}!`,
+            });
+          }
           
-          toast({
-            title: "Login successful",
-            description: `Welcome back${appUser?.name ? ', ' + appUser.name : ''}!`,
-          });
+          setLoading(false);
+          return true;
+        } catch (error) {
+          console.error('Error transforming user after login:', error);
+          setLoading(false);
+          return false;
         }
-        
-        return true;
       }
       
+      setLoading(false);
       return false;
     } catch (error) {
       console.error('Unexpected login error:', error);
@@ -273,9 +274,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         description: "An unexpected error occurred. Please try again.",
         variant: "destructive",
       });
-      return false;
-    } finally {
       setLoading(false);
+      return false;
     }
   };
 
@@ -303,19 +303,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           description: error.message,
           variant: "destructive",
         });
+        setLoading(false);
         return false;
       }
       
       if (data.user) {
         toast({
           title: "Signup successful",
-          description: "Your account has been created successfully!",
+          description: "Your account has been created successfully! Please check your email for verification.",
         });
         
         // User will be set by the onAuthStateChange listener
+        setLoading(false);
         return true;
       }
       
+      setLoading(false);
       return false;
     } catch (error) {
       console.error('Unexpected signup error:', error);
@@ -324,9 +327,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         description: "An unexpected error occurred. Please try again.",
         variant: "destructive",
       });
-      return false;
-    } finally {
       setLoading(false);
+      return false;
     }
   };
 

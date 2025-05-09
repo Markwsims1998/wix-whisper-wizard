@@ -78,14 +78,24 @@ export const SubscriptionProvider: React.FC<{children: React.ReactNode}> = ({ ch
   const { user } = useAuth();
   const [subscriptionTier, setSubscriptionTier] = useState<SubscriptionTier>("free");
   const [subscriptionDetails, setSubscriptionDetails] = useState<SubscriptionDetails>(subscriptionPlans.free);
+  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
   
-  // Load subscription from Supabase on init
+  // Load subscription from Supabase on init and when user changes
   useEffect(() => {
     const loadSubscription = async () => {
-      if (!user) return;
+      setIsLoading(true);
+      
+      if (!user) {
+        setSubscriptionTier("free");
+        setSubscriptionDetails(subscriptionPlans.free);
+        setIsLoading(false);
+        return;
+      }
       
       try {
+        console.log("Loading subscription for user:", user.id);
+        
         // Get subscription from Supabase profiles table
         const { data, error } = await supabase
           .from('profiles')
@@ -95,11 +105,14 @@ export const SubscriptionProvider: React.FC<{children: React.ReactNode}> = ({ ch
         
         if (error) {
           console.error("Error loading subscription:", error);
+          setIsLoading(false);
           return;
         }
         
         if (data) {
           const storedTier = data.subscription_tier as SubscriptionTier || "free";
+          console.log("Loaded subscription tier from database:", storedTier);
+          
           if (subscriptionPlans[storedTier]) {
             setSubscriptionTier(storedTier);
             
@@ -125,6 +138,7 @@ export const SubscriptionProvider: React.FC<{children: React.ReactNode}> = ({ ch
                   messagesRemaining: subscriptionPlans.free.maxMessages,
                   messageResetTime: newResetTime
                 });
+                setIsLoading(false);
                 return;
               }
             }
@@ -135,9 +149,15 @@ export const SubscriptionProvider: React.FC<{children: React.ReactNode}> = ({ ch
               messageResetTime
             });
           }
+        } else {
+          console.log("No subscription data found, defaulting to free tier");
+          setSubscriptionTier("free");
+          setSubscriptionDetails(subscriptionPlans.free);
         }
       } catch (err) {
         console.error("Error loading subscription:", err);
+      } finally {
+        setIsLoading(false);
       }
     };
     
@@ -145,7 +165,15 @@ export const SubscriptionProvider: React.FC<{children: React.ReactNode}> = ({ ch
   }, [user]);
 
   const upgradeSubscription = async (tier: SubscriptionTier): Promise<boolean> => {
-    if (!user) return false;
+    if (!user) {
+      console.error("Cannot upgrade subscription: No authenticated user");
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to update your subscription.",
+        variant: "destructive",
+      });
+      return false;
+    }
     
     try {
       // Add more detailed logging for debugging

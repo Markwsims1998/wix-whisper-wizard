@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Award, Diamond, Badge as BadgeIcon, Check, ChevronDown, ChevronUp, ShoppingCart, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -22,8 +21,9 @@ const Shop = () => {
   const [cartItems, setCartItems] = useState<number>(3);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Check for authentication and clear error on mount
+  // Add debug logging for authentication state
   useEffect(() => {
+    console.log("Current authentication state:", { user, isAuthenticated: !!user });
     setErrorMessage(null);
   }, [user]);
   
@@ -191,7 +191,7 @@ const Shop = () => {
             </Alert>
           )}
           
-          {/* Authentication Warning */}
+          {/* Authentication Warning - Only show when not authenticated */}
           {!user && (
             <Alert className="mb-4 bg-yellow-50 border-yellow-200">
               <AlertCircle className="h-4 w-4 text-yellow-600" />
@@ -277,7 +277,7 @@ const Shop = () => {
                           <Button 
                             className="w-full" 
                             variant={subscriptionTier === tierInfo.tier ? "outline" : "default"}
-                            disabled={processing || subscriptionTier === tierInfo.tier || !user}
+                            disabled={processing || subscriptionTier === tierInfo.tier}
                             onClick={() => handleSubscribe(tierInfo.tier)}
                           >
                             {processing ? "Processing..." : subscriptionTier === tierInfo.tier ? "Current Plan" : "Subscribe"}

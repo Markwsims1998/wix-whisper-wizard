@@ -19,7 +19,9 @@ const AdDisplay = ({ className = "" }: AdDisplayProps) => {
   useEffect(() => {
     // Set loaded state once subscription data has been loaded
     setIsLoaded(true);
-  }, [subscriptionTier]);
+    console.log("AdDisplay: Current subscription tier:", subscriptionTier);
+    console.log("AdDisplay: User authenticated:", !!user);
+  }, [subscriptionTier, user]);
   
   // Determine whether to show ads based on subscription tier
   const showAds = subscriptionTier === "free" || subscriptionTier === "bronze";

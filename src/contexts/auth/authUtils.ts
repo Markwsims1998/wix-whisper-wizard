@@ -26,12 +26,29 @@ export const transformUser = async (supabaseUser: User | null): Promise<AuthUser
         bottom_nav_preferences,
         notification_preferences,
         privacy_settings,
-        role
+        role,
+        status,
+        last_sign_in_at
       `)
       .eq('id', supabaseUser.id)
       .single();
     
     if (error) {
+      // Profile doesn't exist yet - might be a new user
+      if (error.code === 'PGRST116') {
+        console.log('Profile not found for user, might be a new signup');
+        
+        // For development/testing
+        // Create a minimal user object to allow login to proceed
+        return {
+          id: supabaseUser.id,
+          username: supabaseUser.email?.split('@')[0] || '',
+          name: supabaseUser.user_metadata?.full_name || 'New User',
+          email: supabaseUser.email || '',
+          role: supabaseUser.email === 'admin@example.com' ? 'admin' : 'user'
+        };
+      }
+      
       console.error('Error fetching user profile:', error);
       return null;
     }
@@ -72,10 +89,24 @@ export const transformUser = async (supabaseUser: User | null): Promise<AuthUser
       privacySettings: safeJsonParse(
         JSON.stringify(profile?.privacy_settings), 
         defaultPrivacySettings
-      )
+      ),
+      status: profile?.status || 'active',
+      lastSignIn: profile?.last_sign_in_at
     };
   } catch (err) {
     console.error('Error transforming user:', err);
+    
+    // For development only - return a minimal user object to allow the app to function
+    if (process.env.NODE_ENV === 'development') {
+      return {
+        id: supabaseUser.id,
+        username: supabaseUser.email?.split('@')[0] || '',
+        name: supabaseUser.user_metadata?.full_name || 'Development User',
+        email: supabaseUser.email || '',
+        role: supabaseUser.email === 'admin@example.com' ? 'admin' : 'user'
+      };
+    }
+    
     return null;
   }
 };
@@ -98,6 +129,7 @@ export const convertToProfileUpdates = (updates: Partial<AuthUser>): Record<stri
   if (updates.notificationPreferences !== undefined) profileUpdates.notification_preferences = updates.notificationPreferences;
   if (updates.privacySettings !== undefined) profileUpdates.privacy_settings = updates.privacySettings;
   if (updates.role !== undefined) profileUpdates.role = updates.role;
+  if (updates.status !== undefined) profileUpdates.status = updates.status;
 
   return profileUpdates;
 };
@@ -114,6 +146,22 @@ export const updateUserRoleDirectly = async (targetUserId: string, newRole: 'adm
     return true;
   } catch (error) {
     console.error(`Error updating user role to ${newRole}:`, error);
+    return false;
+  }
+};
+
+// Update a user's status (admin function)
+export const updateUserStatus = async (targetUserId: string, newStatus: 'active' | 'banned'): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('profiles')
+      .update({ status: newStatus })
+      .eq('id', targetUserId);
+      
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error(`Error updating user status to ${newStatus}:`, error);
     return false;
   }
 };

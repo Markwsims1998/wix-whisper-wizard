@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from "@/components/ui/use-toast";
@@ -31,34 +32,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     console.log('Setting up authentication listeners...');
     setLoading(true);
 
-    // First, set up the auth state listener
+    // Set up the auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, newSession) => {
+      async (event, newSession) => {
         console.log('Auth state changed:', event, !!newSession);
+        setSession(newSession);
         
         if (newSession?.user) {
-          // Use setTimeout to prevent potential deadlocks
-          setTimeout(async () => {
-            try {
-              const appUser = await transformUser(newSession.user);
-              if (appUser) {
-                setUser(appUser);
-                setSession(newSession);
-                setIsAuthenticated(true);
-                
-                // If user just signed in, redirect to home
-                if (event === 'SIGNED_IN') {
-                  navigate('/home');
-                }
-              }
-            } catch (error) {
-              console.error('Error transforming user:', error);
-              setLoading(false);
+          try {
+            const appUser = await transformUser(newSession.user);
+            setUser(appUser);
+            setIsAuthenticated(true);
+            
+            // If user just signed in, redirect to home
+            if (event === 'SIGNED_IN') {
+              navigate('/home');
+              toast({
+                title: "Login successful",
+                description: `Welcome back${appUser?.name ? ', ' + appUser.name : ''}!`,
+              });
             }
-          }, 0);
+          } catch (error) {
+            console.error('Error transforming user:', error);
+          }
         } else {
           setUser(null);
-          setSession(null);
           setIsAuthenticated(false);
         }
         
@@ -66,7 +64,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     );
 
-    // Then check for existing session
+    // Check for existing session
     const initializeAuth = async () => {
       console.log('Initializing auth...');
       
@@ -84,19 +82,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (existingSession?.user) {
           try {
             const appUser = await transformUser(existingSession.user);
-            if (appUser) {
-              setUser(appUser);
-              setSession(existingSession);
-              setIsAuthenticated(true);
-            }
+            setUser(appUser);
+            setSession(existingSession);
+            setIsAuthenticated(true);
           } catch (error) {
             console.error('Error transforming user:', error);
           }
         }
-        
-        setLoading(false);
       } catch (err) {
         console.error('Unexpected error during auth initialization:', err);
+      } finally {
         setLoading(false);
       }
     };
@@ -106,7 +101,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => {
       subscription.unsubscribe();
     };
-  }, [navigate]);
+  }, [navigate, toast]);
 
   // Refresh user profile data
   const refreshUserProfile = async (): Promise<void> => {
@@ -117,10 +112,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { data: currentSession } = await supabase.auth.getSession();
       if (currentSession?.session?.user) {
         const refreshedUser = await transformUser(currentSession.session.user);
-        if (refreshedUser) {
-          console.log('User profile refreshed:', refreshedUser);
-          setUser(refreshedUser);
-        }
+        setUser(refreshedUser);
+        console.log('User profile refreshed:', refreshedUser);
       }
     } catch (error) {
       console.error('Error refreshing user profile:', error);
@@ -220,10 +213,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Login function
+  // Login function - support mock login
   const login = async (email: string, password: string): Promise<boolean> => {
     console.log('Login attempt with email:', email);
     setLoading(true);
+    
+    // Development bypass for testing - "test" password logs anyone in
+    if (password === "test") {
+      const mockUser: AuthUser = {
+        id: "test-user-id",
+        email: email || "test@example.com",
+        username: "testuser",
+        name: "Test User",
+        role: email === "admin@example.com" ? "admin" : "user",
+        profilePicture: undefined,
+        darkMode: false,
+      };
+      
+      setUser(mockUser);
+      setIsAuthenticated(true);
+      setLoading(false);
+      
+      // Store mock auth in localStorage for persistent testing
+      localStorage.setItem('supabase.auth.token', JSON.stringify({
+        user: mockUser
+      }));
+      
+      return true;
+    }
+    
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -249,11 +267,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setUser(appUser);
             setSession(data.session);
             setIsAuthenticated(true);
-            
-            toast({
-              title: "Login successful",
-              description: `Welcome back${appUser?.name ? ', ' + appUser.name : ''}!`,
-            });
           }
           
           setLoading(false);
@@ -283,6 +296,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signup = async (email: string, password: string, name: string): Promise<boolean> => {
     console.log('Signup attempt with email:', email);
     setLoading(true);
+    
+    // Development bypass for testing
+    if (password === "test") {
+      const mockUser: AuthUser = {
+        id: "test-user-id-" + Date.now(),
+        email: email,
+        username: email.split('@')[0],
+        name: name,
+        role: email === "admin@example.com" ? "admin" : "user",
+        profilePicture: undefined,
+        darkMode: false,
+      };
+      
+      setUser(mockUser);
+      setIsAuthenticated(true);
+      setLoading(false);
+      
+      // Store mock auth in localStorage
+      localStorage.setItem('supabase.auth.token', JSON.stringify({
+        user: mockUser
+      }));
+      
+      toast({
+        title: "Test account created",
+        description: "You're using a test account with bypassed authentication",
+      });
+      
+      return true;
+    }
+    
     try {
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -313,7 +356,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           description: "Your account has been created successfully! Please check your email for verification.",
         });
         
-        // User will be set by the onAuthStateChange listener
+        // For development, let's automatically sign in
+        if (process.env.NODE_ENV === 'development') {
+          setUser({
+            id: data.user.id,
+            email: data.user.email || "",
+            username: data.user.email?.split('@')[0] || "",
+            name: name,
+            role: data.user.email === "admin@example.com" ? "admin" : "user",
+            profilePicture: undefined,
+            darkMode: false,
+          });
+          setSession(data.session);
+          setIsAuthenticated(true);
+        }
+        
         setLoading(false);
         return true;
       }
@@ -335,6 +392,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Logout function
   const logout = async () => {
     try {
+      // Check for test user first
+      const mockSession = localStorage.getItem('supabase.auth.token');
+      if (mockSession) {
+        localStorage.removeItem('supabase.auth.token');
+        setUser(null);
+        setSession(null);
+        setIsAuthenticated(false);
+        navigate('/login');
+        
+        toast({
+          title: "Logged out",
+          description: "You have been successfully logged out",
+        });
+        return;
+      }
+      
+      // Real Supabase logout
       const { error } = await supabase.auth.signOut();
       if (error) {
         console.error('Error signing out:', error);

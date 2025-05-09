@@ -1,3 +1,4 @@
+
 import { Session } from "@supabase/supabase-js";
 import React from "react";
 
@@ -41,6 +42,8 @@ export interface AuthUser {
     postVisibility: 'public' | 'friends' | 'private';
     searchEngineVisible: boolean;
   };
+  status?: 'active' | 'banned';
+  lastSignIn?: string;
 }
 
 export interface SubscriptionContextType {

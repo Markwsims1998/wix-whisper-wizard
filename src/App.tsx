@@ -4,11 +4,12 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { SubscriptionProvider } from "./contexts/SubscriptionContext";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Footer from "./components/Footer";
+import { AuthProvider } from "./contexts/auth/AuthProvider";
 
 // Import pages
 import Index from "./pages/Index";
@@ -31,11 +32,7 @@ import Admin from "./pages/Admin";
 // Create a query client
 const queryClient = new QueryClient();
 
-// Simple auth context provider that doesn't require authentication
-const SimpleAuthProvider = ({ children }) => {
-  return children;
-};
-
+// Layout component that includes the footer
 const Layout = ({ children }) => {
   return (
     <div className="flex flex-col min-h-screen">
@@ -43,6 +40,42 @@ const Layout = ({ children }) => {
       <Footer />
     </div>
   );
+};
+
+// Route guard component to protect routes
+const ProtectedRoute = ({ children }) => {
+  const [isChecking, setIsChecking] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  
+  useEffect(() => {
+    // Check for auth status from localStorage for quick UI decision
+    const checkAuth = async () => {
+      try {
+        const session = localStorage.getItem('supabase.auth.token');
+        setIsAuthenticated(!!session);
+      } catch (error) {
+        console.error("Error checking auth:", error);
+      } finally {
+        setIsChecking(false);
+      }
+    };
+    
+    checkAuth();
+  }, []);
+  
+  if (isChecking) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <LoadingSpinner />
+      </div>
+    );
+  }
+  
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  return children;
 };
 
 const AppRoutes = () => {
@@ -80,20 +113,104 @@ const AppRoutes = () => {
       <Route path="/" element={<HomePage />} />
       <Route path="/login" element={<Login />} />
       <Route path="/feedback" element={<Feedback />} />
-      {/* Remove ProtectedRoute wrappers */}
-      <Route path="/home" element={<Layout><Index /></Layout>} />
-      <Route path="/profile" element={<Layout><Profile /></Layout>} />
-      <Route path="/photos" element={<Layout><Photos /></Layout>} />
-      <Route path="/activity" element={<Layout><Activity /></Layout>} />
-      <Route path="/videos" element={<Layout><Videos /></Layout>} />
-      <Route path="/people" element={<Layout><People /></Layout>} />
-      <Route path="/notifications" element={<Layout><Notifications /></Layout>} />
-      <Route path="/shop" element={<Layout><Shop /></Layout>} />
-      <Route path="/basket" element={<Layout><Basket /></Layout>} />
-      <Route path="/settings" element={<Layout><Settings /></Layout>} />
-      <Route path="/messages" element={<Layout><Messages /></Layout>} />
-      {/* Admin route without protection */}
-      <Route path="/admin/*" element={<Admin />} />
+      
+      {/* Protected Routes */}
+      <Route 
+        path="/home" 
+        element={
+          <ProtectedRoute>
+            <Layout><Index /></Layout>
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/profile" 
+        element={
+          <ProtectedRoute>
+            <Layout><Profile /></Layout>
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/photos" 
+        element={
+          <ProtectedRoute>
+            <Layout><Photos /></Layout>
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/activity" 
+        element={
+          <ProtectedRoute>
+            <Layout><Activity /></Layout>
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/videos" 
+        element={
+          <ProtectedRoute>
+            <Layout><Videos /></Layout>
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/people" 
+        element={
+          <ProtectedRoute>
+            <Layout><People /></Layout>
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/notifications" 
+        element={
+          <ProtectedRoute>
+            <Layout><Notifications /></Layout>
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/shop" 
+        element={
+          <ProtectedRoute>
+            <Layout><Shop /></Layout>
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/basket" 
+        element={
+          <ProtectedRoute>
+            <Layout><Basket /></Layout>
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/settings" 
+        element={
+          <ProtectedRoute>
+            <Layout><Settings /></Layout>
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/messages" 
+        element={
+          <ProtectedRoute>
+            <Layout><Messages /></Layout>
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/admin/*" 
+        element={
+          <ProtectedRoute>
+            <Admin />
+          </ProtectedRoute>
+        } 
+      />
       <Route path="*" element={<Layout><NotFound /></Layout>} />
     </Routes>
   );
@@ -104,13 +221,13 @@ const App = () => (
     <BrowserRouter>
       <TooltipProvider>
         <ThemeProvider>
-          <SimpleAuthProvider>
+          <AuthProvider>
             <SubscriptionProvider>
               <Toaster />
               <Sonner />
               <AppRoutes />
             </SubscriptionProvider>
-          </SimpleAuthProvider>
+          </AuthProvider>
         </ThemeProvider>
       </TooltipProvider>
     </BrowserRouter>

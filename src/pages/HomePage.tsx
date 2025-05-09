@@ -1,8 +1,7 @@
-
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/auth/AuthProvider";
 import { 
   ArrowRight, 
   CheckCircle, 
@@ -68,7 +67,7 @@ const HomePage = () => {
               Log In
             </Button>
             <Button 
-              onClick={() => navigate("/login")}
+              onClick={() => navigate("/login?tab=signup")}
               className="bg-purple-600 hover:bg-purple-700 text-white"
             >
               Sign Up
@@ -97,12 +96,12 @@ const HomePage = () => {
               <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
             <Button
-              onClick={() => navigate("/login")}
+              onClick={() => navigate("/home")}
               size="lg"
               variant="outline"
               className="border-purple-400 dark:border-purple-500 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm hover:bg-purple-50 dark:hover:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-lg px-8 py-6"
             >
-              Learn More
+              Skip Login (Demo)
             </Button>
           </div>
         </div>
@@ -157,7 +156,6 @@ const HomePage = () => {
         </div>
       </section>
 
-      {/* Testimonials */}
       <section className="bg-gray-50 dark:bg-gray-900 py-16 px-4">
         <div className="max-w-6xl mx-auto">
           <h2 className="text-3xl font-bold text-center mb-12 text-gray-900 dark:text-white">What Our Community Says</h2>
@@ -182,7 +180,6 @@ const HomePage = () => {
         </div>
       </section>
 
-      {/* CTA */}
       <section className="bg-gradient-to-r from-purple-600 to-indigo-600 dark:from-purple-700 dark:to-indigo-700 py-16 px-4">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-3xl font-bold mb-6 text-white">Join Our Growing Community Today</h2>
@@ -200,7 +197,6 @@ const HomePage = () => {
         </div>
       </section>
 
-      {/* Footer */}
       <footer className="bg-gray-900 dark:bg-gray-950 text-white/70 py-12 px-4">
         <div className="max-w-6xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">

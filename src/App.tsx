@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -9,6 +8,7 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Footer from "./components/Footer";
 import { useAuth } from "./contexts/auth/AuthContext";
+import { useState, useEffect } from "react"; // Add missing hook imports
 
 // Import pages
 import Index from "./pages/Index";

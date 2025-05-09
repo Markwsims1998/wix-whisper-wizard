@@ -1,6 +1,6 @@
 
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Activity, Image, Play, User, Users, ShoppingBag, Bell, Home, Settings, ChevronLeft, LogOut, MessageSquare } from "lucide-react";
+import { Activity, Image, Play, User, Users, ShoppingBag, Bell, Home, Settings, ChevronLeft, LogOut, MessageSquare, Shield } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
@@ -87,6 +87,9 @@ const Sidebar = () => {
     setDraggingItem(null);
   };
 
+  // Check if user is admin
+  const isAdmin = user?.role === 'admin';
+
   return (
     <>
       {/* Desktop Sidebar */}
@@ -125,6 +128,17 @@ const Sidebar = () => {
             <NavItem icon={<Bell className="w-5 h-5" />} label="Notifications" isActive={currentPath === "/notifications"} to="/notifications" collapsed={collapsed} />
             <NavItem icon={<ShoppingBag className="w-5 h-5" />} label="Shop" isActive={currentPath === "/shop"} to="/shop" collapsed={collapsed} />
             <NavItem icon={<Settings className="w-5 h-5" />} label="Settings" isActive={currentPath === "/settings"} to="/settings" collapsed={collapsed} />
+            
+            {/* Admin Button - Only visible for admin users */}
+            {isAdmin && (
+              <NavItem 
+                icon={<Shield className="w-5 h-5" />} 
+                label="Admin" 
+                isActive={currentPath.includes("/admin")} 
+                to="/admin" 
+                collapsed={collapsed} 
+              />
+            )}
           </nav>
         </div>
 
@@ -204,6 +218,10 @@ const Sidebar = () => {
                 <MobileNavItem icon={<Bell className="w-6 h-6" />} label="Notifications" to="/notifications" />
                 <MobileNavItem icon={<ShoppingBag className="w-6 h-6" />} label="Shop" to="/shop" />
                 <MobileNavItem icon={<Settings className="w-6 h-6" />} label="Settings" to="/settings" />
+                {/* Admin item - only visible for admin users */}
+                {isAdmin && (
+                  <MobileNavItem icon={<Shield className="w-6 h-6" />} label="Admin" to="/admin" />
+                )}
               </div>
 
               <Separator className="my-4 bg-gray-700" />

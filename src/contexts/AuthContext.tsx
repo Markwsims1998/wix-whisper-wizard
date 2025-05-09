@@ -68,7 +68,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return null;
       }
       
-      // Define admin emails - add your email here
+      // Define admin emails - markwsims1998@gmail.com is explicitly set as an admin
       const adminEmails = ['markwsims1998@gmail.com', 'admin@example.com'];
       const isAdmin = adminEmails.includes(supabaseUser.email || '');
       

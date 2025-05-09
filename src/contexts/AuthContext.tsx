@@ -84,8 +84,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(appUser);
           setIsAuthenticated(true);
           
-          // If user just signed up, redirect to home
-          if (event === 'SIGNED_IN' || event === 'SIGNED_UP') {
+          // If user just signed in, redirect to home
+          if (event === 'SIGNED_IN') {
             navigate('/home');
           }
         } else {

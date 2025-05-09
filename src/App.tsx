@@ -8,12 +8,16 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { SubscriptionProvider } from "./contexts/SubscriptionContext";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { ThemeProvider } from "./contexts/ThemeContext";
+import Footer from "./components/Footer";
+
+// Import pages
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Profile from "./pages/Profile";
 import Photos from "./pages/Photos";
 import Activity from "./pages/Activity";
-import Videos from "./pages/Videos"; // Renamed from Watch
+import Videos from "./pages/Videos";
 import People from "./pages/People";
 import Notifications from "./pages/Notifications";
 import Shop from "./pages/Shop";
@@ -21,11 +25,9 @@ import Basket from "./pages/Basket";
 import Settings from "./pages/Settings";
 import Messages from "./pages/Messages";
 import Login from "./pages/Login";
-import Feedback from "./pages/Feedback"; // New feedback page
-import HomePage from "./pages/HomePage"; // New homepage
-import Admin from "./pages/Admin"; // Admin portal
-import { ThemeProvider } from "./contexts/ThemeContext";
-import Footer from "./components/Footer";
+import Feedback from "./pages/Feedback";
+import HomePage from "./pages/HomePage";
+import Admin from "./pages/Admin";
 
 // Create a query client
 const queryClient = new QueryClient();
@@ -58,7 +60,6 @@ const AdminRoute = ({ children }: { children: React.ReactNode }) => {
   }
   
   // In a real app, you would check admin status from user object or backend
-  // For demo purposes, we assume authentication is sufficient
   
   return <>{children}</>;
 };

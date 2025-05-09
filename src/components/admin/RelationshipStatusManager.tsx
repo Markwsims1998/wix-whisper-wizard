@@ -1,13 +1,15 @@
-import React, { useState } from "react";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+
+import { useState } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Switch } from "@/components/ui/switch";
-import { Plus, Pencil, Trash2, Heart } from "lucide-react";
+import { Plus, Heart } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { RelationshipStatus, relationshipStatuses } from "@/data/database";
+import StatusList from "@/components/admin/relationship/StatusList";
+import EditStatusDialog from "@/components/admin/relationship/EditStatusDialog";
 
 const RelationshipStatusManager = () => {
   const { toast } = useToast();
@@ -57,8 +59,8 @@ const RelationshipStatusManager = () => {
     }
   };
 
-  const handleEditStatus = () => {
-    if (!editingStatus || !editingStatus.name.trim()) {
+  const handleEditStatus = (updatedStatus: RelationshipStatus) => {
+    if (!updatedStatus.name.trim()) {
       toast({
         title: "Missing Information",
         description: "Please enter a name for the relationship status.",
@@ -69,7 +71,7 @@ const RelationshipStatusManager = () => {
 
     setStatuses(
       statuses.map((status) =>
-        status.id === editingStatus.id ? { ...editingStatus } : status
+        status.id === updatedStatus.id ? { ...updatedStatus } : status
       )
     );
 
@@ -127,81 +129,21 @@ const RelationshipStatusManager = () => {
 
         <div className="space-y-2">
           <Label>Existing Relationship Statuses</Label>
-          
-          {statuses.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-4 text-center">
-              No relationship statuses defined yet. Add your first one!
-            </p>
-          ) : (
-            <div className="space-y-3 mt-2">
-              {statuses.map((status) => (
-                <div
-                  key={status.id}
-                  className="flex items-center justify-between p-2 border rounded-md bg-card"
-                >
-                  <div className="flex items-center gap-2">
-                    <Switch
-                      checked={status.isActive}
-                      onCheckedChange={() => handleToggleActive(status.id)}
-                    />
-                    <span className={!status.isActive ? "text-muted-foreground" : ""}>
-                      {status.name}
-                    </span>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setEditingStatus(status)}
-                    >
-                      <Pencil className="h-4 w-4" />
-                      <span className="sr-only">Edit</span>
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleDeleteStatus(status.id)}
-                    >
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                      <span className="sr-only">Delete</span>
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+          <StatusList 
+            statuses={statuses}
+            onToggleActive={handleToggleActive}
+            onEditStatus={setEditingStatus}
+            onDeleteStatus={handleDeleteStatus}
+          />
         </div>
       </CardContent>
 
       {editingStatus && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <Card className="w-full max-w-md mx-4">
-            <CardHeader>
-              <CardTitle>Edit Relationship Status</CardTitle>
-              <CardDescription>
-                Update the relationship status name
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <Label htmlFor="edit-status">Status Name</Label>
-                <Input
-                  id="edit-status"
-                  value={editingStatus.name}
-                  onChange={(e) =>
-                    setEditingStatus({ ...editingStatus, name: e.target.value })
-                  }
-                />
-              </div>
-            </CardContent>
-            <CardFooter className="flex justify-between">
-              <Button variant="outline" onClick={() => setEditingStatus(null)}>
-                Cancel
-              </Button>
-              <Button onClick={handleEditStatus}>Save Changes</Button>
-            </CardFooter>
-          </Card>
-        </div>
+        <EditStatusDialog 
+          status={editingStatus}
+          onSave={handleEditStatus}
+          onCancel={() => setEditingStatus(null)}
+        />
       )}
     </Card>
   );

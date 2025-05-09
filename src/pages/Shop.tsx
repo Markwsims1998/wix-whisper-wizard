@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Award, Diamond, Badge as BadgeIcon, Check, ChevronDown, ChevronUp, ShoppingCart, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -50,6 +51,11 @@ const Shop = () => {
     
     checkAuth();
   }, [user, isAuthenticated, subscriptionTier]);
+
+  // Set showSubscriptions based on subscription tier - collapse for premium tiers
+  useEffect(() => {
+    setShowSubscriptions(subscriptionTier === "free");
+  }, [subscriptionTier]);
   
   const handleSubscribe = async (tier: SubscriptionTier) => {
     console.log("Subscribe button clicked for tier:", tier);
@@ -287,7 +293,7 @@ const Shop = () => {
             </Alert>
           )}
           
-          {/* Subscription Status Alert */}
+          {/* Subscription Status Alert - Only show for premium tiers */}
           {authCheckDone && hasSession && subscriptionTier !== "free" && (
             <Alert className="mb-4 bg-green-50 border-green-200">
               <Check className="h-4 w-4 text-green-600" />

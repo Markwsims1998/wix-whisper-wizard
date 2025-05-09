@@ -45,9 +45,10 @@ const AdDisplay = ({ className = "" }: AdDisplayProps) => {
   }, [isAuthenticated, user, subscriptionTier]);
   
   // Determine whether to show ads based on subscription tier
-  const showAds = (subscriptionTier === "free" || subscriptionTier === "bronze") && hasSession;
+  // Only show ads for free and bronze tiers
+  const showAds = subscriptionTier === "bronze" || subscriptionTier === "free";
   
-  if (!isLoaded || !showAds || !showAd) return null;
+  if (!isLoaded || !showAds || !showAd || !hasSession) return null;
 
   const handleDismissAd = () => {
     setShowAd(false);

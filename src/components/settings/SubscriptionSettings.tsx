@@ -7,6 +7,7 @@ import { useNavigate } from "react-router-dom";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { supabase } from "@/integrations/supabase/client";
 
 const SubscriptionSettings = () => {
   const navigate = useNavigate();
@@ -36,6 +37,16 @@ const SubscriptionSettings = () => {
     setError(null);
     
     try {
+      // Direct database check for reliable auth
+      const { data: sessionData } = await supabase.auth.getSession();
+      const session = sessionData?.session;
+      
+      if (!session?.user?.id) {
+        setError("Authentication error. Please sign in again.");
+        setProcessing(false);
+        return;
+      }
+      
       // Update the subscription to free tier in the database
       const success = await upgradeSubscription('free');
       
@@ -60,6 +71,15 @@ const SubscriptionSettings = () => {
   // Check for subscription changes when component mounts
   useEffect(() => {
     refreshSubscription();
+  }, []);
+  
+  // Refresh every minute to catch external changes
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      refreshSubscription();
+    }, 60000);
+    
+    return () => clearInterval(intervalId);
   }, []);
   
   return (

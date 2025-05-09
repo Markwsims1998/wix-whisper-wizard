@@ -11,7 +11,6 @@ import { ProfileData, Post } from '@/components/profile/types';
 import { supabase } from '@/integrations/supabase/client';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
-import Footer from '@/components/Footer';
 import { useSearchParams, useLocation } from 'react-router-dom';
 
 const Profile = () => {
@@ -614,7 +613,6 @@ const Profile = () => {
               <LoadingProfile />
             </div>
           </div>
-          <Footer />
         </div>
       </div>
     );
@@ -636,18 +634,20 @@ const Profile = () => {
               </div>
             </div>
           </div>
-          <Footer />
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-100 dark:bg-gray-900">
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex">
       <Sidebar />
       <div className="flex-1 flex flex-col">
         <Header />
-        <div className="flex-1 pt-16 pb-10 transition-all duration-300">
+        <div 
+          className="flex-1 pt-16 pb-10 pr-4 transition-all duration-300" 
+          style={{ paddingLeft: 'var(--sidebar-width, 280px)' }}
+        >
           <div className="container max-w-4xl mx-auto">
             <ProfileHeader 
               profile={profileData}
@@ -695,10 +695,10 @@ const Profile = () => {
             )}
           </div>
         </div>
-        <Footer />
       </div>
     </div>
   );
 };
 
 export default Profile;
+

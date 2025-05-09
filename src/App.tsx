@@ -20,36 +20,39 @@ import Feedback from './pages/Feedback';
 import { Toaster } from "@/components/ui/toaster"
 import Profile from './pages/profile';
 import { AuthProvider } from '@/contexts/auth/AuthProvider';
+import { ThemeProvider } from '@/contexts/ThemeContext';
 
 function App() {
   return (
-    <AuthProvider>
-      <Routes>
-        {/* Public routes */}
-        <Route path="/" element={<Index />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/feedback" element={<Feedback />} />
-        
-        {/* Protected routes */}
-        <Route path="/home" element={<HomePage />} />
-        <Route path="/messages" element={<Messages />} />
-        <Route path="/profile" element={<Profile />} />
-        <Route path="/activity" element={<Activity />} />
-        <Route path="/notifications" element={<Notifications />} />
-        <Route path="/people" element={<People />} />
-        <Route path="/videos" element={<Videos />} />
-        <Route path="/watch" element={<Watch />} />
-        <Route path="/photos" element={<Photos />} />
-        <Route path="/shop" element={<Shop />} />
-        <Route path="/basket" element={<Basket />} />
-        <Route path="/settings" element={<Settings />} />
-        <Route path="/admin" element={<Admin />} />
-        
-        {/* Catch all route */}
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-      <Toaster />
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <Routes>
+          {/* Public routes */}
+          <Route path="/" element={<Index />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/feedback" element={<Feedback />} />
+          
+          {/* Protected routes */}
+          <Route path="/home" element={<HomePage />} />
+          <Route path="/messages" element={<Messages />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/activity" element={<Activity />} />
+          <Route path="/notifications" element={<Notifications />} />
+          <Route path="/people" element={<People />} />
+          <Route path="/videos" element={<Videos />} />
+          <Route path="/watch" element={<Watch />} />
+          <Route path="/photos" element={<Photos />} />
+          <Route path="/shop" element={<Shop />} />
+          <Route path="/basket" element={<Basket />} />
+          <Route path="/settings" element={<Settings />} />
+          <Route path="/admin" element={<Admin />} />
+          
+          {/* Catch all route */}
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+        <Toaster />
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 

@@ -1,7 +1,7 @@
 
 import { Bell, MessageSquare, Search, ShoppingCart, Megaphone, X } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/auth/AuthProvider";
 import { Badge } from "@/components/ui/badge";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";

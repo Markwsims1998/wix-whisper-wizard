@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { ArrowLeft, User, Settings, Database, Activity, AlertTriangle, Ban, Shield, CreditCard, Image, Megaphone } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Button } from "@/components/ui/button";
 import AdminHeader from "@/components/admin/AdminHeader";
 import AdminSidebar from "@/components/admin/AdminSidebar";
 import AdminDashboard from "@/components/admin/AdminDashboard";

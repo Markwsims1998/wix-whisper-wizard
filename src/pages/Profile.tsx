@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/auth/AuthProvider';
 import { useToast } from '@/components/ui/use-toast';
@@ -9,6 +8,8 @@ import RelationshipDialog from '@/components/profile/RelationshipDialog';
 import LoadingProfile from '@/components/profile/LoadingProfile';
 import { ProfileData, Post } from '@/components/profile/types';
 import { supabase } from '@/integrations/supabase/client';
+import Header from '@/components/Header';
+import Sidebar from '@/components/Sidebar';
 
 const Profile = () => {
   const { user, updateUserProfile } = useAuth();
@@ -401,47 +402,59 @@ const Profile = () => {
   if (loading) return <LoadingProfile />;
 
   return (
-    <div className="container max-w-4xl mx-auto px-4 pb-10 pt-5">
-      <ProfileHeader 
-        profile={profile}
-        isMyProfile={true}
-        relationshipStatusText={getRelationshipStatusText()}
-        handleAddFriend={handleAddFriend}
-        handleMessage={handleMessage}
-        setEditRelationshipOpen={setEditRelationshipOpen}
-        getSubscriptionBadge={getSubscriptionBadge}
-      />
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex flex-col">
+      <Sidebar />
+      <Header />
       
-      <CreatePost 
-        profile={profile}
-        newPostText={newPostText}
-        setNewPostText={setNewPostText}
-        handleCreatePost={handleCreatePost}
-      />
-      
-      <PostsList 
-        posts={posts}
-        isMyProfile={true}
-        profile={profile}
-        handleLikePost={handleLikePost}
-      />
-      
-      <RelationshipDialog 
-        open={editRelationshipOpen} 
-        setOpen={setEditRelationshipOpen}
-        selectedRelationshipStatus={selectedRelationshipStatus}
-        setSelectedRelationshipStatus={setSelectedRelationshipStatus}
-        relationshipPartners={relationshipPartners}
-        handleRemovePartner={handleRemovePartner}
-        availablePartners={availablePartners}
-        partnerSearchOpen={partnerSearchOpen}
-        setPartnerSearchOpen={setPartnerSearchOpen}
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
-        handleAddPartner={handleAddPartner}
-        relationshipStatuses={relationshipStatuses}
-        handleSaveRelationship={handleSaveRelationship}
-      />
+      <div 
+        className="pl-[280px] pt-16 pr-4 pb-10 transition-all duration-300 flex-grow" 
+        style={{ 
+          paddingLeft: 'var(--sidebar-width, 280px)', 
+        }}
+      >
+        <div className="container max-w-4xl mx-auto px-4 pb-10 pt-5">
+          <ProfileHeader 
+            profile={profile}
+            isMyProfile={true}
+            relationshipStatusText={getRelationshipStatusText()}
+            handleAddFriend={handleAddFriend}
+            handleMessage={handleMessage}
+            setEditRelationshipOpen={setEditRelationshipOpen}
+            getSubscriptionBadge={getSubscriptionBadge}
+          />
+          
+          <CreatePost 
+            profile={profile}
+            newPostText={newPostText}
+            setNewPostText={setNewPostText}
+            handleCreatePost={handleCreatePost}
+          />
+          
+          <PostsList 
+            posts={posts}
+            isMyProfile={true}
+            profile={profile}
+            handleLikePost={handleLikePost}
+          />
+          
+          <RelationshipDialog 
+            open={editRelationshipOpen} 
+            setOpen={setEditRelationshipOpen}
+            selectedRelationshipStatus={selectedRelationshipStatus}
+            setSelectedRelationshipStatus={setSelectedRelationshipStatus}
+            relationshipPartners={relationshipPartners}
+            handleRemovePartner={handleRemovePartner}
+            availablePartners={availablePartners}
+            partnerSearchOpen={partnerSearchOpen}
+            setPartnerSearchOpen={setPartnerSearchOpen}
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+            handleAddPartner={handleAddPartner}
+            relationshipStatuses={relationshipStatuses}
+            handleSaveRelationship={handleSaveRelationship}
+          />
+        </div>
+      </div>
     </div>
   );
 };

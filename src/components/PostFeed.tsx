@@ -32,10 +32,12 @@ const PostFeed = () => {
     if (!user) return;
     
     setLoading(true);
+    // Fix: Use a default location instead of trying to access user.location
+    const userLocation = 'New York'; // Default location since AuthUser doesn't have location property
     const fetchedPosts = await getFeedPosts(
       activeTab as 'all' | 'local' | 'hotlist' | 'friends', 
       user.id,
-      user?.location || 'New York' // Get location from user's profile if available
+      userLocation
     );
     setPosts(fetchedPosts);
     setLoading(false);

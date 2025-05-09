@@ -68,7 +68,7 @@ export const transformUser = async (supabaseUser: User | null): Promise<AuthUser
     // Cast the status to the correct type or use a default value
     let userStatus: 'active' | 'banned' = 'active';
     if (profile?.status === 'active' || profile?.status === 'banned') {
-      userStatus = profile.status;
+      userStatus = profile.status as 'active' | 'banned';
     }
     
     // Create a user object with data from auth and profile

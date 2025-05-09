@@ -1,7 +1,7 @@
 
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Activity, Image, Play, User, Users, ShoppingBag, Bell, Home, Settings, ChevronLeft, LogOut, MessageSquare } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -13,7 +13,7 @@ import {
   DrawerClose
 } from "@/components/ui/drawer";
 
-// Define a type for the bottom navigation items
+// Define a type for the navigation items
 interface NavItem {
   icon: React.ElementType;
   label: string;
@@ -24,13 +24,15 @@ interface NavItem {
 const defaultBottomNavItems: NavItem[] = [
   { icon: Home, label: "Home", path: "/" },
   { icon: Image, label: "Photos", path: "/photos" },
-  { icon: Play, label: "Watch", path: "/watch" },
+  { icon: Play, label: "Videos", path: "/videos" },
   { icon: ShoppingBag, label: "Shop", path: "/shop" },
 ];
 
 const Sidebar = () => {
   const [collapsed, setCollapsed] = useState(false);
   const [bottomNavItems, setBottomNavItems] = useState<NavItem[]>(defaultBottomNavItems);
+  const [draggingItem, setDraggingItem] = useState<number | null>(null);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -52,6 +54,38 @@ const Sidebar = () => {
       }
     }
   }, []);
+
+  // Handle item navigation
+  const handleNavItemClick = (path: string) => {
+    navigate(path);
+  };
+
+  // Drag and drop functionality for mobile navigation
+  const handleDragStart = (index: number) => {
+    setDraggingItem(index);
+  };
+
+  const handleDragOver = (index: number) => {
+    if (draggingItem === null || draggingItem === index) return;
+
+    const updatedItems = [...bottomNavItems];
+    const draggedItem = updatedItems[draggingItem];
+    
+    // Remove the item from its original position
+    updatedItems.splice(draggingItem, 1);
+    // Insert it at the new position
+    updatedItems.splice(index, 0, draggedItem);
+
+    setBottomNavItems(updatedItems);
+    setDraggingItem(index);
+
+    // Save to localStorage
+    localStorage.setItem('bottomNavPreferences', JSON.stringify(updatedItems));
+  };
+
+  const handleDragEnd = () => {
+    setDraggingItem(null);
+  };
 
   return (
     <>
@@ -86,7 +120,7 @@ const Sidebar = () => {
             <NavItem icon={<Home className="w-5 h-5" />} label="Home" isActive={currentPath === "/"} to="/" collapsed={collapsed} />
             <NavItem icon={<Activity className="w-5 h-5" />} label="Activity" isActive={currentPath === "/activity"} to="/activity" collapsed={collapsed} />
             <NavItem icon={<Image className="w-5 h-5" />} label="Photos" isActive={currentPath === "/photos"} to="/photos" collapsed={collapsed} />
-            <NavItem icon={<Play className="w-5 h-5" />} label="Watch" isActive={currentPath === "/watch"} to="/watch" collapsed={collapsed} />
+            <NavItem icon={<Play className="w-5 h-5" />} label="Videos" isActive={currentPath === "/videos"} to="/videos" collapsed={collapsed} />
             <NavItem icon={<Users className="w-5 h-5" />} label="People" isActive={currentPath === "/people"} to="/people" collapsed={collapsed} />
             <NavItem icon={<Bell className="w-5 h-5" />} label="Notifications" isActive={currentPath === "/notifications"} to="/notifications" collapsed={collapsed} />
             <NavItem icon={<ShoppingBag className="w-5 h-5" />} label="Shop" isActive={currentPath === "/shop"} to="/shop" collapsed={collapsed} />
@@ -142,8 +176,8 @@ const Sidebar = () => {
 
       {/* Mobile Bottom Drawer Menu */}
       <div className="md:hidden fixed bottom-4 left-0 right-0 z-50 flex justify-center">
-        <Drawer direction="bottom">
-          <DrawerTrigger className="bg-purple-600 text-white px-6 py-3 rounded-full shadow-lg flex items-center gap-2">
+        <Drawer direction="bottom" open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
+          <DrawerTrigger className="bg-purple-600 text-white px-6 py-3 rounded-full shadow-lg flex items-center justify-center">
             {/* Logo instead of text */}
             <div className="w-8 h-8 rounded-full bg-[#8B5CF6] flex items-center justify-center">
               <div className="w-7 h-7 rounded-full bg-[#2B2A33] flex items-center justify-center">
@@ -154,23 +188,10 @@ const Sidebar = () => {
             </div>
           </DrawerTrigger>
           <DrawerContent className="bg-[#2B2A33] text-white rounded-t-xl max-h-[85vh] overflow-y-auto">
-            <div className="p-4">
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center overflow-hidden dark:bg-purple-900">
-                    {user?.profilePicture ? (
-                      <img src={user.profilePicture} alt="Profile" className="w-full h-full object-cover" />
-                    ) : (
-                      <User className="w-6 h-6 text-purple-600 dark:text-purple-300" />
-                    )}
-                  </div>
-                  <div>
-                    <p className="text-white text-sm font-medium">{user?.name || 'Alex Johnson'}</p>
-                    <p className="text-gray-400 text-xs">{user?.username || '@alexjohnson'}</p>
-                  </div>
-                </div>
+            <div className="p-4 pb-28"> {/* Extra padding for mobile menu buttons */}
+              <div className="flex items-center justify-end mb-6">
                 <DrawerClose className="rounded-full p-2 hover:bg-gray-700">
-                  <ChevronLeft className="w-5 h-5 text-gray-400 rotate-270" />
+                  <ChevronLeft className="w-5 h-5 text-gray-400 rotate-90" />
                 </DrawerClose>
               </div>
 
@@ -178,11 +199,32 @@ const Sidebar = () => {
                 <MobileNavItem icon={<Home className="w-6 h-6" />} label="Home" to="/" />
                 <MobileNavItem icon={<Activity className="w-6 h-6" />} label="Activity" to="/activity" />
                 <MobileNavItem icon={<Image className="w-6 h-6" />} label="Photos" to="/photos" />
-                <MobileNavItem icon={<Play className="w-6 h-6" />} label="Watch" to="/watch" />
+                <MobileNavItem icon={<Play className="w-6 h-6" />} label="Videos" to="/videos" />
                 <MobileNavItem icon={<Users className="w-6 h-6" />} label="People" to="/people" />
                 <MobileNavItem icon={<Bell className="w-6 h-6" />} label="Notifications" to="/notifications" />
                 <MobileNavItem icon={<ShoppingBag className="w-6 h-6" />} label="Shop" to="/shop" />
                 <MobileNavItem icon={<Settings className="w-6 h-6" />} label="Settings" to="/settings" />
+              </div>
+
+              <Separator className="my-4 bg-gray-700" />
+              
+              <h3 className="text-sm font-medium mb-2 text-gray-300">Customize Bottom Navigation</h3>
+              <p className="text-xs text-gray-400 mb-4">Drag and drop to rearrange your menu items</p>
+              
+              <div className="flex justify-between mb-4">
+                {bottomNavItems.map((item, index) => (
+                  <div
+                    key={index}
+                    className="flex flex-col items-center gap-1 p-2 bg-gray-700/50 rounded-lg cursor-move"
+                    draggable
+                    onDragStart={() => handleDragStart(index)}
+                    onDragOver={() => handleDragOver(index)}
+                    onDragEnd={handleDragEnd}
+                  >
+                    <item.icon className="w-6 h-6 text-gray-300" />
+                    <span className="text-xs text-gray-300">{item.label}</span>
+                  </div>
+                ))}
               </div>
 
               <Separator className="my-4 bg-gray-700" />

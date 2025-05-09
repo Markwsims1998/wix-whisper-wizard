@@ -9,8 +9,8 @@ const Footer = () => {
 
   return (
     <footer 
-      className={`bg-[#2B2A33] text-gray-300 dark:bg-gray-900 w-full z-10 ${isMobile ? 'relative' : 'fixed bottom-0 left-0 right-0'}`} 
-      style={!isMobile ? { marginLeft: 'var(--sidebar-width, 280px)', width: 'calc(100% - var(--sidebar-width, 280px))', transition: 'margin-left 0.3s ease-in-out, width 0.3s ease-in-out' } : {}}
+      className={`bg-[#2B2A33] text-gray-300 dark:bg-gray-900 w-full z-10 ${isMobile ? 'relative mt-16' : 'relative'}`} 
+      style={!isMobile ? { width: '100%', transition: 'margin-left 0.3s ease-in-out, width 0.3s ease-in-out' } : {}}
     >
       <div className="container mx-auto px-4 py-6 md:py-8">
         <div className={`${isMobile ? 'grid grid-cols-1 gap-6' : 'grid grid-cols-1 md:grid-cols-4 gap-8'}`}>
@@ -42,7 +42,7 @@ const Footer = () => {
                 <ul className="space-y-2 text-sm">
                   <li><Link to="/" className="hover:text-white transition-colors">Home</Link></li>
                   <li><Link to="/photos" className="hover:text-white transition-colors">Photos</Link></li>
-                  <li><Link to="/watch" className="hover:text-white transition-colors">Watch</Link></li>
+                  <li><Link to="/videos" className="hover:text-white transition-colors">Videos</Link></li>
                   <li><Link to="/people" className="hover:text-white transition-colors">People</Link></li>
                   <li><Link to="/shop" className="hover:text-white transition-colors">Shop</Link></li>
                 </ul>

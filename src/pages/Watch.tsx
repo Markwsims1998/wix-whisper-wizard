@@ -2,16 +2,29 @@
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
 import { useEffect, useState } from "react";
-import { Play, User, Heart, Lock } from "lucide-react";
+import { Play, User, Heart, Lock, Filter } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { Button } from "@/components/ui/button";
 import MediaViewer from "@/components/media/MediaViewer";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 
-const Watch = () => {
+const Videos = () => {
   const { subscriptionDetails } = useSubscription();
   const canViewVideos = subscriptionDetails.canViewVideos;
   const [selectedVideo, setSelectedVideo] = useState<any | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+
+  // Categories for filtering
+  const categories = [
+    { id: "all", name: "All" },
+    { id: "events", name: "Events" },
+    { id: "tutorials", name: "Tutorials" },
+    { id: "meetups", name: "Meetups" },
+    { id: "workshops", name: "Workshops" },
+    { id: "interviews", name: "Interviews" }
+  ];
 
   // Update header position based on sidebar width
   useEffect(() => {
@@ -40,16 +53,23 @@ const Watch = () => {
 
   // Log user activity
   useEffect(() => {
-    console.log("User activity: Viewed Watch page");
+    console.log("User activity: Viewed Videos page");
     // In a real app, this would call an API to record the activity
   }, []);
 
   const videos = [
-    { id: 1, thumbnail: 'https://via.placeholder.com/600x340', title: 'Getting Started with HappyKinks', author: 'Admin', views: '1.2k', likes: 45, postId: '201' },
-    { id: 2, thumbnail: 'https://via.placeholder.com/600x340', title: 'Community Guidelines', author: 'Sephiroth', views: '856', likes: 32, postId: '202' },
-    { id: 3, thumbnail: 'https://via.placeholder.com/600x340', title: 'Meet & Greet Event', author: 'Linda Lohan', views: '2.4k', likes: 76, postId: '203' },
-    { id: 4, thumbnail: 'https://via.placeholder.com/600x340', title: 'Workshop Announcement', author: 'Irina Petrova', views: '987', likes: 28, postId: '204' }
+    { id: 1, thumbnail: 'https://via.placeholder.com/600x340', title: 'Getting Started with HappyKinks', author: 'Admin', views: '1.2k', likes: 45, postId: '201', category: 'tutorials' },
+    { id: 2, thumbnail: 'https://via.placeholder.com/600x340', title: 'Community Guidelines', author: 'Sephiroth', views: '856', likes: 32, postId: '202', category: 'tutorials' },
+    { id: 3, thumbnail: 'https://via.placeholder.com/600x340', title: 'Meet & Greet Event', author: 'Linda Lohan', views: '2.4k', likes: 76, postId: '203', category: 'events' },
+    { id: 4, thumbnail: 'https://via.placeholder.com/600x340', title: 'Workshop Announcement', author: 'Irina Petrova', views: '987', likes: 28, postId: '204', category: 'workshops' },
+    { id: 5, thumbnail: 'https://via.placeholder.com/600x340', title: 'Interview with Community Leaders', author: 'Mike Johnson', views: '1.5k', likes: 52, postId: '205', category: 'interviews' },
+    { id: 6, thumbnail: 'https://via.placeholder.com/600x340', title: 'Local Meetup Highlights', author: 'Sarah Lee', views: '732', likes: 41, postId: '206', category: 'meetups' }
   ];
+
+  // Filter videos based on selected category
+  const filteredVideos = selectedCategory === 'all' 
+    ? videos 
+    : videos.filter(video => video.category === selectedCategory);
 
   const handleVideoClick = (video: any) => {
     if (canViewVideos) {
@@ -65,24 +85,51 @@ const Watch = () => {
       <Sidebar />
       <Header />
       
-      <div className="pl-[280px] pt-16 pr-4 pb-20 md:pb-10 transition-all duration-300" style={{ paddingLeft: 'var(--sidebar-width, 280px)' }}>
+      <div className="pl-[280px] pt-16 pr-4 pb-36 md:pb-10 transition-all duration-300" style={{ paddingLeft: 'var(--sidebar-width, 280px)' }}>
         <div className="max-w-screen-xl mx-auto">
           <div className="bg-white rounded-lg p-6 mb-6">
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
               <div>
-                <h1 className="text-2xl font-semibold">Watch</h1>
+                <h1 className="text-2xl font-semibold">Videos</h1>
                 <div className="border-b-2 border-purple-500 w-16 mt-1"></div>
               </div>
-              {canViewVideos && (
-                <button className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition">
-                  <Play className="w-5 h-5" />
-                  <span>Upload Video</span>
-                </button>
-              )}
+
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <Filter className="w-5 h-5 text-gray-500" />
+                  <span className="text-sm font-medium text-gray-700">Filter:</span>
+                </div>
+                <div className="overflow-x-auto no-scrollbar">
+                  <Tabs 
+                    value={selectedCategory} 
+                    onValueChange={setSelectedCategory} 
+                    className="w-full"
+                  >
+                    <TabsList className="bg-gray-100 p-1 rounded-lg flex flex-nowrap overflow-x-auto">
+                      {categories.map(category => (
+                        <TabsTrigger 
+                          key={category.id} 
+                          value={category.id}
+                          className="whitespace-nowrap px-3 py-1 text-sm"
+                        >
+                          {category.name}
+                        </TabsTrigger>
+                      ))}
+                    </TabsList>
+                  </Tabs>
+                </div>
+
+                {canViewVideos && (
+                  <Button className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition ml-auto">
+                    <Play className="w-5 h-5" />
+                    <span>Upload Video</span>
+                  </Button>
+                )}
+              </div>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {videos.map(video => (
+              {filteredVideos.map(video => (
                 <div 
                   key={video.id} 
                   className="bg-gray-50 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition cursor-pointer"
@@ -111,13 +158,17 @@ const Watch = () => {
                         </Button>
                       </div>
                     )}
+                    
+                    <Badge className="absolute top-3 right-3 bg-gray-800/80 text-white">
+                      {video.category}
+                    </Badge>
                   </div>
                   <div className="p-4">
                     <div className="flex items-start gap-3">
                       <div className="h-12 w-12 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
                         <User className="h-5 w-5 text-gray-500" />
                       </div>
-                      <div>
+                      <div className="flex-1">
                         <h3 className="font-medium">{video.title}</h3>
                         <p className="text-sm text-gray-500">{video.author} • {video.views} views</p>
                       </div>
@@ -148,4 +199,4 @@ const Watch = () => {
   );
 };
 
-export default Watch;
+export default Videos;

@@ -2,19 +2,30 @@
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
 import { useEffect, useState } from "react";
-import { Image, Heart, Lock, User } from "lucide-react";
+import { Image as ImageIcon, User, Heart, Lock, Filter } from "lucide-react";
+import { Link } from "react-router-dom";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import MediaViewer from "@/components/media/MediaViewer";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 
 const Photos = () => {
   const { subscriptionDetails } = useSubscription();
-  const canViewPhotos = subscriptionDetails.canViewPhotos;
-  const [activeTab, setActiveTab] = useState("all");
+  const canViewPhotos = true; // All users can view photos
   const [selectedPhoto, setSelectedPhoto] = useState<any | null>(null);
-  
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+
+  // Categories for filtering
+  const categories = [
+    { id: "all", name: "All" },
+    { id: "events", name: "Events" },
+    { id: "portraits", name: "Portraits" },
+    { id: "fashion", name: "Fashion" },
+    { id: "lifestyle", name: "Lifestyle" },
+    { id: "travel", name: "Travel" }
+  ];
+
   // Update header position based on sidebar width
   useEffect(() => {
     const updateHeaderPosition = () => {
@@ -40,133 +51,127 @@ const Photos = () => {
     };
   }, []);
 
-  const photoGallery = [
-    { id: 1, url: 'https://via.placeholder.com/300x300', likes: 24, author: 'Admin', category: 'all', postId: '101' },
-    { id: 2, url: 'https://via.placeholder.com/300x200', likes: 18, author: 'Sephiroth', category: 'all', postId: '102' },
-    { id: 3, url: 'https://via.placeholder.com/200x300', likes: 32, author: 'Linda Lohan', category: 'all', postId: '103' },
-    { id: 4, url: 'https://via.placeholder.com/300x300', likes: 15, author: 'Irina Petrova', category: 'all', postId: '104' },
-    { id: 5, url: 'https://via.placeholder.com/300x200', likes: 27, author: 'Jennie Ferguson', category: 'top', postId: '105' },
-    { id: 6, url: 'https://via.placeholder.com/200x300', likes: 45, author: 'Robert Cook', category: 'top', postId: '106' },
-    { id: 7, url: 'https://via.placeholder.com/300x300', likes: 38, author: 'Sophia Lee', category: 'top', postId: '107' },
-    { id: 8, url: 'https://via.placeholder.com/300x200', likes: 21, author: 'Michael Brown', category: 'recent', postId: '108' },
-    { id: 9, url: 'https://via.placeholder.com/200x300', likes: 14, author: 'Emma Wilson', category: 'recent', postId: '109' },
-    { id: 10, url: 'https://via.placeholder.com/300x300', likes: 9, author: 'John Smith', category: 'recent', postId: '110' },
-    { id: 11, url: 'https://via.placeholder.com/300x200', likes: 7, author: 'Alice Johnson', category: 'friends', postId: '111' },
-    { id: 12, url: 'https://via.placeholder.com/200x300', likes: 16, author: 'David Miller', category: 'friends', postId: '112' }
-  ];
-
-  // Filter photos based on the active tab
-  const getFilteredPhotos = (tabValue: string) => {
-    if (tabValue === 'all') {
-      return photoGallery;
-    }
-    return photoGallery.filter(photo => photo.category === tabValue);
-  };
-
-  const handlePhotoClick = (photo: any) => {
-    if (canViewPhotos) {
-      setSelectedPhoto(photo);
-    } else {
-      // Redirect to shop if not subscribed
-      window.location.href = "/shop";
-    }
-  };
-
-  const handleLikePhoto = (photoId: number) => {
-    // In a real app, this would update the like count in the database
-    console.log("Liked photo:", photoId);
-  };
-
   // Log user activity
   useEffect(() => {
     console.log("User activity: Viewed Photos page");
     // In a real app, this would call an API to record the activity
   }, []);
 
+  const photos = [
+    { id: 1, image: 'https://via.placeholder.com/400x400', title: 'Community Event', author: 'Admin', views: '1.2k', likes: 45, postId: '101', category: 'events' },
+    { id: 2, thumbnail: 'https://via.placeholder.com/400x400', title: 'Fashion Showcase', author: 'Sephiroth', views: '856', likes: 32, postId: '102', category: 'fashion' },
+    { id: 3, thumbnail: 'https://via.placeholder.com/400x400', title: 'Travel Adventures', author: 'Linda Lohan', views: '2.4k', likes: 76, postId: '103', category: 'travel' },
+    { id: 4, thumbnail: 'https://via.placeholder.com/400x400', title: 'Lifestyle Photography', author: 'Irina Petrova', views: '987', likes: 28, postId: '104', category: 'lifestyle' },
+    { id: 5, thumbnail: 'https://via.placeholder.com/400x400', title: 'Portrait Session', author: 'Mike Johnson', views: '1.5k', likes: 52, postId: '105', category: 'portraits' },
+    { id: 6, thumbnail: 'https://via.placeholder.com/400x400', title: 'Event Highlights', author: 'Sarah Lee', views: '732', likes: 41, postId: '106', category: 'events' },
+    { id: 7, thumbnail: 'https://via.placeholder.com/400x400', title: 'Fashion Week', author: 'James Wilson', views: '1.1k', likes: 38, postId: '107', category: 'fashion' },
+    { id: 8, thumbnail: 'https://via.placeholder.com/400x400', title: 'Vacation Memories', author: 'Emily Chen', views: '923', likes: 29, postId: '108', category: 'travel' }
+  ];
+
+  // Filter photos based on selected category
+  const filteredPhotos = selectedCategory === 'all' 
+    ? photos 
+    : photos.filter(photo => photo.category === selectedCategory);
+
+  const handlePhotoClick = (photo: any) => {
+    setSelectedPhoto(photo);
+  };
+
   return (
     <div className="min-h-screen bg-gray-100">
       <Sidebar />
       <Header />
       
-      <div className="pl-[280px] pt-16 pr-4 pb-20 md:pb-10 transition-all duration-300" style={{ paddingLeft: 'var(--sidebar-width, 280px)' }}>
+      <div className="pl-[280px] pt-16 pr-4 pb-36 md:pb-10 transition-all duration-300" style={{ paddingLeft: 'var(--sidebar-width, 280px)' }}>
         <div className="max-w-screen-xl mx-auto">
           <div className="bg-white rounded-lg p-6 mb-6">
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
               <div>
                 <h1 className="text-2xl font-semibold">Photos</h1>
                 <div className="border-b-2 border-purple-500 w-16 mt-1"></div>
               </div>
-              {canViewPhotos && (
-                <button className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition">
-                  <Image className="w-5 h-5" />
+
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <Filter className="w-5 h-5 text-gray-500" />
+                  <span className="text-sm font-medium text-gray-700">Filter:</span>
+                </div>
+                <div className="overflow-x-auto no-scrollbar">
+                  <Tabs 
+                    value={selectedCategory} 
+                    onValueChange={setSelectedCategory} 
+                    className="w-full"
+                  >
+                    <TabsList className="bg-gray-100 p-1 rounded-lg flex flex-nowrap overflow-x-auto">
+                      {categories.map(category => (
+                        <TabsTrigger 
+                          key={category.id} 
+                          value={category.id}
+                          className="whitespace-nowrap px-3 py-1 text-sm"
+                        >
+                          {category.name}
+                        </TabsTrigger>
+                      ))}
+                    </TabsList>
+                  </Tabs>
+                </div>
+
+                <Button className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition ml-auto">
+                  <ImageIcon className="w-5 h-5" />
                   <span>Upload Photo</span>
-                </button>
-              )}
+                </Button>
+              </div>
             </div>
             
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-4">
-              <TabsList className="grid grid-cols-5 w-full bg-gray-100 mb-6">
-                <TabsTrigger value="all" className="text-xs">All</TabsTrigger>
-                <TabsTrigger value="top" className="text-xs">Top Liked</TabsTrigger>
-                <TabsTrigger value="recent" className="text-xs">Recent</TabsTrigger>
-                <TabsTrigger value="friends" className="text-xs">Friends</TabsTrigger>
-                <TabsTrigger value="featured" className="text-xs">Featured</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value={activeTab}>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                  {getFilteredPhotos(activeTab).map(photo => (
-                    <div 
-                      key={photo.id} 
-                      className="bg-gray-50 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition cursor-pointer"
-                      onClick={() => handlePhotoClick(photo)}
-                    >
-                      <div className="relative">
-                        <img 
-                          src={photo.url} 
-                          alt="Gallery photo" 
-                          className={`w-full h-48 object-cover ${!canViewPhotos ? 'filter saturate-50' : ''}`} 
-                        />
-                        {!canViewPhotos && (
-                          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 opacity-0 hover:opacity-100 transition-opacity duration-300">
-                            <Lock className="w-10 h-10 text-white mb-2" />
-                            <span className="text-white font-medium">Subscription Required</span>
-                            <Button size="sm" variant="outline" className="mt-2 bg-white/20 text-white border-white/20 hover:bg-white/30">
-                              View Plans
-                            </Button>
-                          </div>
-                        )}
-                        <div className="absolute bottom-2 right-2 bg-white rounded-full px-2 py-1 flex items-center gap-1 shadow-sm">
-                          <Heart className="w-4 h-4 text-red-500" />
-                          <span className="text-xs font-medium">{photo.likes}</span>
-                        </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+              {filteredPhotos.map(photo => (
+                <div 
+                  key={photo.id} 
+                  className="bg-gray-50 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition cursor-pointer group"
+                  onClick={() => handlePhotoClick(photo)}
+                >
+                  <div className="relative aspect-square">
+                    <img 
+                      src={photo.thumbnail || photo.image} 
+                      alt={photo.title} 
+                      className="w-full h-full object-cover"
+                    />
+                    <Badge className="absolute top-3 right-3 bg-gray-800/80 text-white">
+                      {photo.category}
+                    </Badge>
+                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-200 flex items-center justify-center opacity-0 group-hover:opacity-100">
+                      <div className="text-white font-medium">View Photo</div>
+                    </div>
+                  </div>
+                  <div className="p-3">
+                    <div className="flex items-center gap-2">
+                      <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
+                        <User className="h-4 w-4 text-gray-500" />
                       </div>
-                      <div className="p-3">
-                        <div className="flex items-center gap-3">
-                          <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
-                            <User className="h-5 w-5 text-gray-500" />
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium">Uploaded by {photo.author}</p>
-                          </div>
-                        </div>
+                      <div className="flex-1">
+                        <h3 className="font-medium text-sm line-clamp-1">{photo.title}</h3>
+                        <p className="text-xs text-gray-500">{photo.author}</p>
                       </div>
                     </div>
-                  ))}
+                    <div className="flex items-center justify-end mt-2">
+                      <div className="flex items-center text-gray-500 text-xs bg-gray-100 px-2 py-1 rounded-full">
+                        <Heart className="h-3 w-3 mr-1 text-red-400" /> {photo.likes}
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              </TabsContent>
-            </Tabs>
+              ))}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Full-screen image viewer */}
+      {/* Full-screen photo viewer */}
       {selectedPhoto && (
-        <MediaViewer
-          type="image"
+        <MediaViewer 
+          type="photo"
           media={selectedPhoto}
           onClose={() => setSelectedPhoto(null)}
-          onLike={() => handleLikePhoto(selectedPhoto.id)}
           postId={selectedPhoto.postId}
         />
       )}

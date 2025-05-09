@@ -135,6 +135,15 @@
   .pb-safe {
     padding-bottom: env(safe-area-inset-bottom, 1.5rem);
   }
+  
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 /* Fix for mobile webkit overscrolling */
@@ -228,4 +237,19 @@ textarea:focus,
 button:focus {
   outline: 2px solid rgba(139, 92, 246, 0.5);
   outline-offset: 2px;
+}
+
+/* Fix tabs styling in mobile */
+[role="tablist"] {
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+[role="tablist"]::-webkit-scrollbar {
+  display: none;
+}
+
+[data-state="active"][role="tab"] {
+  max-width: 100%;
+  overflow-wrap: break-word;
 }

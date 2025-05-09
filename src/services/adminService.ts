@@ -50,7 +50,16 @@ export const fetchAllUsers = async (): Promise<UserProfile[]> => {
     
     // Combine the data
     const users = authUsers.users.map(authUser => {
-      const profile = profiles?.find(p => p.id === authUser.id) || {};
+      // Find the matching profile or provide default empty values with proper typing
+      const profile = profiles?.find(p => p.id === authUser.id) || {
+        username: '',
+        full_name: '',
+        avatar_url: null,
+        role: 'user' as 'admin' | 'moderator' | 'user',
+        subscription_tier: 'free' as 'free' | 'bronze' | 'silver' | 'gold',
+        status: 'active' as 'active' | 'banned',
+        last_sign_in_at: null
+      };
       
       return {
         id: authUser.id,

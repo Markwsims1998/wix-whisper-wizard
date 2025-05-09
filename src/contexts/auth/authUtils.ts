@@ -65,6 +65,12 @@ export const transformUser = async (supabaseUser: User | null): Promise<AuthUser
       userRole = 'admin';
     }
     
+    // Cast the status to the correct type or use a default value
+    let userStatus: 'active' | 'banned' = 'active';
+    if (profile?.status === 'active' || profile?.status === 'banned') {
+      userStatus = profile.status;
+    }
+    
     // Create a user object with data from auth and profile
     // Parse JSON fields with safe defaults
     return {
@@ -90,7 +96,7 @@ export const transformUser = async (supabaseUser: User | null): Promise<AuthUser
         JSON.stringify(profile?.privacy_settings), 
         defaultPrivacySettings
       ),
-      status: profile?.status || 'active',
+      status: userStatus,
       lastSignIn: profile?.last_sign_in_at
     };
   } catch (err) {

@@ -1,4 +1,3 @@
-
 import { useEffect } from "react";
 import Header from "@/components/Header";
 import MembersList from "@/components/MembersList";
@@ -7,7 +6,7 @@ import Sidebar from "@/components/Sidebar";
 import AdDisplay from "@/components/AdDisplay";
 import { Image, MessageSquare, Video } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 const Index = () => {

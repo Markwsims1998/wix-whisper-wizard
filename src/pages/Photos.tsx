@@ -1,4 +1,3 @@
-
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
 import { useEffect, useState } from "react";
@@ -169,7 +168,7 @@ const Photos = () => {
       {/* Full-screen photo viewer */}
       {selectedPhoto && (
         <MediaViewer 
-          type="photo"
+          type="image"
           media={selectedPhoto}
           onClose={() => setSelectedPhoto(null)}
           postId={selectedPhoto.postId}

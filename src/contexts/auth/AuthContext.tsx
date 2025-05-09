@@ -102,31 +102,54 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     console.log("Setting up auth state listener...");
     let mounted = true;
+    let timeoutId: number | undefined;
+    
+    // Set a fail-safe timeout to prevent infinite loading
+    timeoutId = window.setTimeout(() => {
+      if (mounted && loading) {
+        console.log("Session initialization timed out, ending loading state");
+        if (mounted) setLoading(false);
+      }
+    }, 5000); // Extended from 3s to 5s to give more time for session retrieval
     
     // First set up the auth state change listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, currentSession) => {
+      (event, currentSession) => {
         if (!mounted) return;
         
         console.log("Auth state changed:", event, !!currentSession);
         
-        // Update session state synchronously
-        setSession(currentSession);
-        
-        // Transform the user if available
         if (currentSession?.user) {
-          try {
-            const authUser = await transformUser(currentSession.user);
-            if (mounted) {
-              setUser(authUser);
-              setIsAuthenticated(!!authUser);
-              setLoading(false);
+          // If session exists, update immediately to prevent flicker
+          setSession(currentSession);
+          
+          // Then fetch user profile asynchronously
+          setTimeout(async () => {
+            if (!mounted) return;
+            
+            try {
+              const authUser = await transformUser(currentSession.user);
+              if (mounted) {
+                setUser(authUser);
+                setIsAuthenticated(!!authUser);
+                setLoading(false);
+              }
+            } catch (error) {
+              console.error("Error transforming user:", error);
+              if (mounted) {
+                setLoading(false);
+                // Fallback to minimal user data on error
+                setUser({
+                  id: currentSession.user.id,
+                  email: currentSession.user.email || '',
+                  name: currentSession.user.email?.split('@')[0] || 'User'
+                });
+                setIsAuthenticated(true);
+              }
             }
-          } catch (error) {
-            console.error("Error transforming user:", error);
-            if (mounted) setLoading(false);
-          }
+          }, 0);
         } else {
+          // No session, clear auth state
           if (mounted) {
             setUser(null);
             setIsAuthenticated(false);
@@ -134,14 +157,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         }
         
-        // If user just signed in, show toast
+        // Toast notifications for auth events
         if (event === 'SIGNED_IN' && currentSession?.user && mounted) {
           toast({
             title: "Logged in",
             description: `Welcome back, ${currentSession.user.email}!`,
           });
         } 
-        // If user signed out, show toast
         else if (event === 'SIGNED_OUT' && mounted) {
           toast({
             title: "Logged out",
@@ -155,7 +177,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const checkExistingSession = async () => {
       try {
         console.log("Checking for existing session...");
-        const { data: { session: existingSession }, error } = await supabase.auth.getSession();
+        const { data, error } = await supabase.auth.getSession();
         
         if (!mounted) return;
         
@@ -165,6 +187,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return;
         }
         
+        const existingSession = data.session;
         console.log("Existing session check result:", !!existingSession);
         
         if (existingSession?.user) {
@@ -179,12 +202,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
           } catch (error) {
             console.error("Error transforming user during session check:", error);
-          } 
+            if (mounted) {
+              // Fallback to minimal user data on error
+              setUser({
+                id: existingSession.user.id,
+                email: existingSession.user.email || '',
+                name: existingSession.user.email?.split('@')[0] || 'User'
+              });
+              setIsAuthenticated(true);
+            }
+          } finally {
+            if (mounted) setLoading(false);
+          }
+        } else {
+          if (mounted) setLoading(false);
         }
       } catch (error) {
         console.error("Error checking session:", error);
-      } finally {
-        // Always set loading to false when done checking
         if (mounted) setLoading(false);
       }
     };
@@ -196,6 +230,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => {
       mounted = false;
       subscription.unsubscribe();
+      if (timeoutId) window.clearTimeout(timeoutId);
     };
   }, [toast]);
 

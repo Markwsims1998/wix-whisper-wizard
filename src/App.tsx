@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -79,7 +80,7 @@ const AppRoutes = () => {
       // Add a small delay for smoother transition
       const timer = setTimeout(() => {
         setIsAppLoading(false);
-      }, 300); // Reduced from 500ms to 300ms for faster initial load
+      }, 100); // Reduced from 300ms to 100ms for faster initial load
       
       return () => clearTimeout(timer);
     }
@@ -93,7 +94,7 @@ const AppRoutes = () => {
         console.log("Force ending loading state after timeout");
         setIsAppLoading(false);
       }
-    }, 3000);
+    }, 2500); // Reduced from 3000ms to 2500ms
     
     return () => clearTimeout(timeoutId);
   }, [isAppLoading]);

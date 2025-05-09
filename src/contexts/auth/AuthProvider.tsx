@@ -13,5 +13,7 @@ export const AuthProvider = AuthContextProvider;
 // Re-export the types to ensure type compatibility
 export type { AuthUser, AuthContextType };
 
-// Keep a warning about deprecation so developers know to update imports
-console.warn('Using deprecated AuthProvider.tsx - Please update imports to use AuthContext.tsx instead');
+// Keep a silent warning about deprecation for developers
+if (process.env.NODE_ENV === 'development') {
+  console.warn('Using deprecated AuthProvider.tsx - Please update imports to use AuthContext.tsx instead');
+}

@@ -5,12 +5,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Eye, EyeOff, ShieldCheck } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const Login = () => {
-  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -19,9 +18,15 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState("login");
-  const { login, signup } = useAuth();
+  const { login, signup, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  // If already authenticated, redirect to home
+  if (isAuthenticated) {
+    navigate("/home");
+    return null;
+  }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,13 +46,13 @@ const Login = () => {
           title: "Login successful",
           description: "Welcome back!",
         });
-        navigate("/home");
+        // The auth context will handle the redirect
       } else {
         setError("Invalid email or password");
       }
     } catch (error) {
-      setError("An error occurred during login. Please try again.");
       console.error("Login error:", error);
+      setError("An error occurred during login. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -82,10 +87,12 @@ const Login = () => {
           description: "Your account has been created!",
         });
         // The auth context will handle the redirect
+      } else {
+        setError("Failed to create account. Please try again.");
       }
     } catch (error) {
-      setError("An error occurred during signup. Please try again.");
       console.error("Signup error:", error);
+      setError("An error occurred during signup. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -138,6 +145,7 @@ const Login = () => {
                     placeholder="Enter your email"
                     className="w-full"
                     autoComplete="email"
+                    disabled={isLoading}
                   />
                 </div>
                 
@@ -155,12 +163,14 @@ const Login = () => {
                       placeholder="Enter your password"
                       className="w-full pr-10"
                       autoComplete="current-password"
+                      disabled={isLoading}
                     />
                     <button
                       type="button"
                       onClick={togglePasswordVisibility}
                       className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
                       aria-label={showPassword ? "Hide password" : "Show password"}
+                      tabIndex={-1}
                     >
                       {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
@@ -200,6 +210,7 @@ const Login = () => {
                     required
                     placeholder="Enter your full name"
                     className="w-full"
+                    disabled={isLoading}
                   />
                 </div>
                 
@@ -215,6 +226,7 @@ const Login = () => {
                     required
                     placeholder="Enter your email"
                     className="w-full"
+                    disabled={isLoading}
                   />
                 </div>
                 
@@ -232,12 +244,14 @@ const Login = () => {
                       placeholder="Create a password"
                       className="w-full pr-10"
                       minLength={6}
+                      disabled={isLoading}
                     />
                     <button
                       type="button"
                       onClick={togglePasswordVisibility}
                       className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
                       aria-label={showPassword ? "Hide password" : "Show password"}
+                      tabIndex={-1}
                     >
                       {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
@@ -257,6 +271,7 @@ const Login = () => {
                     placeholder="Confirm your password"
                     className="w-full"
                     minLength={6}
+                    disabled={isLoading}
                   />
                 </div>
                 

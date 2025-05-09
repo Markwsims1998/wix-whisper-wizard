@@ -91,6 +91,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // First, set up the auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('Auth state changed:', event, !!session);
         setLoading(true);
         
         if (session?.user) {
@@ -120,8 +121,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Then check for existing session
     const initializeAuth = async () => {
+      console.log('Initializing auth...');
       setLoading(true);
+      
       const { data: { session } } = await supabase.auth.getSession();
+      console.log('Session exists:', !!session);
       
       if (session?.user) {
         const appUser = await transformUser(session.user);
@@ -190,12 +194,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Login function
   const login = async (email: string, password: string): Promise<boolean> => {
+    console.log('Login attempt with email:', email);
     setLoading(true);
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
       });
+      
+      console.log('Login response:', { data: !!data, error });
       
       if (error) {
         toast({
@@ -235,6 +242,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Signup function
   const signup = async (email: string, password: string, name: string): Promise<boolean> => {
+    console.log('Signup attempt with email:', email);
     setLoading(true);
     try {
       const { data, error } = await supabase.auth.signUp({
@@ -247,6 +255,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         }
       });
+      
+      console.log('Signup response:', { data: !!data, error });
       
       if (error) {
         toast({

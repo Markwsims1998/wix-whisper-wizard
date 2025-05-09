@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Activity, Image, Play, User, Users, ShoppingBag, Bell, Home, Settings, MessageSquare } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -69,19 +70,8 @@ const BottomNavSettings = () => {
     try {
       setIsSaving(true);
       
-      // Convert selected item values to full nav item objects for localStorage
-      const navItems = selectedItems.map(value => {
-        const foundItem = allNavOptions.find(option => option.value === value);
-        return foundItem ? { 
-          icon: foundItem.icon, 
-          label: foundItem.label, 
-          path: foundItem.path,
-          value: foundItem.value
-        } : null;
-      }).filter(Boolean);
-
       // Save to localStorage (as a fallback)
-      localStorage.setItem('bottomNavPreferences', JSON.stringify(navItems));
+      localStorage.setItem('bottomNavPreferences', JSON.stringify(selectedItems));
       
       // Save to user profile if user is logged in
       if (user) {
@@ -116,44 +106,78 @@ const BottomNavSettings = () => {
     }
   };
 
+  // Helper function to render the icon for previews
+  const renderIcon = (value: string) => {
+    const option = allNavOptions.find(opt => opt.value === value);
+    if (!option) return null;
+    
+    const Icon = option.icon;
+    return <Icon className="w-5 h-5" />;
+  };
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Mobile Navigation Settings</CardTitle>
+        <CardTitle>Mobile Navigation</CardTitle>
         <CardDescription>
           Customize which icons appear in your mobile bottom navigation bar
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 gap-6">
-          {[0, 1, 2, 3].map((index) => (
-            <div key={index} className="flex flex-col space-y-1.5">
-              <Label htmlFor={`position-${index}`}>Position {index + 1}</Label>
-              <Select
-                value={selectedItems[index]}
-                onValueChange={(value) => handleSelectChange(index, value)}
-                disabled={isSaving}
-              >
-                <SelectTrigger id={`position-${index}`} className="flex items-center gap-2">
-                  <SelectValue placeholder="Select an option" />
-                </SelectTrigger>
-                <SelectContent position="popper">
-                  {allNavOptions.map((option) => (
-                    <SelectItem 
-                      key={option.value} 
-                      value={option.value}
-                      className="flex items-center gap-2"
-                    >
-                      <div className="flex items-center gap-2">
-                        <option.icon className="w-4 h-4" />
-                        <span>{option.label}</span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+        <div className="space-y-6">
+          {/* Navigation Preview */}
+          <div className="bg-[#2B2A33] p-4 rounded-lg border border-gray-700">
+            <p className="text-xs text-gray-400 mb-2">Preview</p>
+            <div className="flex justify-around items-center py-2">
+              {selectedItems.map((item, index) => (
+                <div key={index} className="flex flex-col items-center">
+                  <div className="p-1 rounded-full bg-purple-900/30 text-purple-400">
+                    {renderIcon(item)}
+                  </div>
+                  <span className="text-xs text-gray-300 mt-1">
+                    {allNavOptions.find(opt => opt.value === item)?.label || item}
+                  </span>
+                </div>
+              ))}
             </div>
-          ))}
+          </div>
+          
+          {/* Selection Controls */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {[0, 1, 2, 3].map((index) => (
+              <div key={index} className="flex flex-col space-y-1.5">
+                <Label htmlFor={`position-${index}`} className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center text-xs font-medium text-purple-800 dark:text-purple-300">
+                    {index + 1}
+                  </div>
+                  <span>Position {index + 1}</span>
+                </Label>
+                <Select
+                  value={selectedItems[index]}
+                  onValueChange={(value) => handleSelectChange(index, value)}
+                  disabled={isSaving}
+                >
+                  <SelectTrigger id={`position-${index}`} className="flex items-center gap-2">
+                    <SelectValue placeholder="Select an option" />
+                  </SelectTrigger>
+                  <SelectContent position="popper">
+                    {allNavOptions.map((option) => (
+                      <SelectItem 
+                        key={option.value} 
+                        value={option.value}
+                        className="flex items-center gap-2"
+                      >
+                        <div className="flex items-center gap-2">
+                          <option.icon className="w-4 h-4" />
+                          <span>{option.label}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ))}
+          </div>
         </div>
         
         <div className="flex justify-end mt-6">

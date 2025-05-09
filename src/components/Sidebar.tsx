@@ -1,7 +1,7 @@
 
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Activity, Image, Play, User, Users, ShoppingBag, Bell, Home, Settings, ChevronLeft, LogOut, MessageSquare, Shield } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/auth/AuthProvider";
 import { useToast } from "@/components/ui/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -18,20 +18,20 @@ interface NavItem {
   icon: React.ElementType;
   label: string;
   path: string;
+  value: string;
 }
 
 // Default bottom navigation items
 const defaultBottomNavItems: NavItem[] = [
-  { icon: Home, label: "Home", path: "/home" },
-  { icon: Image, label: "Photos", path: "/photos" },
-  { icon: Play, label: "Videos", path: "/videos" },
-  { icon: ShoppingBag, label: "Shop", path: "/shop" },
+  { icon: Home, label: "Home", path: "/home", value: "home" },
+  { icon: Image, label: "Photos", path: "/photos", value: "photos" },
+  { icon: Play, label: "Videos", path: "/videos", value: "watch" },
+  { icon: ShoppingBag, label: "Shop", path: "/shop", value: "shop" },
 ];
 
 const Sidebar = () => {
   const [collapsed, setCollapsed] = useState(false);
   const [bottomNavItems, setBottomNavItems] = useState<NavItem[]>(defaultBottomNavItems);
-  const [draggingItem, setDraggingItem] = useState<number | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
@@ -41,50 +41,64 @@ const Sidebar = () => {
   
   // Get user's custom navigation preferences from localStorage
   useEffect(() => {
-    const savedNavPrefs = localStorage.getItem('bottomNavPreferences');
-    if (savedNavPrefs) {
-      try {
-        const parsedPrefs = JSON.parse(savedNavPrefs);
-        // Validate the structure before setting
-        if (Array.isArray(parsedPrefs) && parsedPrefs.length === 4) {
-          setBottomNavItems(parsedPrefs);
+    try {
+      // First try to load from user profile
+      if (user && user.bottomNavPreferences) {
+        // Convert preference values to full navigation items
+        const userPrefs = user.bottomNavPreferences.map(value => {
+          const iconMap: {[key: string]: React.ElementType} = {
+            home: Home,
+            activity: Activity,
+            photos: Image,
+            watch: Play,
+            people: Users,
+            notifications: Bell,
+            shop: ShoppingBag,
+            settings: Settings,
+            profile: User,
+            messages: MessageSquare
+          };
+          
+          const pathMap: {[key: string]: string} = {
+            home: "/home",
+            activity: "/activity",
+            photos: "/photos",
+            watch: "/videos",
+            people: "/people",
+            notifications: "/notifications",
+            shop: "/shop",
+            settings: "/settings",
+            profile: "/profile",
+            messages: "/messages"
+          };
+          
+          return {
+            icon: iconMap[value] || Home,
+            label: value.charAt(0).toUpperCase() + value.slice(1),
+            path: pathMap[value] || "/home",
+            value
+          };
+        });
+        
+        setBottomNavItems(userPrefs);
+      } else {
+        // Fall back to localStorage
+        const savedPrefs = localStorage.getItem('bottomNavPreferences');
+        if (savedPrefs) {
+          const parsedPrefs = JSON.parse(savedPrefs);
+          if (Array.isArray(parsedPrefs) && parsedPrefs.length === 4) {
+            setBottomNavItems(parsedPrefs);
+          }
         }
-      } catch (error) {
-        console.error("Error parsing navigation preferences:", error);
       }
+    } catch (error) {
+      console.error("Error loading navigation preferences:", error);
     }
-  }, []);
+  }, [user]);
 
   // Handle item navigation
   const handleNavItemClick = (path: string) => {
     navigate(path);
-  };
-
-  // Drag and drop functionality for mobile navigation
-  const handleDragStart = (index: number) => {
-    setDraggingItem(index);
-  };
-
-  const handleDragOver = (index: number) => {
-    if (draggingItem === null || draggingItem === index) return;
-
-    const updatedItems = [...bottomNavItems];
-    const draggedItem = updatedItems[draggingItem];
-    
-    // Remove the item from its original position
-    updatedItems.splice(draggingItem, 1);
-    // Insert it at the new position
-    updatedItems.splice(index, 0, draggedItem);
-
-    setBottomNavItems(updatedItems);
-    setDraggingItem(index);
-
-    // Save to localStorage
-    localStorage.setItem('bottomNavPreferences', JSON.stringify(updatedItems));
-  };
-
-  const handleDragEnd = () => {
-    setDraggingItem(null);
   };
 
   // Check if user is admin
@@ -191,11 +205,10 @@ const Sidebar = () => {
         </div>
       </div>
 
-      {/* Mobile Bottom Drawer Menu */}
+      {/* Mobile Bottom Drawer Menu Button */}
       <div className="md:hidden fixed bottom-4 left-0 right-0 z-50 flex justify-center">
         <Drawer direction="bottom" open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
-          <DrawerTrigger className="bg-purple-600 text-white px-6 py-3 rounded-full shadow-lg flex items-center justify-center">
-            {/* Logo instead of text */}
+          <DrawerTrigger className="bg-purple-600 text-white w-12 h-12 rounded-full shadow-lg flex items-center justify-center">
             <div className="w-8 h-8 rounded-full bg-[#8B5CF6] flex items-center justify-center">
               <div className="w-7 h-7 rounded-full bg-[#2B2A33] flex items-center justify-center">
                 <div className="w-5 h-5 rounded-full bg-[#8B5CF6] relative">
@@ -206,7 +219,8 @@ const Sidebar = () => {
           </DrawerTrigger>
           <DrawerContent className="bg-[#2B2A33] text-white rounded-t-xl max-h-[85vh] overflow-y-auto">
             <div className="p-4 pb-28"> {/* Extra padding for mobile menu buttons */}
-              <div className="flex items-center justify-end mb-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-lg font-semibold text-white">Menu</h2>
                 <DrawerClose className="rounded-full p-2 hover:bg-gray-700">
                   <ChevronLeft className="w-5 h-5 text-gray-400 rotate-90" />
                 </DrawerClose>
@@ -229,41 +243,43 @@ const Sidebar = () => {
 
               <Separator className="my-4 bg-gray-700" />
               
-              <h3 className="text-sm font-medium mb-2 text-gray-300">Customize Bottom Navigation</h3>
-              <p className="text-xs text-gray-400 mb-4">Drag and drop to rearrange your menu items</p>
+              <h3 className="text-sm font-medium mb-4 text-gray-300">Bottom Navigation</h3>
+              <p className="text-xs text-gray-400 mb-4">You can customize this in Settings</p>
               
-              <div className="flex justify-between mb-4">
-                {bottomNavItems.map((item, index) => (
-                  <div
-                    key={index}
-                    className="flex flex-col items-center gap-1 p-2 bg-gray-700/50 rounded-lg cursor-move"
-                    draggable
-                    onDragStart={() => handleDragStart(index)}
-                    onDragOver={() => handleDragOver(index)}
-                    onDragEnd={handleDragEnd}
-                  >
-                    <item.icon className="w-6 h-6 text-gray-300" />
-                    <span className="text-xs text-gray-300">{item.label}</span>
-                  </div>
-                ))}
-              </div>
+              <Link 
+                to="/settings?tab=appearance" 
+                className="flex items-center justify-center gap-2 bg-purple-900/30 border border-purple-800/30 p-3 rounded-lg mb-4 hover:bg-purple-900/50 transition-colors"
+              >
+                <Settings className="h-4 w-4" />
+                <span className="text-sm">Customize Navigation</span>
+              </Link>
 
               <Separator className="my-4 bg-gray-700" />
 
               <div className="flex justify-between">
                 <Link to="/profile" className="flex-1 flex flex-col items-center gap-1 text-gray-400 hover:text-white p-2">
-                  <User className="w-6 h-6" />
+                  <div className="w-10 h-10 rounded-full bg-purple-900/30 flex items-center justify-center overflow-hidden">
+                    {user?.profilePicture ? (
+                      <img src={user.profilePicture} alt="Profile" className="w-full h-full object-cover" />
+                    ) : (
+                      <User className="w-6 h-6 text-purple-300" />
+                    )}
+                  </div>
                   <span className="text-xs">Profile</span>
                 </Link>
                 <Link to="/messages" className="flex-1 flex flex-col items-center gap-1 text-gray-400 hover:text-white p-2">
-                  <MessageSquare className="w-6 h-6" />
+                  <div className="w-10 h-10 rounded-full bg-purple-900/30 flex items-center justify-center">
+                    <MessageSquare className="w-6 h-6 text-purple-300" />
+                  </div>
                   <span className="text-xs">Messages</span>
                 </Link>
                 <button 
                   onClick={logout} 
                   className="flex-1 flex flex-col items-center gap-1 text-gray-400 hover:text-white p-2"
                 >
-                  <LogOut className="w-6 h-6" />
+                  <div className="w-10 h-10 rounded-full bg-purple-900/30 flex items-center justify-center">
+                    <LogOut className="w-6 h-6 text-purple-300" />
+                  </div>
                   <span className="text-xs">Logout</span>
                 </button>
               </div>
@@ -272,18 +288,25 @@ const Sidebar = () => {
         </Drawer>
       </div>
 
-      {/* Floating Navigation Bar for Mobile */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-[#2B2A33] border-t border-gray-800 flex justify-around items-center py-2 px-4 z-40 pb-safe">
-        {bottomNavItems.map((item, index) => (
-          <Link 
-            key={index} 
-            to={item.path} 
-            className={`flex flex-col items-center ${currentPath === item.path ? 'text-purple-400' : 'text-gray-400'} hover:text-purple-400`}
-          >
-            <item.icon className="w-6 h-6" />
-            <span className="text-xs mt-1">{item.label}</span>
-          </Link>
-        ))}
+      {/* Improved Mobile Bottom Navigation Bar */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-[#2B2A33] border-t border-gray-800 flex justify-around items-center py-2 px-4 z-40 pb-safe shadow-lg">
+        {bottomNavItems.map((item, index) => {
+          const isActive = currentPath === item.path;
+          return (
+            <Link 
+              key={index} 
+              to={item.path} 
+              className="flex-1"
+            >
+              <div className={`flex flex-col items-center py-1 ${isActive ? 'text-purple-400' : 'text-gray-400'}`}>
+                <div className={`p-1 rounded-full ${isActive ? 'bg-purple-900/30' : ''}`}>
+                  <item.icon className="w-5 h-5" />
+                </div>
+                <span className="text-xs mt-1">{item.label}</span>
+              </div>
+            </Link>
+          );
+        })}
       </div>
     </>
   );
@@ -298,11 +321,20 @@ const NavItem = ({ icon, label, isActive = false, collapsed = false, to }: { ico
   </Link>
 );
 
-const MobileNavItem = ({ icon, label, to }: { icon: React.ReactNode; label: string; to: string }) => (
-  <Link to={to} className="flex flex-col items-center gap-1 text-gray-400 hover:text-white p-2">
-    {icon}
-    <span className="text-xs">{label}</span>
-  </Link>
-);
+const MobileNavItem = ({ icon, label, to }: { icon: React.ReactNode; label: string; to: string }) => {
+  const location = useLocation();
+  const isActive = location.pathname === to;
+  
+  return (
+    <Link to={to} className="flex flex-col items-center gap-1 p-2">
+      <div className={`w-12 h-12 rounded-lg ${isActive ? 'bg-purple-900/50' : 'bg-gray-800/50'} flex items-center justify-center`}>
+        <div className={`${isActive ? 'text-purple-400' : 'text-gray-400'}`}>
+          {icon}
+        </div>
+      </div>
+      <span className={`text-xs ${isActive ? 'text-purple-400' : 'text-gray-400'}`}>{label}</span>
+    </Link>
+  );
+};
 
 export default Sidebar;

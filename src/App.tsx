@@ -7,7 +7,7 @@ import { SubscriptionProvider } from "./contexts/SubscriptionContext";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Footer from "./components/Footer";
-import { useAuth, AuthProvider } from "./contexts/auth/AuthContext";
+import { useAuth, AuthProvider } from "./contexts/auth/AuthProvider";
 import { useState, useEffect, useCallback, useMemo } from "react";
 
 // Import pages

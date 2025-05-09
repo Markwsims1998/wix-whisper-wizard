@@ -1,9 +1,9 @@
 
-// Import directly from AuthContext to eliminate the dependency loop
-import { useAuth, AuthProvider as OriginalAuthProvider } from "./AuthContext";
-import { AuthUser, AuthContextType } from "./types";
+// Re-export components and types from AuthContext
+import { AuthProvider as OriginalAuthProvider } from "./AuthContext";
+import type { AuthUser, AuthContextType } from "./types";
 
-// Re-export without warning for development
-export const useAuth = useAuth;
+// Re-export without modification - avoid using the same name as the import
+export { useAuth } from "./AuthContext";
 export const AuthProvider = OriginalAuthProvider;
 export type { AuthUser, AuthContextType };

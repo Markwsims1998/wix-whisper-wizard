@@ -406,55 +406,52 @@ const Profile = () => {
       <Sidebar />
       <Header />
       
-      <div 
-        className="pl-[280px] pt-16 pr-4 pb-10 transition-all duration-300 flex-grow" 
-        style={{ 
-          paddingLeft: 'var(--sidebar-width, 280px)', 
-        }}
-      >
-        <div className="container max-w-4xl mx-auto px-4 pb-10 pt-5">
-          <ProfileHeader 
-            profile={profile}
-            isMyProfile={true}
-            relationshipStatusText={getRelationshipStatusText()}
-            handleAddFriend={handleAddFriend}
-            handleMessage={handleMessage}
-            setEditRelationshipOpen={setEditRelationshipOpen}
-            getSubscriptionBadge={getSubscriptionBadge}
-          />
-          
-          <CreatePost 
-            profile={profile}
-            newPostText={newPostText}
-            setNewPostText={setNewPostText}
-            handleCreatePost={handleCreatePost}
-          />
-          
-          <PostsList 
-            posts={posts}
-            isMyProfile={true}
-            profile={profile}
-            handleLikePost={handleLikePost}
-          />
-          
-          <RelationshipDialog 
-            open={editRelationshipOpen} 
-            setOpen={setEditRelationshipOpen}
-            selectedRelationshipStatus={selectedRelationshipStatus}
-            setSelectedRelationshipStatus={setSelectedRelationshipStatus}
-            relationshipPartners={relationshipPartners}
-            handleRemovePartner={handleRemovePartner}
-            availablePartners={availablePartners}
-            partnerSearchOpen={partnerSearchOpen}
-            setPartnerSearchOpen={setPartnerSearchOpen}
-            searchQuery={searchQuery}
-            setSearchQuery={setSearchQuery}
-            handleAddPartner={handleAddPartner}
-            relationshipStatuses={relationshipStatuses}
-            handleSaveRelationship={handleSaveRelationship}
-          />
+      <main className="transition-all duration-300 flex-1">
+        <div className="ml-[var(--sidebar-width,280px)] pt-16 px-4 pb-10">
+          <div className="container max-w-4xl mx-auto px-4 pb-10 pt-5">
+            <ProfileHeader 
+              profile={profile}
+              isMyProfile={true}
+              relationshipStatusText={getRelationshipStatusText()}
+              handleAddFriend={handleAddFriend}
+              handleMessage={handleMessage}
+              setEditRelationshipOpen={setEditRelationshipOpen}
+              getSubscriptionBadge={getSubscriptionBadge}
+            />
+            
+            <CreatePost 
+              profile={profile}
+              newPostText={newPostText}
+              setNewPostText={setNewPostText}
+              handleCreatePost={handleCreatePost}
+            />
+            
+            <PostsList 
+              posts={posts}
+              isMyProfile={true}
+              profile={profile}
+              handleLikePost={handleLikePost}
+            />
+            
+            <RelationshipDialog 
+              open={editRelationshipOpen} 
+              setOpen={setEditRelationshipOpen}
+              selectedRelationshipStatus={selectedRelationshipStatus}
+              setSelectedRelationshipStatus={setSelectedRelationshipStatus}
+              relationshipPartners={relationshipPartners}
+              handleRemovePartner={handleRemovePartner}
+              availablePartners={availablePartners}
+              partnerSearchOpen={partnerSearchOpen}
+              setPartnerSearchOpen={setPartnerSearchOpen}
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              handleAddPartner={handleAddPartner}
+              relationshipStatuses={relationshipStatuses}
+              handleSaveRelationship={handleSaveRelationship}
+            />
+          </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 };

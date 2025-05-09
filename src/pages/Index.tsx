@@ -1,11 +1,10 @@
-
 import { useEffect, useState } from "react";
 import Header from "@/components/Header";
 import MembersList from "@/components/MembersList";
 import PostFeed from "@/components/PostFeed";
 import Sidebar from "@/components/Sidebar";
 import AdDisplay from "@/components/AdDisplay";
-import { Image, MessageSquare, Video, X, Tag, Smile } from "lucide-react";
+import { Image, MessageSquare, Video, X, Tag, Smile, Gift } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -17,6 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import ContentUploader from "@/components/media/ContentUploader";
 import data from '@emoji-mart/data';
 import Picker from '@emoji-mart/react';
+import GifPicker from "@/components/media/GifPicker";
 
 const Index = () => {
   const { user } = useAuth();
@@ -25,9 +25,11 @@ const Index = () => {
   const { toast } = useToast();
   const [postText, setPostText] = useState("");
   const [showEmojis, setShowEmojis] = useState(false);
+  const [showGifs, setShowGifs] = useState(false);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [uploadType, setUploadType] = useState<'photo' | 'video'>('photo');
   const [tagSuggestions, setTagSuggestions] = useState<boolean>(false);
+  const [selectedGif, setSelectedGif] = useState<string | null>(null);
 
   // Update header position based on sidebar width
   useEffect(() => {
@@ -76,16 +78,25 @@ const Index = () => {
     setShowEmojis(false);
   };
 
+  const handleGifSelect = (gifUrl: string) => {
+    setSelectedGif(gifUrl);
+    setShowGifs(false);
+  };
+
+  const removeGif = () => {
+    setSelectedGif(null);
+  };
+
   const handleUploadClick = (type: 'photo' | 'video') => {
     setUploadType(type);
     setUploadDialogOpen(true);
   };
 
   const handleCreatePost = () => {
-    if (postText.trim() === "") return;
+    if ((postText.trim() === "" && !selectedGif)) return;
     
     // Here you would normally send the post to your backend
-    console.log("Creating post:", postText);
+    console.log("Creating post:", { text: postText, gif: selectedGif });
     
     // Show success toast
     toast({
@@ -93,8 +104,9 @@ const Index = () => {
       description: "Your post has been published successfully.",
     });
     
-    // Reset post text
+    // Reset post text and gif
     setPostText("");
+    setSelectedGif(null);
   };
 
   const handleRemoveAds = () => {
@@ -149,11 +161,24 @@ const Index = () => {
                       </div>
                     </div>
                   )}
+
+                  {/* Display selected GIF if any */}
+                  {selectedGif && (
+                    <div className="relative mt-3 rounded-lg overflow-hidden">
+                      <img src={selectedGif} alt="Selected GIF" className="w-full rounded-lg max-h-60 object-contain" />
+                      <button
+                        className="absolute top-2 right-2 bg-black/50 rounded-full p-1 text-white hover:bg-black/70"
+                        onClick={removeGif}
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
               
               <div className="flex justify-between items-center">
-                <div className="flex gap-2">
+                <div className="flex gap-2 overflow-x-auto no-scrollbar">
                   <Button 
                     variant="ghost" 
                     size="sm" 
@@ -199,12 +224,27 @@ const Index = () => {
                       />
                     </PopoverContent>
                   </Popover>
+                  <Popover open={showGifs} onOpenChange={setShowGifs}>
+                    <PopoverTrigger asChild>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
+                      >
+                        <Gift className="w-5 h-5 text-purple-500 mr-2" />
+                        GIF
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[340px] p-0" side="top">
+                      <GifPicker onGifSelect={handleGifSelect} />
+                    </PopoverContent>
+                  </Popover>
                 </div>
                 
                 <Button 
                   size="sm"
                   onClick={handleCreatePost}
-                  disabled={postText.trim() === ""}
+                  disabled={postText.trim() === "" && !selectedGif}
                 >
                   Post
                 </Button>

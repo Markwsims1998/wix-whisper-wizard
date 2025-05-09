@@ -1,12 +1,12 @@
-
 import { Separator } from "@/components/ui/separator";
-import { User, Heart, MessageCircle, Lock } from "lucide-react";
+import { User, Heart, MessageCircle, Lock, Gift } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
+import { toast } from "@/hooks/use-toast";
 import MediaViewer from "@/components/media/MediaViewer";
 
 type Post = {
@@ -15,7 +15,7 @@ type Post = {
   content: string;
   timestamp: string;
   mediaUrl?: string;
-  mediaType?: 'image' | 'video';
+  mediaType?: 'image' | 'video' | 'gif';
   likes: number;
   comments: number;
   category?: 'all' | 'local' | 'hotlist' | 'friends';
@@ -25,6 +25,7 @@ type Post = {
   };
 };
 
+// Added some GIF posts to the mock data
 const posts: Post[] = [
   {
     id: '1',
@@ -35,6 +36,21 @@ const posts: Post[] = [
     mediaType: 'video',
     likes: 12,
     comments: 3,
+    category: 'all',
+    authorSubscription: {
+      subscribed: true,
+      tier: 'gold'
+    }
+  },
+  {
+    id: '10', // New GIF post
+    author: 'John Smith',
+    content: 'Check out this funny GIF!',
+    timestamp: '3 hours ago',
+    mediaUrl: 'https://media.giphy.com/media/3o7TKSjRrfIPjeiVyM/giphy.gif',
+    mediaType: 'gif',
+    likes: 24,
+    comments: 8,
     category: 'all',
     authorSubscription: {
       subscribed: true,
@@ -96,6 +112,21 @@ const posts: Post[] = [
     }
   },
   {
+    id: '11', // New GIF post for local
+    author: 'Emma Williams',
+    content: 'Local reaction to the festival:',
+    timestamp: '6 hours ago',
+    mediaUrl: 'https://media.giphy.com/media/kg9t6lX8NXITC/giphy.gif',
+    mediaType: 'gif',
+    likes: 15,
+    comments: 4,
+    category: 'local',
+    authorSubscription: {
+      subscribed: true,
+      tier: 'silver'
+    }
+  },
+  {
     id: '6',
     author: 'Sephiroth',
     content: 'This post is trending right now!',
@@ -150,12 +181,27 @@ const posts: Post[] = [
       tier: 'silver'
     }
   },
+  {
+    id: '12', // New GIF post for friends
+    author: 'Taylor Smith',
+    content: 'How I feel after our meetup:',
+    timestamp: '2 hours ago',
+    mediaUrl: 'https://media.giphy.com/media/l4FGt4O39PWRETsqY/giphy.gif',
+    mediaType: 'gif',
+    likes: 9,
+    comments: 2,
+    category: 'friends',
+    authorSubscription: {
+      subscribed: true,
+      tier: 'bronze'
+    }
+  },
 ];
 
 const PostFeed = () => {
   const [activeTab, setActiveTab] = useState("all");
   const [selectedMedia, setSelectedMedia] = useState<any | null>(null);
-  const { subscriptionDetails } = useSubscription();
+  const { subscriptionDetails, updateSubscription } = useSubscription();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -174,8 +220,12 @@ const PostFeed = () => {
 
   const handleMediaClick = (post: Post) => {
     // Only allow viewing if user has appropriate subscription
-    if ((post.mediaType === 'video' && subscriptionDetails.canViewVideos) || 
-        (post.mediaType === 'image' && subscriptionDetails.canViewPhotos)) {
+    const canView = 
+      (post.mediaType === 'video' && subscriptionDetails.canViewVideos) || 
+      (post.mediaType === 'image' && subscriptionDetails.canViewPhotos) ||
+      (post.mediaType === 'gif'); // GIFs are always viewable
+    
+    if (canView) {
       setSelectedMedia({
         type: post.mediaType,
         url: post.mediaUrl,
@@ -190,6 +240,24 @@ const PostFeed = () => {
       });
       navigate("/shop");
     }
+  };
+
+  const cancelSubscription = () => {
+    // Update the subscription to free tier
+    updateSubscription({
+      tier: 'free',
+      canViewPhotos: false,
+      canViewVideos: false,
+      renewalDate: null,
+      price: 0
+    });
+    
+    // Show toast notification
+    toast({
+      title: "Subscription Cancelled",
+      description: "Your subscription has been cancelled successfully.",
+      variant: "default",
+    });
   };
 
   const getSubscriptionBadge = (post: Post) => {
@@ -215,7 +283,7 @@ const PostFeed = () => {
         <div className="border-b-2 border-purple-500 w-16 mb-4"></div>
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-4">
-          <TabsList className="grid grid-cols-4 w-full bg-gray-100">
+          <TabsList className="grid grid-cols-4 w-full bg-gray-100 dark:bg-gray-700">
             <TabsTrigger value="all" className="text-xs">All</TabsTrigger>
             <TabsTrigger value="local" className="text-xs">Local</TabsTrigger>
             <TabsTrigger value="hotlist" className="text-xs">Hotlist</TabsTrigger>
@@ -223,6 +291,27 @@ const PostFeed = () => {
           </TabsList>
           
           <TabsContent value={activeTab} className="mt-4">
+            {subscriptionDetails.tier !== 'free' && (
+              <div className="bg-blue-50 dark:bg-blue-900/30 p-4 rounded-md mb-6 flex justify-between items-center">
+                <div>
+                  <p className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                    You have an active {subscriptionDetails.tier} subscription
+                  </p>
+                  <p className="text-xs text-blue-600 dark:text-blue-300 mt-1">
+                    Renewal date: {subscriptionDetails.renewalDate || 'N/A'}
+                  </p>
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="text-blue-700 border-blue-700 hover:bg-blue-50 dark:text-blue-300 dark:border-blue-400 dark:hover:bg-blue-800/30"
+                  onClick={cancelSubscription}
+                >
+                  Cancel Subscription
+                </Button>
+              </div>
+            )}
+
             {getFilteredPosts(activeTab).map((post) => (
               <div key={post.id} className="mb-8">
                 <div className="flex items-start gap-3 mb-3">
@@ -275,6 +364,17 @@ const PostFeed = () => {
                         </div>
                       </>
                     )}
+                  </div>
+                )}
+
+                {post.mediaUrl && post.mediaType === 'gif' && (
+                  <div className="mt-2 mb-4 rounded-lg overflow-hidden">
+                    <img 
+                      src={post.mediaUrl} 
+                      alt="GIF" 
+                      className="w-full cursor-pointer max-h-80 object-contain rounded-lg bg-gray-100 dark:bg-gray-900" 
+                      onClick={() => handleMediaClick(post)}
+                    />
                   </div>
                 )}
 

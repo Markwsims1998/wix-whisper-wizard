@@ -1,4 +1,4 @@
-
+import { useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -6,8 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { SubscriptionProvider } from "./contexts/SubscriptionContext";
-import { useState, useEffect } from "react";
-import { LoadingSpinner } from "./components/ui/loading-spinner";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Profile from "./pages/Profile";
@@ -26,6 +25,7 @@ import HomePage from "./pages/HomePage"; // New homepage
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Footer from "./components/Footer";
 
+// Create a query client
 const queryClient = new QueryClient();
 
 // Protected route component

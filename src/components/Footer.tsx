@@ -10,7 +10,11 @@ const Footer = () => {
   return (
     <footer 
       className={`bg-[#2B2A33] text-gray-300 dark:bg-gray-900 w-full z-10 ${isMobile ? 'relative mt-16' : 'relative'}`} 
-      style={!isMobile ? { width: '100%', transition: 'margin-left 0.3s ease-in-out, width 0.3s ease-in-out' } : {}}
+      style={!isMobile ? { 
+        marginLeft: 'var(--sidebar-width, 280px)', 
+        width: 'calc(100% - var(--sidebar-width, 280px))',
+        transition: 'margin-left 0.3s ease-in-out, width 0.3s ease-in-out' 
+      } : {}}
     >
       <div className="container mx-auto px-4 py-6 md:py-8">
         <div className={`${isMobile ? 'grid grid-cols-1 gap-6' : 'grid grid-cols-1 md:grid-cols-4 gap-8'}`}>

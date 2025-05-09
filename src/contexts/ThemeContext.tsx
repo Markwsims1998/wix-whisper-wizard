@@ -20,8 +20,9 @@ export const useTheme = () => {
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [theme, setThemeState] = useState<Theme>(() => {
+    // Check localStorage or default to system preference
     const savedTheme = localStorage.getItem('theme') as Theme;
-    return savedTheme || 'light';
+    return savedTheme || 'system';
   });
 
   const setTheme = (newTheme: Theme) => {
@@ -29,20 +30,40 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setThemeState(newTheme);
   };
 
+  // Apply the theme to the document element
   useEffect(() => {
     const root = document.documentElement;
-    if (theme === 'dark') {
-      root.classList.add('dark');
-    } else if (theme === 'light') {
-      root.classList.remove('dark');
-    } else if (theme === 'system') {
-      const systemPreference = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-      if (systemPreference === 'dark') {
+    
+    // Function to apply dark mode
+    const applyTheme = () => {
+      if (theme === 'dark') {
         root.classList.add('dark');
-      } else {
+      } else if (theme === 'light') {
         root.classList.remove('dark');
+      } else if (theme === 'system') {
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        prefersDark ? root.classList.add('dark') : root.classList.remove('dark');
       }
-    }
+    };
+
+    // Apply theme immediately
+    applyTheme();
+    
+    // Set up listener for system preference changes
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleChange = () => {
+      if (theme === 'system') {
+        applyTheme();
+      }
+    };
+    
+    // Use event listener for preference changes
+    mediaQuery.addEventListener('change', handleChange);
+    
+    // Cleanup
+    return () => {
+      mediaQuery.removeEventListener('change', handleChange);
+    };
   }, [theme]);
 
   return (

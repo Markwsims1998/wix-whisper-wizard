@@ -33,9 +33,10 @@ const Header = () => {
 
   return (
     <>
-      {/* Beta Feedback Banner */}
+      {/* Beta Feedback Banner - now positioned as part of the flow, not fixed */}
       {showBanner && (
-        <div className={`fixed top-0 left-0 right-0 bg-purple-700 dark:bg-purple-900 text-white py-2 px-4 z-50 flex items-center justify-center shadow-md`} style={{ paddingLeft: 'var(--sidebar-width, 280px)' }}>
+        <div className={`relative z-20 bg-purple-700 dark:bg-purple-900 text-white py-2 px-4 flex items-center justify-center shadow-md`}
+             style={{ marginLeft: 'var(--sidebar-width, 280px)' }}>
           <Megaphone className="w-4 h-4 mr-2" />
           <span className="text-sm">We're in beta! Help us improve by providing <Link to="/feedback" className="underline font-medium">feedback</Link>.</span>
           <button 
@@ -49,7 +50,7 @@ const Header = () => {
       )}
 
       <header 
-        className="bg-white shadow-sm py-3 px-6 flex items-center justify-between fixed right-0 z-20 transition-all duration-300 dark:bg-gray-800 dark:text-white" 
+        className={`bg-white shadow-sm py-3 px-6 flex items-center justify-between fixed right-0 z-10 transition-all duration-300 dark:bg-gray-800 dark:text-white`} 
         style={{ 
           left: 'var(--sidebar-width, 280px)', 
           width: 'calc(100% - var(--sidebar-width, 280px))',
@@ -107,9 +108,6 @@ const Header = () => {
           </button>
         </div>
       </header>
-
-      {/* Add spacing if banner is visible to push content down */}
-      {showBanner && <div className="h-10"></div>}
     </>
   );
 };

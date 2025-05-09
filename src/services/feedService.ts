@@ -87,8 +87,12 @@ export const getFeedPosts = async (
     // Process and return the posts
     return (data || []).map(post => ({
       ...post,
-      likes_count: post.likes_count?.count || 0,
-      comments_count: post.comments_count?.count || 0
+      likes_count: typeof post.likes_count === 'object' && Array.isArray(post.likes_count) 
+        ? post.likes_count[0]?.count || 0 
+        : 0,
+      comments_count: typeof post.comments_count === 'object' && Array.isArray(post.comments_count) 
+        ? post.comments_count[0]?.count || 0 
+        : 0
     }));
   } catch (error) {
     console.error('Unexpected error fetching feed posts:', error);
@@ -154,8 +158,12 @@ export const createPost = async (
       success: true, 
       post: {
         ...completePost,
-        likes_count: completePost.likes_count?.count || 0,
-        comments_count: completePost.comments_count?.count || 0
+        likes_count: typeof completePost.likes_count === 'object' && Array.isArray(completePost.likes_count) 
+          ? completePost.likes_count[0]?.count || 0 
+          : 0,
+        comments_count: typeof completePost.comments_count === 'object' && Array.isArray(completePost.comments_count) 
+          ? completePost.comments_count[0]?.count || 0 
+          : 0
       } as Post 
     };
   } catch (error) {

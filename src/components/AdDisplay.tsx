@@ -13,41 +13,39 @@ interface AdDisplayProps {
 
 const AdDisplay = ({ className = "" }: AdDisplayProps) => {
   const { isAuthenticated, user } = useAuth();
-  const { subscriptionTier } = useSubscription();
+  const { subscriptionTier, refreshSubscription } = useSubscription();
   const [showAd, setShowAd] = useState(true);
   const [isLoaded, setIsLoaded] = useState(false);
-  const [authVerified, setAuthVerified] = useState(false);
+  const [hasSession, setHasSession] = useState(false);
   
   useEffect(() => {
     const verifyAuth = async () => {
-      // Set loaded state once subscription data has been loaded
-      setIsLoaded(true);
-      
-      console.log("AdDisplay: Current subscription tier:", subscriptionTier);
-      console.log("AdDisplay: Authentication check from context:", { 
-        isAuthenticated, 
-        userId: user?.id, 
-        hasUser: !!user
-      });
-      
-      // Double-check authentication with direct Supabase call
+      // Get session directly from Supabase for reliable auth check
       const { data: sessionData } = await supabase.auth.getSession();
       const session = sessionData?.session;
       
-      console.log("AdDisplay: Direct Supabase auth check:", {
-        hasSession: !!session,
-        sessionUserId: session?.user?.id,
-        contextUserMatches: session?.user?.id === user?.id
+      console.log("AdDisplay: Auth check", { 
+        isAuthenticated, 
+        userId: user?.id, 
+        subscriptionTier,
+        hasSession: !!session
       });
       
-      setAuthVerified(!!session?.user?.id);
+      setHasSession(!!session?.user?.id);
+      
+      // If we have a session, ensure subscription is up-to-date
+      if (session?.user?.id) {
+        await refreshSubscription();
+      }
+      
+      setIsLoaded(true);
     };
     
     verifyAuth();
-  }, [subscriptionTier, isAuthenticated, user]);
+  }, [isAuthenticated, user, subscriptionTier]);
   
   // Determine whether to show ads based on subscription tier
-  const showAds = subscriptionTier === "free" || subscriptionTier === "bronze";
+  const showAds = (subscriptionTier === "free" || subscriptionTier === "bronze") && hasSession;
   
   if (!isLoaded || !showAds || !showAd) return null;
 

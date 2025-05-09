@@ -26,6 +26,7 @@ interface SubscriptionContextType {
   resetMessagesUsed: () => void;
   getTierIcon: (tier: SubscriptionTier) => React.ReactNode;
   getTierBadge: (tier: SubscriptionTier) => React.ReactNode;
+  refreshSubscription: () => Promise<void>;
 }
 
 export const subscriptionPlans: Record<SubscriptionTier, SubscriptionDetails> = {
@@ -81,13 +82,28 @@ export const SubscriptionProvider: React.FC<{children: React.ReactNode}> = ({ ch
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
   
-  // Load subscription from Supabase on init and when user changes
-  useEffect(() => {
-    const loadSubscription = async () => {
-      setIsLoading(true);
+  // Function to refresh subscription from database - can be called externally
+  const refreshSubscription = async () => {
+    setIsLoading(true);
+    
+    if (!isAuthenticated) {
+      console.log("SubscriptionContext: No authenticated user, setting free tier");
+      setSubscriptionTier("free");
+      setSubscriptionDetails({
+        ...subscriptionPlans.free,
+        messageResetTime: new Date(Date.now() + 24 * 60 * 60 * 1000)
+      });
+      setIsLoading(false);
+      return;
+    }
+    
+    try {
+      // Get session directly from Supabase for reliable auth check
+      const { data: sessionData } = await supabase.auth.getSession();
+      const session = sessionData?.session;
       
-      if (!isAuthenticated || !user?.id) {
-        console.log("SubscriptionContext: No authenticated user, setting free tier");
+      if (!session?.user?.id) {
+        console.log("SubscriptionContext: No active session found, setting free tier");
         setSubscriptionTier("free");
         setSubscriptionDetails({
           ...subscriptionPlans.free,
@@ -97,88 +113,90 @@ export const SubscriptionProvider: React.FC<{children: React.ReactNode}> = ({ ch
         return;
       }
       
-      try {
-        console.log("SubscriptionContext: Loading subscription for user:", user.id);
-        
-        // Double-check authentication with direct Supabase call
-        const { data: sessionData } = await supabase.auth.getSession();
-        const session = sessionData?.session;
-        
-        console.log("SubscriptionContext: Direct auth check:", {
-          hasSession: !!session,
-          sessionUserId: session?.user?.id,
-          contextUserId: user.id,
-          authMatches: session?.user?.id === user.id
-        });
-        
-        // Get subscription from Supabase profiles table
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('subscription_tier, bottom_nav_preferences')
-          .eq('id', session?.user?.id || user.id)
-          .single();
-        
-        if (error) {
-          console.error("Error loading subscription:", error);
-          setIsLoading(false);
-          return;
-        }
-        
-        if (data) {
-          const storedTier = (data.subscription_tier as SubscriptionTier) || "free";
-          console.log("SubscriptionContext: Loaded subscription tier from database:", storedTier);
-          
-          // Get stored messages remaining and reset time
-          const messagesRemaining = Number(localStorage.getItem(`messages_remaining_${user.id}`)) || 
-            subscriptionPlans[storedTier].maxMessages;
-          
-          const messageResetTimeStr = localStorage.getItem(`message_reset_time_${user.id}`);
-          let messageResetTime: Date | undefined;
-          
-          if (messageResetTimeStr) {
-            messageResetTime = new Date(messageResetTimeStr);
-            
-            // Check if reset time has passed for free tier
-            if (storedTier === "free" && new Date() > messageResetTime) {
-              // Reset messages if 24 hours have passed
-              const newResetTime = new Date(Date.now() + 24 * 60 * 60 * 1000);
-              localStorage.setItem(`messages_remaining_${user.id}`, String(subscriptionPlans.free.maxMessages));
-              localStorage.setItem(`message_reset_time_${user.id}`, newResetTime.toISOString());
-              messageResetTime = newResetTime;
-              setSubscriptionDetails({
-                ...subscriptionPlans[storedTier],
-                messagesRemaining: subscriptionPlans.free.maxMessages,
-                messageResetTime: newResetTime
-              });
-              setSubscriptionTier(storedTier);
-              setIsLoading(false);
-              return;
-            }
-          }
-          
-          setSubscriptionDetails({
-            ...subscriptionPlans[storedTier],
-            messagesRemaining,
-            messageResetTime
-          });
-          setSubscriptionTier(storedTier);
-        } else {
-          console.log("SubscriptionContext: No subscription data found, defaulting to free tier");
-          setSubscriptionTier("free");
-          setSubscriptionDetails({
-            ...subscriptionPlans.free,
-            messageResetTime: new Date(Date.now() + 24 * 60 * 60 * 1000)
-          });
-        }
-      } catch (err) {
-        console.error("Error loading subscription:", err);
-      } finally {
+      const userId = session.user.id;
+      console.log(`SubscriptionContext: Loading subscription for user ID: ${userId}`);
+      
+      // Get subscription from Supabase profiles table
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('subscription_tier, bottom_nav_preferences')
+        .eq('id', userId)
+        .single();
+      
+      if (error) {
+        console.error("Error loading subscription:", error);
         setIsLoading(false);
+        return;
       }
-    };
-    
-    loadSubscription();
+      
+      if (data) {
+        const storedTier = (data.subscription_tier as SubscriptionTier) || "free";
+        console.log("SubscriptionContext: Loaded subscription tier from database:", storedTier);
+        
+        // Get stored messages remaining and reset time
+        const messagesRemaining = Number(localStorage.getItem(`messages_remaining_${userId}`)) || 
+          subscriptionPlans[storedTier].maxMessages;
+        
+        const messageResetTimeStr = localStorage.getItem(`message_reset_time_${userId}`);
+        let messageResetTime: Date | undefined;
+        
+        if (messageResetTimeStr) {
+          messageResetTime = new Date(messageResetTimeStr);
+          
+          // Check if reset time has passed for free tier
+          if (storedTier === "free" && new Date() > messageResetTime) {
+            // Reset messages if 24 hours have passed
+            const newResetTime = new Date(Date.now() + 24 * 60 * 60 * 1000);
+            localStorage.setItem(`messages_remaining_${userId}`, String(subscriptionPlans.free.maxMessages));
+            localStorage.setItem(`message_reset_time_${userId}`, newResetTime.toISOString());
+            messageResetTime = newResetTime;
+            
+            setSubscriptionDetails({
+              ...subscriptionPlans[storedTier],
+              messagesRemaining: subscriptionPlans.free.maxMessages,
+              messageResetTime: newResetTime
+            });
+            setSubscriptionTier(storedTier);
+            setIsLoading(false);
+            return;
+          }
+        }
+        
+        setSubscriptionDetails({
+          ...subscriptionPlans[storedTier],
+          messagesRemaining,
+          messageResetTime
+        });
+        setSubscriptionTier(storedTier);
+      } else {
+        console.log("SubscriptionContext: No subscription data found, defaulting to free tier");
+        setSubscriptionTier("free");
+        setSubscriptionDetails({
+          ...subscriptionPlans.free,
+          messageResetTime: new Date(Date.now() + 24 * 60 * 60 * 1000)
+        });
+      }
+    } catch (err) {
+      console.error("Error loading subscription:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  // Load subscription from Supabase on init and when user changes
+  useEffect(() => {
+    refreshSubscription();
   }, [user, isAuthenticated]);
+
+  // Setup a periodic refresh of the subscription data
+  useEffect(() => {
+    // Refresh subscription every minute to catch any external changes
+    const refreshInterval = setInterval(() => {
+      refreshSubscription();
+    }, 60000); // 60 seconds
+    
+    return () => clearInterval(refreshInterval);
+  }, []);
 
   const upgradeSubscription = async (tier: SubscriptionTier): Promise<boolean> => {
     console.log("SubscriptionContext: Attempting to upgrade subscription", {
@@ -338,7 +356,8 @@ export const SubscriptionProvider: React.FC<{children: React.ReactNode}> = ({ ch
       consumeMessage,
       resetMessagesUsed,
       getTierIcon,
-      getTierBadge
+      getTierBadge,
+      refreshSubscription
     }}>
       {children}
     </SubscriptionContext.Provider>

@@ -1,8 +1,8 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CreditCard, AlertCircle, Loader2 } from "lucide-react";
+import { CreditCard, AlertCircle, Loader2, RefreshCw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useToast } from "@/hooks/use-toast";
@@ -11,9 +11,25 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 const SubscriptionSettings = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { subscriptionTier, subscriptionDetails, upgradeSubscription } = useSubscription();
+  const { subscriptionTier, subscriptionDetails, upgradeSubscription, refreshSubscription } = useSubscription();
   const [processing, setProcessing] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await refreshSubscription();
+      toast({
+        title: "Subscription Refreshed",
+        description: "Your subscription status has been updated from the database.",
+      });
+    } catch (err) {
+      console.error("Error refreshing subscription:", err);
+    } finally {
+      setRefreshing(false);
+    }
+  };
   
   const cancelSubscription = async () => {
     setProcessing(true);
@@ -41,13 +57,31 @@ const SubscriptionSettings = () => {
     }
   };
   
+  // Check for subscription changes when component mounts
+  useEffect(() => {
+    refreshSubscription();
+  }, []);
+  
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Your Subscription</CardTitle>
-        <CardDescription>
-          Manage your subscription plan and billing details.
-        </CardDescription>
+        <div className="flex justify-between items-center">
+          <div>
+            <CardTitle>Your Subscription</CardTitle>
+            <CardDescription>
+              Manage your subscription plan and billing details.
+            </CardDescription>
+          </div>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleRefresh}
+            disabled={refreshing}
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
         {error && (

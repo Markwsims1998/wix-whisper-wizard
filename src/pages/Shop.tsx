@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Award, Diamond, Badge as BadgeIcon, Check, ChevronDown, ChevronUp, ShoppingCart, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -23,6 +22,7 @@ const Shop = () => {
   const [cartItems, setCartItems] = useState<number>(3);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [authCheckDone, setAuthCheckDone] = useState(false);
+  const [hasSession, setHasSession] = useState(false);
 
   // Enhanced debugging logs and auth check
   useEffect(() => {
@@ -39,10 +39,12 @@ const Shop = () => {
         subscriptionTier,
         authObjectPresent: !!user,
         hasValidSession: !!session,
-        sessionUserId: session?.user?.id
+        sessionUserId: session?.user?.id,
+        contextUserMatches: session?.user?.id === user?.id
       });
       
       setAuthCheckDone(true);
+      setHasSession(!!session?.user?.id);
       setErrorMessage(null);
     };
     
@@ -270,7 +272,7 @@ const Shop = () => {
           )}
           
           {/* Authentication Warning - Only show when truly not authenticated */}
-          {authCheckDone && !user?.id && (
+          {authCheckDone && !hasSession && (
             <Alert className="mb-4 bg-yellow-50 border-yellow-200">
               <AlertCircle className="h-4 w-4 text-yellow-600" />
               <AlertTitle>Authentication Required</AlertTitle>
@@ -286,7 +288,7 @@ const Shop = () => {
           )}
           
           {/* Subscription Status Alert */}
-          {user?.id && subscriptionTier !== "free" && (
+          {authCheckDone && hasSession && subscriptionTier !== "free" && (
             <Alert className="mb-4 bg-green-50 border-green-200">
               <Check className="h-4 w-4 text-green-600" />
               <AlertTitle className="flex items-center">

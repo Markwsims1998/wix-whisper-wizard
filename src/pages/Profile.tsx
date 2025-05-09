@@ -468,7 +468,7 @@ const Profile = () => {
     }
   };
   
-  // Mock functions for social actions - to be implemented with real functionality later
+  // Mock functions for social actions
   const handleAddFriend = async () => {
     if (!user?.id || !profileData?.id) {
       toast({
@@ -539,6 +539,31 @@ const Profile = () => {
     }
   };
   
+  // Update header position based on sidebar width
+  useEffect(() => {
+    const updateHeaderPosition = () => {
+      const sidebar = document.querySelector('div[class*="bg-[#2B2A33]"]');
+      if (sidebar) {
+        const width = sidebar.getBoundingClientRect().width;
+        document.documentElement.style.setProperty('--sidebar-width', `${width}px`);
+      }
+    };
+
+    // Initial update
+    updateHeaderPosition();
+
+    // Set up observer to detect sidebar width changes
+    const observer = new ResizeObserver(updateHeaderPosition);
+    const sidebar = document.querySelector('div[class*="bg-[#2B2A33]"]');
+    if (sidebar) {
+      observer.observe(sidebar);
+    }
+
+    return () => {
+      if (sidebar) observer.unobserve(sidebar);
+    };
+  }, []);
+  
   // Determine which profile to load based on URL or current user
   useEffect(() => {
     const loadProfileData = async () => {
@@ -579,16 +604,13 @@ const Profile = () => {
   
   if (loading) {
     return (
-      <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
+      <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
         <Sidebar />
-        <div className="flex-1 flex flex-col">
-          <Header />
-          <main className="flex-1 p-4 pt-16 overflow-auto">
-            <div className="container max-w-4xl mx-auto">
-              <LoadingProfile />
-            </div>
-          </main>
-          <Footer />
+        <Header />
+        <div className="pl-[280px] pt-16 pb-10 transition-all duration-300" style={{ paddingLeft: 'var(--sidebar-width, 280px)' }}>
+          <div className="container max-w-4xl mx-auto">
+            <LoadingProfile />
+          </div>
         </div>
       </div>
     );
@@ -596,81 +618,79 @@ const Profile = () => {
 
   if (!profileData) {
     return (
-      <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
+      <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
         <Sidebar />
-        <div className="flex-1 flex flex-col">
-          <Header />
-          <main className="flex-1 p-4 pt-16 overflow-auto">
-            <div className="container max-w-4xl mx-auto">
-              <div className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow text-center">
-                <h2 className="text-2xl font-semibold mb-4">Profile Not Found</h2>
-                <p className="text-gray-600 dark:text-gray-300">
-                  The profile you're looking for doesn't exist or you don't have permission to view it.
-                </p>
-              </div>
+        <Header />
+        <div className="pl-[280px] pt-16 pb-10 transition-all duration-300" style={{ paddingLeft: 'var(--sidebar-width, 280px)' }}>
+          <div className="container max-w-4xl mx-auto">
+            <div className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow text-center">
+              <h2 className="text-2xl font-semibold mb-4">Profile Not Found</h2>
+              <p className="text-gray-600 dark:text-gray-300">
+                The profile you're looking for doesn't exist or you don't have permission to view it.
+              </p>
             </div>
-          </main>
-          <Footer />
+          </div>
         </div>
+        <Footer />
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
       <Sidebar />
-      <div className="flex-1 flex flex-col">
-        <Header />
-        <main className="flex-1 p-4 pt-16 overflow-auto">
-          <div className="container max-w-4xl mx-auto">
-            <ProfileHeader 
+      <Header />
+      
+      <div className="pl-[280px] pt-16 pr-4 pb-36 md:pb-10 transition-all duration-300" style={{ paddingLeft: 'var(--sidebar-width, 280px)' }}>
+        <div className="container max-w-4xl mx-auto">
+          <ProfileHeader 
+            profile={profileData}
+            isMyProfile={isMyProfile}
+            relationshipStatusText={getRelationshipStatusText()}
+            handleAddFriend={handleAddFriend}
+            handleMessage={handleMessage}
+            setEditRelationshipOpen={setEditRelationshipOpen}
+            getSubscriptionBadge={getSubscriptionBadge}
+          />
+          
+          {isMyProfile && (
+            <CreatePost 
               profile={profileData}
-              isMyProfile={isMyProfile}
-              relationshipStatusText={getRelationshipStatusText()}
-              handleAddFriend={handleAddFriend}
-              handleMessage={handleMessage}
-              setEditRelationshipOpen={setEditRelationshipOpen}
-              getSubscriptionBadge={getSubscriptionBadge}
+              newPostText={newPostText}
+              setNewPostText={setNewPostText}
+              handleCreatePost={handleCreatePost}
             />
-            
-            {isMyProfile && (
-              <CreatePost 
-                profile={profileData}
-                newPostText={newPostText}
-                setNewPostText={setNewPostText}
-                handleCreatePost={handleCreatePost}
-              />
-            )}
-            
-            <PostsList 
-              posts={posts}
-              isMyProfile={isMyProfile}
-              profile={profileData}
-              handleLikePost={handleLikePost}
+          )}
+          
+          <PostsList 
+            posts={posts}
+            isMyProfile={isMyProfile}
+            profile={profileData}
+            handleLikePost={handleLikePost}
+          />
+          
+          {isMyProfile && (
+            <RelationshipDialog 
+              open={editRelationshipOpen} 
+              setOpen={setEditRelationshipOpen}
+              selectedRelationshipStatus={selectedRelationshipStatus}
+              setSelectedRelationshipStatus={setSelectedRelationshipStatus}
+              relationshipPartners={relationshipPartners}
+              handleRemovePartner={handleRemovePartner}
+              availablePartners={availablePartners}
+              partnerSearchOpen={partnerSearchOpen}
+              setPartnerSearchOpen={setPartnerSearchOpen}
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              handleAddPartner={handleAddPartner}
+              relationshipStatuses={relationshipStatuses}
+              handleSaveRelationship={handleSaveRelationship}
             />
-            
-            {isMyProfile && (
-              <RelationshipDialog 
-                open={editRelationshipOpen} 
-                setOpen={setEditRelationshipOpen}
-                selectedRelationshipStatus={selectedRelationshipStatus}
-                setSelectedRelationshipStatus={setSelectedRelationshipStatus}
-                relationshipPartners={relationshipPartners}
-                handleRemovePartner={handleRemovePartner}
-                availablePartners={availablePartners}
-                partnerSearchOpen={partnerSearchOpen}
-                setPartnerSearchOpen={setPartnerSearchOpen}
-                searchQuery={searchQuery}
-                setSearchQuery={setSearchQuery}
-                handleAddPartner={handleAddPartner}
-                relationshipStatuses={relationshipStatuses}
-                handleSaveRelationship={handleSaveRelationship}
-              />
-            )}
-          </div>
-        </main>
-        <Footer />
+          )}
+        </div>
       </div>
+      
+      <Footer />
     </div>
   );
 };

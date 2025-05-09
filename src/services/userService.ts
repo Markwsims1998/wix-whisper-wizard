@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 export interface FriendProfile {
@@ -51,5 +50,32 @@ export const getActiveFriends = async (userId: string): Promise<FriendProfile[]>
   } catch (error) {
     console.error("Error fetching active friends:", error);
     return [];
+  }
+};
+
+/**
+ * Update user settings
+ * @param userId The user ID
+ * @param settings The settings to update
+ * @returns Success status
+ */
+export const updateUserSettings = async (userId: string, settings: any): Promise<boolean> => {
+  if (!userId) return false;
+  
+  try {
+    const { error } = await supabase
+      .from('profiles')
+      .update(settings)
+      .eq('id', userId);
+      
+    if (error) {
+      console.error('Error updating user settings:', error);
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error in updateUserSettings:', error);
+    return false;
   }
 };

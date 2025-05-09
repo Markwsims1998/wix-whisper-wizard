@@ -14,6 +14,23 @@ interface AuthUser {
   profilePicture?: string;
   relationshipStatus?: string;
   relationshipPartners?: string[];
+  location?: string;
+  bio?: string;
+  darkMode?: boolean;
+  useSystemTheme?: boolean;
+  showFeaturedContent?: boolean;
+  bottomNavPreferences?: string[];
+  notificationPreferences?: {
+    email: boolean;
+    push: boolean;
+    friendRequests: boolean;
+    messages: boolean;
+  };
+  privacySettings?: {
+    profileVisibility: 'public' | 'friends' | 'private';
+    postVisibility: 'public' | 'friends' | 'private';
+    searchEngineVisible: boolean;
+  };
 }
 
 interface AuthContextType {
@@ -24,6 +41,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   loading: boolean;
   updateUserProfile: (updates: Partial<AuthUser>) => Promise<boolean>;
+  refreshUserProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -60,7 +78,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           bio,
           location,
           relationship_status,
-          relationship_partners
+          relationship_partners,
+          dark_mode,
+          use_system_theme,
+          show_featured_content,
+          bottom_nav_preferences,
+          notification_preferences,
+          privacy_settings
         `)
         .eq('id', supabaseUser.id)
         .single();
@@ -83,7 +107,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         role: isAdmin ? 'admin' : 'user',
         profilePicture: profile?.avatar_url,
         relationshipStatus: profile?.relationship_status,
-        relationshipPartners: profile?.relationship_partners
+        relationshipPartners: profile?.relationship_partners,
+        location: profile?.location,
+        bio: profile?.bio,
+        darkMode: profile?.dark_mode,
+        useSystemTheme: profile?.use_system_theme,
+        showFeaturedContent: profile?.show_featured_content,
+        bottomNavPreferences: profile?.bottom_nav_preferences,
+        notificationPreferences: profile?.notification_preferences,
+        privacySettings: profile?.privacy_settings
       };
     } catch (err) {
       console.error('Error transforming user:', err);
@@ -181,6 +213,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, [navigate]);
 
+  // Refresh user profile data
+  const refreshUserProfile = async (): Promise<void> => {
+    if (!user?.id) return;
+
+    try {
+      const { data: currentSession } = await supabase.auth.getSession();
+      if (currentSession?.session?.user) {
+        const refreshedUser = await transformUser(currentSession.session.user);
+        if (refreshedUser) {
+          setUser(refreshedUser);
+        }
+      }
+    } catch (error) {
+      console.error('Error refreshing user profile:', error);
+    }
+  };
+
   // Update user profile function
   const updateUserProfile = async (updates: Partial<AuthUser>): Promise<boolean> => {
     if (!user?.id) return false;
@@ -194,6 +243,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (updates.profilePicture !== undefined) profileUpdates.avatar_url = updates.profilePicture;
       if (updates.relationshipStatus !== undefined) profileUpdates.relationship_status = updates.relationshipStatus;
       if (updates.relationshipPartners !== undefined) profileUpdates.relationship_partners = updates.relationshipPartners;
+      if (updates.location !== undefined) profileUpdates.location = updates.location;
+      if (updates.bio !== undefined) profileUpdates.bio = updates.bio;
+      if (updates.darkMode !== undefined) profileUpdates.dark_mode = updates.darkMode;
+      if (updates.useSystemTheme !== undefined) profileUpdates.use_system_theme = updates.useSystemTheme;
+      if (updates.showFeaturedContent !== undefined) profileUpdates.show_featured_content = updates.showFeaturedContent;
+      if (updates.bottomNavPreferences !== undefined) profileUpdates.bottom_nav_preferences = updates.bottomNavPreferences;
+      if (updates.notificationPreferences !== undefined) profileUpdates.notification_preferences = updates.notificationPreferences;
+      if (updates.privacySettings !== undefined) profileUpdates.privacy_settings = updates.privacySettings;
       
       const { error } = await supabase
         .from('profiles')
@@ -358,7 +415,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       logout, 
       isAuthenticated, 
       loading,
-      updateUserProfile
+      updateUserProfile,
+      refreshUserProfile
     }}>
       {children}
     </AuthContext.Provider>

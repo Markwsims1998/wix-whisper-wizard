@@ -1,11 +1,13 @@
 
 import React, { useState, useEffect } from 'react';
-import { Activity, Image, Play, User, Users, ShoppingBag, Bell, Home, Settings, MessageSquare, DollarSign } from "lucide-react";
+import { Activity, Image, Play, User, Users, ShoppingBag, Bell, Home, Settings, MessageSquare } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 // Interface for navigation items
 interface NavItem {
@@ -34,21 +36,29 @@ const defaultNavItems = ["home", "photos", "watch", "shop"];
 
 const BottomNavSettings = () => {
   const [selectedItems, setSelectedItems] = useState<string[]>(defaultNavItems);
+  const [isSaving, setIsSaving] = useState(false);
+  const { user, updateUserProfile } = useAuth();
   const { toast } = useToast();
 
-  // Load saved preferences
+  // Load saved preferences from user profile or localStorage
   useEffect(() => {
     try {
-      const savedPrefs = localStorage.getItem('bottomNavPreferences');
-      if (savedPrefs) {
-        const parsedPrefs = JSON.parse(savedPrefs);
-        const values = parsedPrefs.map((item: NavItem) => item.value);
-        setSelectedItems(values);
+      // First try to load from user profile
+      if (user && user.bottomNavPreferences) {
+        setSelectedItems(user.bottomNavPreferences);
+      } else {
+        // Fall back to localStorage
+        const savedPrefs = localStorage.getItem('bottomNavPreferences');
+        if (savedPrefs) {
+          const parsedPrefs = JSON.parse(savedPrefs);
+          const values = parsedPrefs.map((item: any) => item.value || item);
+          setSelectedItems(values);
+        }
       }
     } catch (error) {
       console.error("Error loading navigation preferences:", error);
     }
-  }, []);
+  }, [user]);
 
   const handleSelectChange = (position: number, value: string) => {
     const newSelectedItems = [...selectedItems];
@@ -56,9 +66,11 @@ const BottomNavSettings = () => {
     setSelectedItems(newSelectedItems);
   };
 
-  const savePreferences = () => {
+  const savePreferences = async () => {
     try {
-      // Convert selected item values to full nav item objects
+      setIsSaving(true);
+      
+      // Convert selected item values to full nav item objects for localStorage
       const navItems = selectedItems.map(value => {
         const foundItem = allNavOptions.find(option => option.value === value);
         return foundItem ? { 
@@ -69,7 +81,24 @@ const BottomNavSettings = () => {
         } : null;
       }).filter(Boolean);
 
+      // Save to localStorage (as a fallback)
       localStorage.setItem('bottomNavPreferences', JSON.stringify(navItems));
+      
+      // Save to user profile if user is logged in
+      if (user) {
+        const success = await updateUserProfile({
+          bottomNavPreferences: selectedItems
+        });
+        
+        if (!success) {
+          toast({
+            title: "Error Saving Preferences",
+            description: "There was a problem saving your preferences to your profile. Local preferences were saved.",
+            variant: "destructive",
+          });
+          return;
+        }
+      }
       
       toast({
         title: "Preferences Saved",
@@ -83,6 +112,8 @@ const BottomNavSettings = () => {
         description: "There was a problem saving your preferences. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -102,6 +133,7 @@ const BottomNavSettings = () => {
               <Select
                 value={selectedItems[index]}
                 onValueChange={(value) => handleSelectChange(index, value)}
+                disabled={isSaving}
               >
                 <SelectTrigger id={`position-${index}`} className="flex items-center gap-2">
                   <SelectValue placeholder="Select an option" />
@@ -126,7 +158,12 @@ const BottomNavSettings = () => {
         </div>
         
         <div className="flex justify-end mt-6">
-          <Button onClick={savePreferences} className="bg-purple-600 hover:bg-purple-700">
+          <Button 
+            onClick={savePreferences} 
+            className="bg-purple-600 hover:bg-purple-700"
+            disabled={isSaving}
+          >
+            {isSaving ? <LoadingSpinner size="sm" className="mr-2" /> : null}
             Save Preferences
           </Button>
         </div>

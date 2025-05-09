@@ -7,23 +7,32 @@ import { Button } from "@/components/ui/button";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { Lock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 const FeaturedContentSettings = () => {
   const { subscriptionDetails } = useSubscription();
+  const { user, updateUserProfile } = useAuth();
   const [showFeatured, setShowFeatured] = useState(true);
   const [canToggle, setCanToggle] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
     // Check if user has Gold subscription
     setCanToggle(subscriptionDetails.tier === 'gold');
     
-    // Load saved preference if available
-    const savedPreference = localStorage.getItem('showFeaturedContent');
-    if (savedPreference !== null) {
-      setShowFeatured(savedPreference === 'true');
+    // Load user preferences if available
+    if (user) {
+      setShowFeatured(user.showFeaturedContent !== undefined ? user.showFeaturedContent : true);
+    } else {
+      // Fallback to localStorage if user preferences aren't available
+      const savedPreference = localStorage.getItem('showFeaturedContent');
+      if (savedPreference !== null) {
+        setShowFeatured(savedPreference === 'true');
+      }
     }
-  }, [subscriptionDetails.tier]);
+  }, [user, subscriptionDetails.tier]);
 
   const handleToggleChange = (checked: boolean) => {
     if (!canToggle) {
@@ -37,7 +46,7 @@ const FeaturedContentSettings = () => {
     setShowFeatured(checked);
   };
 
-  const saveSettings = () => {
+  const saveSettings = async () => {
     if (!canToggle) {
       toast({
         title: "Gold Subscription Required",
@@ -47,13 +56,39 @@ const FeaturedContentSettings = () => {
       return;
     }
 
-    // Save to localStorage
+    // Save to localStorage as a fallback
     localStorage.setItem('showFeaturedContent', showFeatured.toString());
     
-    toast({
-      title: "Settings Saved",
-      description: "Your featured content preferences have been updated.",
-    });
+    // If user is logged in, save to their profile
+    if (user) {
+      setIsSaving(true);
+      try {
+        const success = await updateUserProfile({
+          showFeaturedContent: showFeatured
+        });
+        
+        if (success) {
+          toast({
+            title: "Settings Saved",
+            description: "Your featured content preferences have been updated.",
+          });
+        }
+      } catch (error) {
+        console.error("Error saving featured content settings:", error);
+        toast({
+          title: "Error Saving Settings",
+          description: "Failed to save your settings. Please try again.",
+          variant: "destructive"
+        });
+      } finally {
+        setIsSaving(false);
+      }
+    } else {
+      toast({
+        title: "Settings Saved",
+        description: "Your featured content preferences have been updated.",
+      });
+    }
   };
 
   return (
@@ -84,7 +119,7 @@ const FeaturedContentSettings = () => {
             id="featured-toggle" 
             checked={showFeatured}
             onCheckedChange={handleToggleChange}
-            disabled={!canToggle} 
+            disabled={!canToggle || isSaving} 
             className={canToggle ? "" : "cursor-not-allowed opacity-60"}
           />
         </div>
@@ -100,8 +135,9 @@ const FeaturedContentSettings = () => {
         <Button 
           onClick={saveSettings}
           className={!canToggle ? "opacity-70 cursor-not-allowed" : ""}
-          disabled={!canToggle}
+          disabled={!canToggle || isSaving}
         >
+          {isSaving ? <LoadingSpinner size="sm" className="mr-2" /> : null}
           Save Settings
         </Button>
       </CardFooter>

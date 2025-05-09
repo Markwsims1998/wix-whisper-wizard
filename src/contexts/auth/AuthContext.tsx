@@ -222,15 +222,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     refreshUser
   };
 
-  // If still loading initial session, show loading indicator
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <LoadingSpinner size="lg" />
-      </div>
-    );
-  }
-
+  // Render the provider with the context value
   return (
     <AuthContext.Provider value={value}>
       {children}

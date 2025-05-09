@@ -1,234 +1,358 @@
 
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { Search, UserPlus, MessageSquare, Filter } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/auth/AuthProvider';
-import { useToast } from '@/components/ui/use-toast';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-
-interface UserProfile {
-  id: string;
-  username: string;
-  full_name: string;
-  avatar_url: string | null;
-  bio: string | null;
-  location: string | null;
-  relationship_status: string | null;
-}
+import Header from "@/components/Header";
+import Sidebar from "@/components/Sidebar";
+import { useEffect, useState } from "react";
+import { Users, User, Search, MapPin, Loader2, Info } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { useToast } from "@/hooks/use-toast";
+import { useSubscription } from "@/contexts/SubscriptionContext";
+import { useNavigate } from "react-router-dom";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const People = () => {
-  const { user, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
   const { toast } = useToast();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [users, setUsers] = useState<UserProfile[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [filterOpen, setFilterOpen] = useState(false);
-  const [filterLocation, setFilterLocation] = useState('');
-  const [filterRelationshipStatus, setFilterRelationshipStatus] = useState('');
+  const { subscriptionTier } = useSubscription();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [friendRequests, setFriendRequests] = useState<Set<string>>(new Set());
+  const [friendsList, setFriendsList] = useState<Set<string>>(new Set(['1', '2', '3', '4']));
+  const [isLoading, setIsLoading] = useState(true);
   
+  // Update header position based on sidebar width
   useEffect(() => {
-    const fetchUsers = async () => {
-      if (!isAuthenticated) return;
-      
+    const updateHeaderPosition = () => {
+      const sidebar = document.querySelector('div[class*="bg-[#2B2A33]"]');
+      if (sidebar) {
+        const width = sidebar.getBoundingClientRect().width;
+        document.documentElement.style.setProperty('--sidebar-width', `${width}px`);
+      }
+    };
+
+    // Initial update
+    updateHeaderPosition();
+
+    // Set up observer to detect sidebar width changes
+    const observer = new ResizeObserver(updateHeaderPosition);
+    const sidebar = document.querySelector('div[class*="bg-[#2B2A33]"]');
+    if (sidebar) {
+      observer.observe(sidebar);
+    }
+
+    return () => {
+      if (sidebar) observer.unobserve(sidebar);
+    };
+  }, []);
+
+  // Load members data
+  useEffect(() => {
+    const loadMembers = async () => {
       try {
-        let query = supabase
-          .from('profiles')
-          .select('id, username, full_name, avatar_url, bio, location, relationship_status')
-          .neq('id', user?.id || ''); // Don't show current user
-        
-        // Apply filters
-        if (searchQuery) {
-          query = query.or(`username.ilike.%${searchQuery}%,full_name.ilike.%${searchQuery}%`);
-        }
-        
-        if (filterLocation) {
-          query = query.ilike('location', `%${filterLocation}%`);
-        }
-        
-        if (filterRelationshipStatus) {
-          query = query.eq('relationship_status', filterRelationshipStatus);
-        }
-        
-        const { data, error } = await query;
-        
-        if (error) throw error;
-        
-        setUsers(data || []);
+        setIsLoading(true);
+        // Simulate API call
+        await new Promise(resolve => setTimeout(resolve, 800));
+        setIsLoading(false);
       } catch (error) {
-        console.error('Error fetching users:', error);
+        console.error("Error loading members:", error);
         toast({
-          title: "Error",
-          description: "Failed to load users",
+          title: "Failed to load members",
+          description: "There was a problem retrieving the member list. Please try again.",
           variant: "destructive",
         });
-      } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
     };
     
-    fetchUsers();
-  }, [isAuthenticated, user?.id, searchQuery, filterLocation, filterRelationshipStatus, toast]);
+    loadMembers();
+  }, [toast]);
+
+  const members = [
+    { id: '1', name: 'Admin', username: '@admin', timeAgo: '3 hours ago', isFriend: true, subscribed: true, tier: 'gold' },
+    { id: '2', name: 'Sephiroth', username: '@seph', timeAgo: '19 days ago', isFriend: true, isHotlist: true, subscribed: true, tier: 'gold' },
+    { id: '3', name: 'Linda Lohan', username: '@linda', timeAgo: 'a year ago', isLocal: true, isFriend: true, subscribed: true, tier: 'silver' },
+    { id: '4', name: 'Irina Petrova', username: '@irina', timeAgo: 'a year ago', isLocal: true, isFriend: true, subscribed: true, tier: 'bronze' },
+    { id: '5', name: 'Jennie Ferguson', username: '@jennie', timeAgo: '2 years ago', isHotlist: true, subscribed: false },
+    { id: '6', name: 'Robert Cook', username: '@robert', timeAgo: '2 years ago', isLocal: true, subscribed: true, tier: 'bronze' },
+    { id: '7', name: 'Sophia Lee', username: '@sophia', timeAgo: '2 years ago', isHotlist: true, subscribed: false },
+    { id: '8', name: 'John Smith', username: '@john', timeAgo: '3 years ago', subscribed: false },
+    { id: '9', name: 'Emma Wilson', username: '@emma', timeAgo: '3 years ago', subscribed: false },
+    { id: '10', name: 'Michael Brown', username: '@michael', timeAgo: '3 years ago', subscribed: true, tier: 'silver' }
+  ];
   
-  const handleAddFriend = (userId: string) => {
+  // Handle friend request or message
+  const handleFriendAction = (memberId: string, isFriend: boolean) => {
+    if (isFriend) {
+      // Navigate to messages with this user
+      toast({
+        title: "Opening Messages",
+        description: "Redirecting to your conversation...",
+      });
+      
+      // In a real app, you would navigate to the messages page with this user
+      navigate(`/messages?user=${memberId}`);
+    } else {
+      // Send friend request
+      const updatedRequests = new Set(friendRequests);
+      updatedRequests.add(memberId);
+      setFriendRequests(updatedRequests);
+      
+      // Update friends list immediately for demo purposes
+      const updatedFriends = new Set(friendsList);
+      updatedFriends.add(memberId);
+      setFriendsList(updatedFriends);
+      
+      toast({
+        title: "Friend Request Sent",
+        description: "Your friend request has been accepted!",
+      });
+    }
+  };
+  
+  // Handle view profile
+  const handleViewProfile = (name: string) => {
     toast({
-      title: "Friend request sent",
-      description: "Your friend request has been sent.",
+      title: "Profile View",
+      description: `Viewing ${name}'s profile...`,
     });
+    
+    // Navigate to the profile page
+    navigate(`/profile?name=${name}`);
   };
   
-  const handleFilter = () => {
-    setFilterOpen(!filterOpen);
-  };
-  
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map(n => n[0])
-      .join('')
-      .toUpperCase()
-      .substring(0, 2);
-  };
-  
+  // Filter members based on search term
+  const filteredMembers = members.filter(member => 
+    member.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    member.username.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
-    <div className="container max-w-4xl mx-auto px-4 py-8">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
-        <div>
-          <h1 className="text-2xl font-bold">People</h1>
-          <p className="text-gray-500">Find and connect with other users</p>
-        </div>
-        
-        <div className="mt-4 md:mt-0 flex gap-2">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={handleFilter}
-          >
-            <Filter className="h-4 w-4" />
-          </Button>
-          
-          <div className="relative">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
-            <Input 
-              type="search" 
-              placeholder="Search people..." 
-              className="pl-8 w-full md:w-[200px]"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
+      <Sidebar />
+      <Header />
+      
+      <div className="pl-[280px] pt-16 pr-4 pb-10 transition-all duration-300" style={{ paddingLeft: 'var(--sidebar-width, 280px)' }}>
+        <div className="max-w-screen-xl mx-auto">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 mb-6">
+            <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
+              <div>
+                <h1 className="text-2xl font-semibold dark:text-white">People</h1>
+                <div className="border-b-2 border-purple-500 w-16 mt-1"></div>
+              </div>
+              <div className="relative w-full sm:w-auto">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <input 
+                  type="text" 
+                  placeholder="Search people..." 
+                  className="pl-10 pr-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg w-full focus:outline-none focus:ring-1 focus:ring-purple-500 text-sm bg-white dark:bg-gray-800 dark:text-white"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  aria-label="Search people"
+                />
+              </div>
+            </div>
+
+            <Tabs defaultValue="all" className="mb-4">
+              <ScrollArea className="w-full">
+                <TabsList className="grid grid-cols-4 w-full bg-gray-100 dark:bg-gray-700 mb-6">
+                  <TabsTrigger value="all" className="text-xs">All</TabsTrigger>
+                  <TabsTrigger value="local" className="text-xs">Local</TabsTrigger>
+                  <TabsTrigger value="hotlist" className="text-xs">Hotlist</TabsTrigger>
+                  <TabsTrigger value="friends" className="text-xs">Friends</TabsTrigger>
+                </TabsList>
+              </ScrollArea>
+              
+              {isLoading ? (
+                <div className="flex flex-col items-center justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-purple-500 mb-4" />
+                  <p className="text-gray-500 dark:text-gray-400">Loading people...</p>
+                </div>
+              ) : (
+                <>
+                  <TabsContent value="all">
+                    {filteredMembers.length > 0 ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        {filteredMembers.map((member) => (
+                          <MemberCard 
+                            key={member.id} 
+                            member={member} 
+                            isFriendRequested={friendRequests.has(member.id)}
+                            isFriend={friendsList.has(member.id)}
+                            onFriendAction={handleFriendAction}
+                            onViewProfile={handleViewProfile}
+                            subscriptionTier={member.subscribed ? member.tier : null}
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <Alert className="bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800">
+                        <Info className="h-4 w-4" />
+                        <AlertDescription>
+                          No people found matching your search. Try a different search term.
+                        </AlertDescription>
+                      </Alert>
+                    )}
+                  </TabsContent>
+
+                  <TabsContent value="local">
+                    {filteredMembers.filter(member => member.isLocal).length > 0 ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        {filteredMembers.filter(member => member.isLocal).map((member) => (
+                          <MemberCard 
+                            key={member.id} 
+                            member={member} 
+                            isFriendRequested={friendRequests.has(member.id)}
+                            isFriend={friendsList.has(member.id)}
+                            onFriendAction={handleFriendAction}
+                            onViewProfile={handleViewProfile}
+                            subscriptionTier={member.subscribed ? member.tier : null}
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <Alert className="bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800">
+                        <Info className="h-4 w-4" />
+                        <AlertDescription>
+                          No local people found in your area.
+                        </AlertDescription>
+                      </Alert>
+                    )}
+                  </TabsContent>
+
+                  <TabsContent value="hotlist">
+                    {filteredMembers.filter(member => member.isHotlist).length > 0 ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        {filteredMembers.filter(member => member.isHotlist).map((member) => (
+                          <MemberCard 
+                            key={member.id} 
+                            member={member} 
+                            isFriendRequested={friendRequests.has(member.id)}
+                            isFriend={friendsList.has(member.id)}
+                            onFriendAction={handleFriendAction}
+                            onViewProfile={handleViewProfile}
+                            subscriptionTier={member.subscribed ? member.tier : null}
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <Alert className="bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800">
+                        <Info className="h-4 w-4" />
+                        <AlertDescription>
+                          No people found on the hotlist.
+                        </AlertDescription>
+                      </Alert>
+                    )}
+                  </TabsContent>
+
+                  <TabsContent value="friends">
+                    {filteredMembers.filter(member => friendsList.has(member.id)).length > 0 ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        {filteredMembers.filter(member => friendsList.has(member.id)).map((member) => (
+                          <MemberCard 
+                            key={member.id} 
+                            member={member} 
+                            isFriendRequested={friendRequests.has(member.id)}
+                            isFriend={true}
+                            onFriendAction={handleFriendAction}
+                            onViewProfile={handleViewProfile}
+                            subscriptionTier={member.subscribed ? member.tier : null}
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <Alert className="bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800">
+                        <Info className="h-4 w-4" />
+                        <AlertDescription>
+                          You don't have any friends yet. Browse people and send friend requests to connect.
+                        </AlertDescription>
+                      </Alert>
+                    )}
+                  </TabsContent>
+                </>
+              )}
+            </Tabs>
           </div>
         </div>
       </div>
-      
-      {filterOpen && (
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md mb-6">
-          <h3 className="font-medium mb-2">Filters</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm mb-1">Location</label>
-              <Input 
-                type="text" 
-                placeholder="Filter by location..."
-                value={filterLocation}
-                onChange={(e) => setFilterLocation(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="block text-sm mb-1">Relationship Status</label>
-              <select
-                className="w-full px-3 py-2 border rounded-md bg-background text-foreground"
-                value={filterRelationshipStatus}
-                onChange={(e) => setFilterRelationshipStatus(e.target.value)}
-              >
-                <option value="">All statuses</option>
-                <option value="Single">Single</option>
-                <option value="In a relationship">In a relationship</option>
-                <option value="Married">Married</option>
-                <option value="It's complicated">It's complicated</option>
-              </select>
-            </div>
+    </div>
+  );
+};
+
+interface MemberCardProps {
+  member: any;
+  isFriendRequested: boolean;
+  isFriend: boolean;
+  onFriendAction: (id: string, isFriend: boolean) => void;
+  onViewProfile: (name: string) => void;
+  subscriptionTier: string | null;
+}
+
+const MemberCard = ({ member, isFriendRequested, isFriend, onFriendAction, onViewProfile, subscriptionTier }: MemberCardProps) => {
+  const getSubscriptionBadge = () => {
+    if (!subscriptionTier) return null;
+    
+    switch (subscriptionTier) {
+      case 'gold':
+        return <span className="px-1 py-0.5 bg-yellow-500 text-white text-xs rounded">Gold</span>;
+      case 'silver':
+        return <span className="px-1 py-0.5 bg-gray-400 text-white text-xs rounded">Silver</span>;
+      case 'bronze':
+        return <span className="px-1 py-0.5 bg-amber-700 text-white text-xs rounded">Bronze</span>;
+      default:
+        return null;
+    }
+  };
+  
+  return (
+    <div className="bg-gray-50 dark:bg-gray-700 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition p-4">
+      <div className="flex flex-col items-center">
+        <div 
+          className="h-16 w-16 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center overflow-hidden mb-3 cursor-pointer"
+          onClick={() => onViewProfile(member.name)}
+        >
+          <User className="h-8 w-8 text-gray-500 dark:text-gray-400" />
+        </div>
+        <h3 
+          className="font-medium text-center cursor-pointer hover:underline flex items-center gap-1 dark:text-white"
+          onClick={() => onViewProfile(member.name)}
+        >
+          {member.name}
+        </h3>
+        <div className="flex items-center gap-1 mt-1 flex-wrap justify-center">
+          <p className="text-sm text-gray-500 dark:text-gray-300 text-center">{member.username}</p>
+          {getSubscriptionBadge()}
+        </div>
+        <p className="text-xs text-gray-400 text-center mt-1">Active {member.timeAgo}</p>
+        
+        {member.isLocal && (
+          <div className="flex items-center justify-center mt-1 text-xs text-gray-500 dark:text-gray-400">
+            <MapPin className="h-3 w-3 mr-1" /> Nearby
           </div>
+        )}
+        
+        <div className="mt-4 flex gap-2">
+          <button 
+            className={`${
+              isFriend 
+                ? 'bg-purple-600 text-white'
+                : isFriendRequested 
+                  ? 'bg-gray-400 text-white'
+                  : 'bg-purple-600 text-white'
+            } px-3 py-1 text-xs rounded-md hover:opacity-90 transition`}
+            onClick={() => onFriendAction(member.id, isFriend)}
+            disabled={isFriendRequested}
+            aria-label={isFriend ? `Message ${member.name}` : isFriendRequested ? `Friend request sent to ${member.name}` : `Add ${member.name} as friend`}
+          >
+            {isFriend ? 'Message' : isFriendRequested ? 'Requested' : 'Add Friend'}
+          </button>
+          <button 
+            className="bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-200 px-3 py-1 text-xs rounded-md hover:bg-gray-300 dark:hover:bg-gray-500 transition"
+            onClick={() => onViewProfile(member.name)}
+            aria-label={`View ${member.name}'s profile`}
+          >
+            Profile
+          </button>
         </div>
-      )}
-      
-      {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[...Array(6)].map((_, i) => (
-            <div key={i} className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md animate-pulse">
-              <div className="flex items-center space-x-4">
-                <div className="w-12 h-12 bg-gray-300 dark:bg-gray-600 rounded-full"></div>
-                <div className="flex-1">
-                  <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded w-3/4 mb-2"></div>
-                  <div className="h-3 bg-gray-300 dark:bg-gray-600 rounded w-1/2"></div>
-                </div>
-              </div>
-              <div className="h-12 bg-gray-300 dark:bg-gray-600 rounded mt-4"></div>
-            </div>
-          ))}
-        </div>
-      ) : users.length === 0 ? (
-        <div className="text-center py-8">
-          <p className="text-gray-500">No users found matching your search criteria.</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {users.map((profile) => (
-            <div key={profile.id} className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md">
-              <div className="flex items-center space-x-4">
-                <Link to={`/profile/${profile.id}`}>
-                  <Avatar className="h-12 w-12 cursor-pointer">
-                    <AvatarImage src={profile.avatar_url || undefined} />
-                    <AvatarFallback>{getInitials(profile.full_name || profile.username)}</AvatarFallback>
-                  </Avatar>
-                </Link>
-                <div>
-                  <Link to={`/profile/${profile.id}`} className="font-medium hover:underline">
-                    {profile.full_name || profile.username}
-                  </Link>
-                  <p className="text-sm text-gray-500">@{profile.username}</p>
-                  {profile.location && (
-                    <p className="text-xs text-gray-500">{profile.location}</p>
-                  )}
-                </div>
-              </div>
-              
-              <p className="text-sm mt-2 line-clamp-2">
-                {profile.bio || "No bio provided."}
-              </p>
-              
-              {profile.relationship_status && (
-                <p className="text-xs text-gray-500 mt-1">
-                  {profile.relationship_status}
-                </p>
-              )}
-              
-              <div className="flex gap-2 mt-4">
-                <Button 
-                  variant="default"
-                  size="sm"
-                  className="flex-1"
-                  onClick={() => handleAddFriend(profile.id)}
-                >
-                  <UserPlus className="h-4 w-4 mr-1" />
-                  Add Friend
-                </Button>
-                <Link to="/messages" className="flex-1">
-                  <Button 
-                    variant="outline"
-                    size="sm"
-                    className="w-full"
-                  >
-                    <MessageSquare className="h-4 w-4 mr-1" />
-                    Message
-                  </Button>
-                </Link>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+      </div>
     </div>
   );
 };

@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from "@/components/ui/use-toast";
@@ -259,6 +260,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Refresh user profile data
   const refreshUserProfile = async (): Promise<void> => {
+    console.log('Refreshing user profile...');
     if (!user?.id) return;
 
     try {
@@ -266,6 +268,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (currentSession?.session?.user) {
         const refreshedUser = await transformUser(currentSession.session.user);
         if (refreshedUser) {
+          console.log('User profile refreshed:', refreshedUser);
           setUser(refreshedUser);
         }
       }
@@ -276,6 +279,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Update user profile function
   const updateUserProfile = async (updates: Partial<AuthUser>): Promise<boolean> => {
+    console.log('Updating user profile with:', updates);
     if (!user?.id) return false;
     
     try {
@@ -295,6 +299,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (updates.bottomNavPreferences !== undefined) profileUpdates.bottom_nav_preferences = updates.bottomNavPreferences;
       if (updates.notificationPreferences !== undefined) profileUpdates.notification_preferences = updates.notificationPreferences;
       if (updates.privacySettings !== undefined) profileUpdates.privacy_settings = updates.privacySettings;
+      
+      console.log('Sending profile updates to database:', profileUpdates);
       
       const { error } = await supabase
         .from('profiles')

@@ -1,4 +1,3 @@
-
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
@@ -27,7 +26,8 @@ import {
   UserCog,
   Eye,
   UserPlus,
-  Database
+  Database,
+  Loader2
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -38,14 +38,56 @@ import { useSubscription } from "@/contexts/SubscriptionContext";
 import AppearanceSettings from "@/components/settings/AppearanceSettings";
 import FeaturedContentSettings from "@/components/settings/FeaturedContentSettings";
 import BottomNavSettings from "@/components/settings/BottomNavSettings";
+import { supabase } from "@/integrations/supabase/client"; // Add this import
+import { useState as useHookState } from "react";
 
 const Settings = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, updateUserProfile, refreshUserProfile } = useAuth();
   const { subscriptionTier, subscriptionDetails, upgradeSubscription } = useSubscription();
   const [activeTab, setActiveTab] = useState("account");
+
+  // Form states for different sections
+  const [accountForm, setAccountForm] = useState({
+    name: user?.name || "",
+    username: user?.username || "",
+    email: user?.email || ""
+  });
+
+  const [profileForm, setProfileForm] = useState({
+    bio: user?.bio || "",
+    location: user?.location || ""
+  });
+
+  const [securityForm, setSecurityForm] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: ""
+  });
+
+  const [loading, setLoading] = useState({
+    account: false,
+    profile: false,
+    security: false
+  });
+
+  // Update form states when user data changes
+  useEffect(() => {
+    if (user) {
+      setAccountForm({
+        name: user.name || "",
+        username: user.username || "",
+        email: user.email || ""
+      });
+      
+      setProfileForm({
+        bio: user.bio || "",
+        location: user.location || ""
+      });
+    }
+  }, [user]);
 
   // Check URL for tab parameter
   useEffect(() => {
@@ -69,12 +111,153 @@ const Settings = () => {
     console.log(`User activity: Switched to ${value} settings tab`);
   };
 
-  const saveSettings = (section: string) => {
-    toast({
-      title: "Settings saved",
-      description: `Your ${section} settings have been updated.`,
+  // Handle account form changes
+  const handleAccountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setAccountForm({
+      ...accountForm,
+      [e.target.id]: e.target.value
     });
-    console.log(`User activity: Updated ${section} settings`);
+  };
+
+  // Handle profile form changes
+  const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setProfileForm({
+      ...profileForm,
+      [e.target.id]: e.target.value
+    });
+  };
+
+  // Handle security form changes
+  const handleSecurityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSecurityForm({
+      ...securityForm,
+      [e.target.id]: e.target.value
+    });
+  };
+
+  // Save account settings
+  const saveAccountSettings = async () => {
+    setLoading(prev => ({ ...prev, account: true }));
+    try {
+      const success = await updateUserProfile({
+        name: accountForm.name,
+        username: accountForm.username
+      });
+      
+      if (success) {
+        toast({
+          title: "Account settings saved",
+          description: "Your account information has been updated."
+        });
+        await refreshUserProfile();
+      } else {
+        toast({
+          title: "Failed to save account settings",
+          description: "An error occurred while saving your account settings.",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error("Error saving account settings:", error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred while saving your account settings.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(prev => ({ ...prev, account: false }));
+    }
+  };
+
+  // Save profile settings
+  const saveProfileSettings = async () => {
+    setLoading(prev => ({ ...prev, profile: true }));
+    try {
+      const success = await updateUserProfile({
+        bio: profileForm.bio,
+        location: profileForm.location
+      });
+      
+      if (success) {
+        toast({
+          title: "Profile settings saved",
+          description: "Your profile information has been updated."
+        });
+        await refreshUserProfile();
+      } else {
+        toast({
+          title: "Failed to save profile settings",
+          description: "An error occurred while saving your profile settings.",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error("Error saving profile settings:", error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred while saving your profile settings.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(prev => ({ ...prev, profile: false }));
+    }
+  };
+
+  // Update password
+  const updatePassword = async () => {
+    // Password validation
+    if (securityForm.newPassword !== securityForm.confirmPassword) {
+      toast({
+        title: "Passwords don't match",
+        description: "New password and confirmation must match.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (securityForm.newPassword.length < 6) {
+      toast({
+        title: "Password too short",
+        description: "New password must be at least 6 characters long.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setLoading(prev => ({ ...prev, security: true }));
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: securityForm.newPassword
+      });
+      
+      if (error) {
+        toast({
+          title: "Password update failed",
+          description: error.message,
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Password updated",
+          description: "Your password has been successfully updated."
+        });
+        // Reset form
+        setSecurityForm({
+          currentPassword: "",
+          newPassword: "",
+          confirmPassword: ""
+        });
+      }
+    } catch (error) {
+      console.error("Error updating password:", error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred while updating your password.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(prev => ({ ...prev, security: false }));
+    }
   };
 
   const cancelSubscription = () => {
@@ -156,19 +339,50 @@ const Settings = () => {
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="name">Full Name</Label>
-                    <Input id="name" defaultValue={user?.name || "Alex Johnson"} />
+                    <Input 
+                      id="name" 
+                      value={accountForm.name} 
+                      onChange={handleAccountChange}
+                      placeholder="Enter your full name" 
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="username">Username</Label>
-                    <Input id="username" defaultValue={user?.username?.slice(1) || "alexjohnson"} />
+                    <Input 
+                      id="username" 
+                      value={accountForm.username} 
+                      onChange={handleAccountChange}
+                      placeholder="Enter your username" 
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
-                    <Input id="email" type="email" defaultValue="alex.johnson@example.com" />
+                    <Input 
+                      id="email" 
+                      type="email" 
+                      value={accountForm.email} 
+                      disabled 
+                      onChange={handleAccountChange}
+                      placeholder="Your email address" 
+                      className="bg-gray-50"
+                    />
+                    <p className="text-xs text-muted-foreground">Email cannot be changed directly. Contact support for email changes.</p>
                   </div>
                 </CardContent>
                 <CardFooter>
-                  <Button onClick={() => saveSettings("account")}>Save Changes</Button>
+                  <Button 
+                    onClick={saveAccountSettings} 
+                    disabled={loading.account}
+                  >
+                    {loading.account ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      'Save Changes'
+                    )}
+                  </Button>
                 </CardFooter>
               </Card>
               
@@ -182,15 +396,37 @@ const Settings = () => {
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="bio">Bio</Label>
-                    <Input id="bio" defaultValue="Digital enthusiast, photography lover, and coffee addict. Always looking for the next adventure!" />
+                    <Input 
+                      id="bio" 
+                      value={profileForm.bio} 
+                      onChange={handleProfileChange}
+                      placeholder="Tell others about yourself"
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="location">Location</Label>
-                    <Input id="location" defaultValue="San Francisco, CA" />
+                    <Input 
+                      id="location" 
+                      value={profileForm.location} 
+                      onChange={handleProfileChange}
+                      placeholder="Your location"
+                    />
                   </div>
                 </CardContent>
                 <CardFooter>
-                  <Button onClick={() => saveSettings("profile")}>Save Profile</Button>
+                  <Button 
+                    onClick={saveProfileSettings}
+                    disabled={loading.profile}
+                  >
+                    {loading.profile ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      'Save Profile'
+                    )}
+                  </Button>
                 </CardFooter>
               </Card>
             </TabsContent>
@@ -250,7 +486,13 @@ const Settings = () => {
                   </div>
                 </CardContent>
                 <CardFooter>
-                  <Button onClick={() => saveSettings("privacy")}>Save Privacy Settings</Button>
+                  <Button onClick={() => updateUserProfile({
+                    privacySettings: {
+                      profileVisibility: 'public',
+                      postVisibility: 'public',
+                      searchEngineVisible: true
+                    }
+                  })}>Save Privacy Settings</Button>
                 </CardFooter>
               </Card>
               
@@ -275,7 +517,20 @@ const Settings = () => {
                       </p>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <Switch id="email-notifications" defaultChecked />
+                      <Switch 
+                        id="email-notifications" 
+                        checked={user?.notificationPreferences?.email ?? true} 
+                        onCheckedChange={(checked) => {
+                          if (user?.notificationPreferences) {
+                            updateUserProfile({
+                              notificationPreferences: {
+                                ...user.notificationPreferences,
+                                email: checked
+                              }
+                            });
+                          }
+                        }}
+                      />
                     </div>
                   </div>
                   
@@ -287,7 +542,20 @@ const Settings = () => {
                       </p>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <Switch id="push-notifications" defaultChecked />
+                      <Switch 
+                        id="push-notifications" 
+                        checked={user?.notificationPreferences?.push ?? true} 
+                        onCheckedChange={(checked) => {
+                          if (user?.notificationPreferences) {
+                            updateUserProfile({
+                              notificationPreferences: {
+                                ...user.notificationPreferences,
+                                push: checked
+                              }
+                            });
+                          }
+                        }}
+                      />
                     </div>
                   </div>
                   
@@ -299,7 +567,20 @@ const Settings = () => {
                       </p>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <Switch id="friend-request-notifications" defaultChecked />
+                      <Switch 
+                        id="friend-request-notifications" 
+                        checked={user?.notificationPreferences?.friendRequests ?? true} 
+                        onCheckedChange={(checked) => {
+                          if (user?.notificationPreferences) {
+                            updateUserProfile({
+                              notificationPreferences: {
+                                ...user.notificationPreferences,
+                                friendRequests: checked
+                              }
+                            });
+                          }
+                        }}
+                      />
                     </div>
                   </div>
                   
@@ -311,12 +592,28 @@ const Settings = () => {
                       </p>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <Switch id="message-notifications" defaultChecked />
+                      <Switch 
+                        id="message-notifications" 
+                        checked={user?.notificationPreferences?.messages ?? true} 
+                        onCheckedChange={(checked) => {
+                          if (user?.notificationPreferences) {
+                            updateUserProfile({
+                              notificationPreferences: {
+                                ...user.notificationPreferences,
+                                messages: checked
+                              }
+                            });
+                          }
+                        }}
+                      />
                     </div>
                   </div>
                 </CardContent>
                 <CardFooter>
-                  <Button onClick={() => saveSettings("notifications")}>Save Notification Settings</Button>
+                  <Button onClick={() => toast({
+                    title: "Notification Settings Saved",
+                    description: "Your notification preferences have been updated."
+                  })}>Save Notification Settings</Button>
                 </CardFooter>
               </Card>
             </TabsContent>
@@ -390,15 +687,33 @@ const Settings = () => {
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="current-password">Current Password</Label>
-                    <Input id="current-password" type="password" />
+                    <Input 
+                      id="currentPassword" 
+                      type="password" 
+                      value={securityForm.currentPassword}
+                      onChange={handleSecurityChange}
+                      placeholder="Enter your current password"
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="new-password">New Password</Label>
-                    <Input id="new-password" type="password" />
+                    <Input 
+                      id="newPassword" 
+                      type="password"
+                      value={securityForm.newPassword}
+                      onChange={handleSecurityChange}
+                      placeholder="Enter your new password"
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="confirm-password">Confirm New Password</Label>
-                    <Input id="confirm-password" type="password" />
+                    <Input 
+                      id="confirmPassword" 
+                      type="password"
+                      value={securityForm.confirmPassword}
+                      onChange={handleSecurityChange} 
+                      placeholder="Confirm your new password"
+                    />
                   </div>
                   
                   <div className="pt-4">
@@ -416,7 +731,19 @@ const Settings = () => {
                   </div>
                 </CardContent>
                 <CardFooter>
-                  <Button onClick={() => saveSettings("security")}>Save Security Settings</Button>
+                  <Button 
+                    onClick={updatePassword}
+                    disabled={loading.security}
+                  >
+                    {loading.security ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Updating...
+                      </>
+                    ) : (
+                      'Save Security Settings'
+                    )}
+                  </Button>
                 </CardFooter>
               </Card>
             </TabsContent>

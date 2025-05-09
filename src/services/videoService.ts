@@ -21,94 +21,22 @@ export interface Video {
 
 export const fetchVideos = async (category: string = 'all'): Promise<Video[]> => {
   try {
-    // Try to fetch from the database
+    // Fetch videos from the database
     const mediaItems = await fetchMedia('video', category);
     
     if (mediaItems.length > 0) {
       return convertToVideoFormat(mediaItems);
     }
     
-    // Fall back to placeholder data if no results
-    console.log('No videos found in database, using placeholder data');
-    const placeholderVideos = getPlaceholderVideos();
-    
-    // Filter by category if needed
-    if (category !== 'all') {
-      return placeholderVideos.filter(video => video.category === category);
-    }
-    
-    return placeholderVideos;
+    // If no videos found in database, return an empty array
+    // No more fallback to placeholder data
+    console.log('No videos found in database');
+    return [];
   } catch (err) {
     console.error('Error in fetchVideos:', err);
-    return getPlaceholderVideos();
+    return [];
   }
 };
 
-export const getPlaceholderVideos = (): Video[] => {
-  return [
-    { 
-      id: '1', 
-      thumbnail_url: 'https://via.placeholder.com/600x340', 
-      title: 'Getting Started with HappyKinks', 
-      video_url: 'https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
-      category: 'tutorials', 
-      views: 1243, 
-      likes_count: 45, 
-      created_at: new Date().toISOString(),
-      user: { 
-        id: '101', 
-        username: 'admin', 
-        full_name: 'Admin', 
-        avatar_url: null 
-      } 
-    },
-    { 
-      id: '2', 
-      thumbnail_url: 'https://via.placeholder.com/600x340', 
-      title: 'Community Guidelines', 
-      video_url: 'https://storage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
-      category: 'tutorials', 
-      views: 856, 
-      likes_count: 32, 
-      created_at: new Date().toISOString(),
-      user: { 
-        id: '102', 
-        username: 'sephiroth', 
-        full_name: 'Sephiroth', 
-        avatar_url: null 
-      } 
-    },
-    { 
-      id: '3', 
-      thumbnail_url: 'https://via.placeholder.com/600x340', 
-      title: 'Meet & Greet Event', 
-      video_url: 'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
-      category: 'events', 
-      views: 2400, 
-      likes_count: 76, 
-      created_at: new Date().toISOString(),
-      user: { 
-        id: '103', 
-        username: 'linda', 
-        full_name: 'Linda Lohan', 
-        avatar_url: null 
-      } 
-    },
-    { 
-      id: '4', 
-      thumbnail_url: 'https://via.placeholder.com/600x340', 
-      title: 'Workshop Announcement', 
-      video_url: 'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
-      category: 'workshops', 
-      views: 987, 
-      likes_count: 28, 
-      created_at: new Date().toISOString(),
-      user: { 
-        id: '104', 
-        username: 'irina', 
-        full_name: 'Irina Petrova', 
-        avatar_url: null 
-      } 
-    }
-  ];
-};
+// No longer needed, as we're using database data
+// export const getPlaceholderVideos = (): Video[] => { ... };

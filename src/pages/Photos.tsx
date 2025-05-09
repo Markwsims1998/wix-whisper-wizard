@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
@@ -81,7 +82,7 @@ const Photos = () => {
     loadPhotos();
   }, [selectedCategory, toast]);
 
-  // Filter photos based on selected category
+  // No longer need to filter photos here as it's done in the database query
   const filteredPhotos = photos;
 
   const handlePhotoClick = (photo: Photo) => {
@@ -167,7 +168,7 @@ const Photos = () => {
                     <div className="relative aspect-square">
                       <img 
                         src={photo.thumbnail || photo.image} 
-                        alt={photo.title} 
+                        alt={photo.title || 'Photo'} 
                         className="w-full h-full object-cover"
                         loading="lazy"
                       />
@@ -181,10 +182,18 @@ const Photos = () => {
                     <div className="p-3 dark:text-gray-100">
                       <div className="flex items-center gap-2">
                         <div className="h-10 w-10 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center overflow-hidden">
-                          <User className="h-4 w-4 text-gray-500 dark:text-gray-300" />
+                          {photo.user?.avatar_url ? (
+                            <img 
+                              src={photo.user.avatar_url} 
+                              alt={photo.user.username} 
+                              className="h-full w-full object-cover" 
+                            />
+                          ) : (
+                            <User className="h-4 w-4 text-gray-500 dark:text-gray-300" />
+                          )}
                         </div>
                         <div className="flex-1">
-                          <h3 className="font-medium text-sm line-clamp-1">{photo.title}</h3>
+                          <h3 className="font-medium text-sm line-clamp-1">{photo.title || 'Untitled'}</h3>
                           <p className="text-xs text-gray-500 dark:text-gray-300">{photo.author}</p>
                         </div>
                       </div>

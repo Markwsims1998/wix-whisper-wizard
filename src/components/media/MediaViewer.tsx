@@ -19,6 +19,11 @@ const MediaViewer = ({ type, media, onClose, onLike, onPrev, onNext, postId }: M
   const { subscriptionTier } = useSubscription();
   const isGoldMember = subscriptionTier === 'gold';
   
+  // Determine the URL to display based on media type
+  const displayUrl = type === 'image' 
+    ? media.image || media.file_url 
+    : media.thumbnail || media.thumbnail_url || '';
+  
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-gradient-to-b from-[rgba(15,15,20,0.97)] to-[rgba(15,15,25,0.95)]"></div>
@@ -59,7 +64,7 @@ const MediaViewer = ({ type, media, onClose, onLike, onPrev, onNext, postId }: M
           {type === 'image' && (
             <div className="relative">
               <img 
-                src={media.url} 
+                src={displayUrl} 
                 alt="Full size" 
                 className="max-h-[80vh] max-w-full object-contain rounded-lg shadow-2xl"
               />
@@ -77,7 +82,7 @@ const MediaViewer = ({ type, media, onClose, onLike, onPrev, onNext, postId }: M
               {/* In a real app, this would be a video player */}
               <div className="aspect-video relative flex items-center justify-center rounded-lg overflow-hidden shadow-2xl">
                 <img 
-                  src={media.thumbnail} 
+                  src={displayUrl} 
                   alt={media.title} 
                   className="w-full h-full object-contain"
                 />
@@ -103,16 +108,24 @@ const MediaViewer = ({ type, media, onClose, onLike, onPrev, onNext, postId }: M
           <div className="max-w-4xl mx-auto flex items-center justify-between bg-white/10 backdrop-blur-md p-4 rounded-lg">
             <div className="flex items-center gap-3">
               <div className="h-12 w-12 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
-                {media.authorPic ? (
-                  <img src={media.authorPic} alt={media.author} className="h-full w-full object-cover" />
+                {media.authorPic || (media.user && media.user.avatar_url) ? (
+                  <img 
+                    src={media.authorPic || media.user.avatar_url} 
+                    alt={media.author || media.user?.username || 'User'} 
+                    className="h-full w-full object-cover" 
+                  />
                 ) : (
                   <div className="h-full w-full bg-purple-100 flex items-center justify-center">
-                    <span className="font-medium text-purple-600">{media.author?.charAt(0) || 'A'}</span>
+                    <span className="font-medium text-purple-600">
+                      {(media.author || media.user?.username || 'U')?.charAt(0)}
+                    </span>
                   </div>
                 )}
               </div>
               <div>
-                <h3 className="text-white font-medium">{media.title || `By ${media.author}`}</h3>
+                <h3 className="text-white font-medium">
+                  {media.title || `By ${media.author || media.user?.username || 'Unknown'}`}
+                </h3>
               </div>
             </div>
             

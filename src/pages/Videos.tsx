@@ -11,6 +11,8 @@ import VideoCard from "@/components/videos/VideoCard";
 import VideoFilter from "@/components/videos/VideoFilter";
 import { fetchVideos, Video } from "@/services/videoService";
 import { useToast } from "@/hooks/use-toast";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Info } from "lucide-react";
 
 const Videos = () => {
   const { subscriptionDetails } = useSubscription();
@@ -79,7 +81,7 @@ const Videos = () => {
     loadVideos();
   }, [selectedCategory, toast]);
 
-  // Filter videos based on selected category
+  // No need to filter videos here as it's done in the database query
   const filteredVideos = videos;
 
   const handleVideoClick = (video: Video) => {
@@ -138,7 +140,7 @@ const Videos = () => {
                 <div className="w-16 h-16 border-4 border-purple-200 border-t-purple-500 rounded-full animate-spin mb-4"></div>
                 <p className="text-gray-500 dark:text-gray-400">Loading videos...</p>
               </div>
-            ) : (
+            ) : filteredVideos.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {filteredVideos.map(video => (
                   <VideoCard 
@@ -149,6 +151,13 @@ const Videos = () => {
                   />
                 ))}
               </div>
+            ) : (
+              <Alert className="bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800">
+                <Info className="h-4 w-4" />
+                <AlertDescription>
+                  No videos found for the selected category. Try selecting a different category or upload a new video.
+                </AlertDescription>
+              </Alert>
             )}
           </div>
         </div>

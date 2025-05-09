@@ -66,11 +66,12 @@ const RelationshipDialog = ({
           <RadioGroup 
             value={selectedRelationshipStatus || ''} 
             onValueChange={setSelectedRelationshipStatus}
+            className="space-y-2"
           >
             {relationshipStatuses.map((status) => (
-              <div key={status.id} className="flex items-center space-x-2 mb-2">
+              <div key={status.id} className="flex items-center space-x-2 p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800">
                 <RadioGroupItem value={status.name} id={status.id} />
-                <Label htmlFor={status.id}>{status.name}</Label>
+                <Label htmlFor={status.id} className="cursor-pointer text-base">{status.name}</Label>
               </div>
             ))}
           </RadioGroup>
@@ -79,7 +80,7 @@ const RelationshipDialog = ({
           {(selectedRelationshipStatus === 'In a relationship' || 
             selectedRelationshipStatus === 'Married' || 
             selectedRelationshipStatus === 'Engaged') && (
-            <div className="mt-4">
+            <div className="mt-6 border-t pt-4">
               <h4 className="font-medium mb-2">With:</h4>
               
               {relationshipPartners.length > 0 ? (
@@ -170,7 +171,7 @@ const RelationshipDialog = ({
         </div>
         
         <DialogFooter>
-          <Button onClick={handleSaveRelationship}>Save changes</Button>
+          <Button onClick={handleSaveRelationship} className="w-full sm:w-auto">Save changes</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

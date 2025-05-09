@@ -6,7 +6,7 @@ import CreatePost from '@/components/profile/CreatePost';
 import PostsList from '@/components/profile/PostsList';
 import RelationshipDialog from '@/components/profile/RelationshipDialog';
 import LoadingProfile from '@/components/profile/LoadingProfile';
-import { ProfileData, Post } from '@/components/profile/types';
+import { ProfileData, Post, RelationshipStatus } from '@/components/profile/types';
 import { supabase } from '@/integrations/supabase/client';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
@@ -32,7 +32,7 @@ const Profile = () => {
   const [availablePartners, setAvailablePartners] = useState<any[]>([]);
   const [partnerSearchOpen, setPartnerSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [relationshipStatuses, setRelationshipStatuses] = useState<any[]>([]);
+  const [relationshipStatuses, setRelationshipStatuses] = useState<RelationshipStatus[]>([]);
   
   // Get appropriate relationship status text
   const getRelationshipStatusText = () => {
@@ -347,25 +347,42 @@ const Profile = () => {
     }
   };
   
-  // Fetch relationship statuses
+  // Fetch relationship statuses from database
   const fetchRelationshipStatuses = async () => {
     try {
+      console.log("Fetching relationship statuses from database");
       const { data, error } = await supabase
         .from('relationship_statuses')
         .select('*')
-        .eq('isactive', true);
+        .eq('isactive', true)
+        .order('name', { ascending: true });
         
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching relationship statuses:', error);
+        throw error;
+      }
       
+      console.log("Fetched relationship statuses:", data);
       setRelationshipStatuses(data || []);
+      
+      // If no active relationship statuses found, use fallback data
+      if (!data || data.length === 0) {
+        console.log("No active relationship statuses found, using fallback data");
+        setRelationshipStatuses([
+          { id: 'single', name: 'Single', isactive: true },
+          { id: 'in-relationship', name: 'In a relationship', isactive: true },
+          { id: 'married', name: 'Married', isactive: true },
+          { id: 'complicated', name: 'It\'s complicated', isactive: true }
+        ]);
+      }
     } catch (error) {
       console.error('Error fetching relationship statuses:', error);
       // Fallback mock data
       setRelationshipStatuses([
-        { id: 'single', name: 'Single' },
-        { id: 'in-relationship', name: 'In a relationship' },
-        { id: 'married', name: 'Married' },
-        { id: 'complicated', name: 'It\'s complicated' }
+        { id: 'single', name: 'Single', isactive: true },
+        { id: 'in-relationship', name: 'In a relationship', isactive: true },
+        { id: 'married', name: 'Married', isactive: true },
+        { id: 'complicated', name: 'It\'s complicated', isactive: true }
       ]);
     }
   };
@@ -420,7 +437,17 @@ const Profile = () => {
   // Handle saving relationship changes
   const handleSaveRelationship = async () => {
     try {
-      if (!user?.id) return;
+      if (!user?.id) {
+        toast({
+          title: "Authentication required",
+          description: "You need to be logged in to update your relationship status.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      console.log("Saving relationship status:", selectedRelationshipStatus);
+      console.log("With partners:", relationshipPartners);
       
       // Update profile in Supabase
       const { error } = await supabase
@@ -431,7 +458,10 @@ const Profile = () => {
         })
         .eq('id', user.id);
         
-      if (error) throw error;
+      if (error) {
+        console.error("Error updating relationship status:", error);
+        throw error;
+      }
       
       // Close dialog
       setEditRelationshipOpen(false);

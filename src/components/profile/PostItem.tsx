@@ -3,9 +3,11 @@ import { Heart, MessageCircle, Share2, User } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
+import { Link } from "react-router-dom";
+import { Post } from "./types";
 
 type PostItemProps = {
-  post: any;
+  post: Post;
   handleLikePost: (postId: string) => void;
 };
 
@@ -22,9 +24,12 @@ const PostItem = ({ post, handleLikePost }: PostItemProps) => {
   };
   
   return (
-    <div className="mb-6 pb-6 border-b border-gray-100 last:border-0 last:mb-0 last:pb-0">
+    <div className="mb-6 pb-6 border-b border-gray-100 last:border-0 last:mb-0 last:pb-0 dark:border-gray-700">
       <div className="flex items-center gap-3 mb-3">
-        <div className="h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center overflow-hidden">
+        <Link 
+          to={post.author ? `/profile/${post.author.id}` : "#"} 
+          className="h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center overflow-hidden dark:bg-purple-900"
+        >
           {post.author?.avatar_url ? (
             <img 
               src={post.author.avatar_url} 
@@ -32,18 +37,20 @@ const PostItem = ({ post, handleLikePost }: PostItemProps) => {
               className="w-full h-full object-cover"
             />
           ) : (
-            <User className="w-6 h-6 text-purple-600" />
+            <User className="w-6 h-6 text-purple-600 dark:text-purple-300" />
           )}
-        </div>
+        </Link>
         <div>
-          <p className="font-medium">{post.author?.full_name}</p>
-          <p className="text-xs text-gray-500">
+          <Link to={post.author ? `/profile/${post.author.id}` : "#"} className="font-medium hover:text-purple-600 transition-colors">
+            {post.author?.full_name}
+          </Link>
+          <p className="text-xs text-gray-500 dark:text-gray-400">
             {post.created_at && format(new Date(post.created_at), 'MMM d, yyyy')}
           </p>
         </div>
       </div>
       
-      <p className="mb-3 text-gray-700">{post.content}</p>
+      <p className="mb-3 text-gray-700 dark:text-gray-200">{post.content}</p>
       
       {post.media && post.media.length > 0 && (
         <div className="mb-4 rounded-md overflow-hidden">
@@ -63,7 +70,7 @@ const PostItem = ({ post, handleLikePost }: PostItemProps) => {
         </div>
       )}
       
-      <div className="flex gap-4 text-gray-500">
+      <div className="flex gap-4 text-gray-500 dark:text-gray-400">
         <Button 
           variant="ghost" 
           size="sm"

@@ -1,10 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import Header from "@/components/Header";
 import PostFeed from "@/components/PostFeed";
 import Sidebar from "@/components/Sidebar";
 import AdDisplay from "@/components/AdDisplay";
 import { Image, MessageSquare, Video, X, Tag, Smile, Gift } from "lucide-react";
-import { useAuth } from "@/contexts/auth/AuthProvider";
+import { useAuth } from "@/contexts/auth/AuthContext"; // Updated import path
 import { useNavigate, Link } from "react-router-dom";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
@@ -36,14 +36,19 @@ const Index = () => {
   const [activeFriends, setActiveFriends] = useState<FriendProfile[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isPostLoading, setIsPostLoading] = useState(false);
+  
+  // Use ref to track initialization state
+  const initializedRef = useRef(false);
+  const activityLoggedRef = useRef(false);
 
-  // Check authentication
+  // Check authentication only once
   useEffect(() => {
-    if (!user) {
+    if (!initializedRef.current && !user) {
       console.log("No authenticated user found, redirecting to login");
       navigate('/login');
-    } else {
+    } else if (!initializedRef.current && user) {
       console.log("Authenticated user found:", user.id, user.name);
+      initializedRef.current = true;
     }
   }, [user, navigate]);
 
@@ -55,7 +60,7 @@ const Index = () => {
     }
   }, []);
 
-  // Update header position based on sidebar width
+  // Update header position based on sidebar width - run once on mount and when showBanner changes
   useEffect(() => {
     const updateHeaderPosition = () => {
       const sidebar = document.querySelector('div[class*="bg-[#2B2A33]"]');
@@ -65,15 +70,14 @@ const Index = () => {
       }
     };
 
-    // Log user activity
-    const logActivity = () => {
-      console.log("User activity: Visited home page", user?.id);
-      // In a real application, this would call an API to record the activity
-    };
+    // Log user activity once
+    if (!activityLoggedRef.current && user?.id) {
+      console.log("User activity: Visited home page", user.id);
+      activityLoggedRef.current = true;
+    }
 
-    // Initial update and logging
+    // Initial update
     updateHeaderPosition();
-    logActivity();
 
     // Set up observer to detect sidebar width changes
     const observer = new ResizeObserver(updateHeaderPosition);
@@ -87,27 +91,31 @@ const Index = () => {
     };
   }, [showBanner, user]);
 
-  // Fetch active friends
-  useEffect(() => {
-    const loadActiveFriends = async () => {
-      if (!user) return;
-      
-      console.log("Loading active friends for user:", user.id);
-      setIsLoading(true);
-      try {
-        const friends = await getActiveFriends(user.id);
-        console.log(`Loaded ${friends.length} active friends`);
-        setActiveFriends(friends);
-      } catch (error) {
-        console.error("Error loading active friends:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  // Memoize the loadActiveFriends function
+  const loadActiveFriends = useCallback(async () => {
+    if (!user) return;
     
-    loadActiveFriends();
+    console.log("Loading active friends for user:", user.id);
+    setIsLoading(true);
+    try {
+      const friends = await getActiveFriends(user.id);
+      console.log(`Loaded ${friends.length} active friends`);
+      setActiveFriends(friends);
+    } catch (error) {
+      console.error("Error loading active friends:", error);
+    } finally {
+      setIsLoading(false);
+    }
   }, [user]);
 
+  // Fetch active friends once when user is available
+  useEffect(() => {
+    if (user && !activeFriends.length && !isLoading) {
+      loadActiveFriends();
+    }
+  }, [user, activeFriends.length, isLoading, loadActiveFriends]);
+
+  // Rest of your component remains the same
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setPostText(e.target.value);
     // Check for @ symbol to trigger tag suggestions
@@ -218,6 +226,7 @@ const Index = () => {
           <div className="lg:col-span-8 w-full">
             {/* Create Post Area */}
             <div className="bg-white dark:bg-gray-800 rounded-lg p-4 mb-4 shadow-sm w-full">
+              {/* ... keep existing code (post creation UI) */}
               <div className="flex items-center gap-3 mb-3">
                 <div className="h-10 w-10 rounded-full bg-purple-100 dark:bg-purple-900 flex items-center justify-center overflow-hidden cursor-pointer" onClick={() => navigate("/profile")}>
                   {user?.profilePicture ? (

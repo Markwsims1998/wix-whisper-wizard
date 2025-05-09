@@ -1,19 +1,9 @@
-// This file is now deprecated but exports hooks from AuthContext.tsx
-// to maintain backwards compatibility until all imports can be updated.
 
-import { useAuth as useAuthContext, AuthProvider as AuthContextProvider } from "./AuthContext";
+// Import directly from AuthContext to eliminate the dependency loop
+import { useAuth, AuthProvider as OriginalAuthProvider } from "./AuthContext";
 import { AuthUser, AuthContextType } from "./types";
 
-// Re-export useAuth from AuthContext to maintain backward compatibility
-export const useAuth = useAuthContext;
-
-// Re-export the AuthProvider component
-export const AuthProvider = AuthContextProvider;
-
-// Re-export the types to ensure type compatibility
+// Re-export without warning for development
+export const useAuth = useAuth;
+export const AuthProvider = OriginalAuthProvider;
 export type { AuthUser, AuthContextType };
-
-// Keep a silent warning about deprecation for developers
-if (process.env.NODE_ENV === 'development') {
-  console.warn('Using deprecated AuthProvider.tsx - Please update imports to use AuthContext.tsx instead');
-}

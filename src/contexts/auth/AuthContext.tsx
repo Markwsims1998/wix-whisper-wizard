@@ -1,5 +1,4 @@
-
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabaseClient';
 import { useToast } from "@/hooks/use-toast";
@@ -26,10 +25,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const { toast } = useToast();
+  const refreshingRef = useRef(false); // Add ref to track refresh state
+  const refreshCountRef = useRef(0); // Track number of refresh attempts
 
   // Function to refresh user data
   const refreshUser = async () => {
+    // Prevent multiple concurrent refreshes
+    if (refreshingRef.current) {
+      console.log("User refresh already in progress, skipping");
+      return;
+    }
+
+    // Too many refresh attempts, might indicate a loop
+    if (refreshCountRef.current > 5) {
+      console.warn("Too many refresh attempts detected, possible refresh loop");
+      return;
+    }
+
     try {
+      refreshingRef.current = true;
+      refreshCountRef.current += 1;
+      
       const { data: { session: currentSession } } = await supabase.auth.getSession();
       if (currentSession?.user) {
         setSession(currentSession);
@@ -41,6 +57,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     } catch (error) {
       console.error("Error refreshing user:", error);
+    } finally {
+      refreshingRef.current = false;
+      // Reset counter after successful refresh
+      setTimeout(() => {
+        refreshCountRef.current = 0;
+      }, 5000);
     }
   };
 
@@ -103,6 +125,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     console.log("Setting up auth state listener...");
     let mounted = true;
     let timeoutId: number | undefined;
+    const authEventCountRef = {current: 0}; // Track number of auth events
     
     // Set a fail-safe timeout to prevent infinite loading
     timeoutId = window.setTimeout(() => {
@@ -116,6 +139,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, currentSession) => {
         if (!mounted) return;
+        
+        // Prevent excessive auth state processing
+        authEventCountRef.current += 1;
+        if (authEventCountRef.current > 10) {
+          console.warn("Too many auth events detected, possible auth loop");
+          return;
+        }
         
         console.log("Auth state changed:", event, !!currentSession);
         
@@ -170,6 +200,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             description: "You have been successfully logged out",
           });
         }
+        
+        // Reset auth event counter after a delay
+        setTimeout(() => {
+          authEventCountRef.current = 0;
+        }, 5000);
       }
     );
 

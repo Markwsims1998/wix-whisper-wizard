@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -8,8 +7,8 @@ import { SubscriptionProvider } from "./contexts/SubscriptionContext";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Footer from "./components/Footer";
-import { useAuth } from "./contexts/auth/AuthContext";
-import { useState, useEffect } from "react";
+import { useAuth, AuthProvider } from "./contexts/auth/AuthContext";
+import { useState, useEffect, useCallback, useMemo } from "react";
 
 // Import pages
 import Index from "./pages/Index";
@@ -29,13 +28,15 @@ import Feedback from "./pages/Feedback";
 import HomePage from "./pages/HomePage";
 import Admin from "./pages/Admin";
 
-// Create a query client
+// Create a query client with optimized caching
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: 1,
       refetchOnWindowFocus: false,
       staleTime: 5 * 60 * 1000, // 5 minutes
+      refetchInterval: false, // Disable polling to prevent excessive network requests
+      networkMode: 'offlineFirst' // Use cache first to reduce API calls
     },
   },
 });
@@ -74,48 +75,34 @@ const AppRoutes = () => {
   const { user, loading } = useAuth();
   const [isAppLoading, setIsAppLoading] = useState(true);
   
+  // Use callback for load completion to prevent unnecessary rerenders
+  const handleLoadComplete = useCallback(() => {
+    setIsAppLoading(false);
+  }, []);
+  
   useEffect(() => {
     // Wait until auth loading is completed
     if (!loading) {
       // Add a small delay for smoother transition
-      const timer = setTimeout(() => {
-        setIsAppLoading(false);
-      }, 100); // Reduced from 300ms to 100ms for faster initial load
-      
+      const timer = setTimeout(handleLoadComplete, 100);
       return () => clearTimeout(timer);
     }
-  }, [loading]);
+  }, [loading, handleLoadComplete]);
   
-  // Set a timeout to force loading to end after 3 seconds even if auth is still loading
-  // This prevents infinite loading spinner if auth gets stuck
+  // Set a timeout to force loading to end after 2.5 seconds even if auth is still loading
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       if (isAppLoading) {
         console.log("Force ending loading state after timeout");
         setIsAppLoading(false);
       }
-    }, 2500); // Reduced from 3000ms to 2500ms
+    }, 2500);
     
     return () => clearTimeout(timeoutId);
   }, [isAppLoading]);
 
-  // Show global loading spinner until both auth and app are ready
-  if (isAppLoading || loading) {
-    return (
-      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center">
-        <div className="flex flex-col items-center">
-          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 animate-spin flex items-center justify-center">
-            <div className="w-16 h-16 rounded-full bg-black/80 flex items-center justify-center">
-              <span className="text-2xl font-bold text-white">HK</span>
-            </div>
-          </div>
-          <p className="text-white font-medium mt-4 text-lg">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  return (
+  // Memoize the routes to prevent rerenders
+  const routeElements = useMemo(() => (
     <Routes>
       <Route path="/" element={<HomePage />} />
       <Route path="/login" element={<Login />} />
@@ -220,7 +207,25 @@ const AppRoutes = () => {
       />
       <Route path="*" element={<Layout><NotFound /></Layout>} />
     </Routes>
-  );
+  ), []);
+
+  // Show global loading spinner until both auth and app are ready
+  if (isAppLoading || loading) {
+    return (
+      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center">
+        <div className="flex flex-col items-center">
+          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 animate-spin flex items-center justify-center">
+            <div className="w-16 h-16 rounded-full bg-black/80 flex items-center justify-center">
+              <span className="text-2xl font-bold text-white">HK</span>
+            </div>
+          </div>
+          <p className="text-white font-medium mt-4 text-lg">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return routeElements;
 };
 
 // Main App component
@@ -230,11 +235,13 @@ const App = () => {
       <BrowserRouter>
         <TooltipProvider>
           <ThemeProvider>
-            <Toaster />
-            <Sonner />
-            <SubscriptionProvider>
-              <AppRoutes />
-            </SubscriptionProvider>
+            <AuthProvider>
+              <Toaster />
+              <Sonner />
+              <SubscriptionProvider>
+                <AppRoutes />
+              </SubscriptionProvider>
+            </AuthProvider>
           </ThemeProvider>
         </TooltipProvider>
       </BrowserRouter>

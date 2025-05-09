@@ -16,7 +16,22 @@ export const supabase = createClient<Database>(
       autoRefreshToken: true,
       detectSessionInUrl: true,
       storage: localStorage,
-      flowType: 'implicit'
+      flowType: 'implicit',
+      debug: false // Disable debug to reduce console logs
+    },
+    realtime: {
+      // Only connect to realtime channels when explicitly subscribed
+      params: {
+        eventsPerSecond: 1 // Limit events per second
+      }
+    },
+    db: {
+      schema: 'public'
+    },
+    global: {
+      headers: {
+        'X-Client-Info': 'user-app-web'
+      }
     }
   }
 );

@@ -61,21 +61,40 @@ export const fetchAllUsers = async (): Promise<UserProfile[]> => {
         last_sign_in_at: null
       };
       
+      // Make sure the role is one of the allowed values
+      let userRole: 'admin' | 'moderator' | 'user' = 'user';
+      if (profile.role === 'admin' || profile.role === 'moderator' || profile.role === 'user') {
+        userRole = profile.role as 'admin' | 'moderator' | 'user';
+      }
+      
+      // Make sure the subscription tier is one of the allowed values
+      let subscriptionTier: 'free' | 'bronze' | 'silver' | 'gold' = 'free';
+      if (profile.subscription_tier === 'free' || profile.subscription_tier === 'bronze' || 
+          profile.subscription_tier === 'silver' || profile.subscription_tier === 'gold') {
+        subscriptionTier = profile.subscription_tier as 'free' | 'bronze' | 'silver' | 'gold';
+      }
+      
+      // Make sure the status is one of the allowed values
+      let userStatus: 'active' | 'banned' = 'active';
+      if (profile.status === 'active' || profile.status === 'banned') {
+        userStatus = profile.status as 'active' | 'banned';
+      }
+      
       return {
         id: authUser.id,
         email: authUser.email || '',
         username: profile.username || authUser.email?.split('@')[0] || '',
         full_name: profile.full_name || '',
         avatar_url: profile.avatar_url || null,
-        role: profile.role || 'user',
-        subscription_tier: profile.subscription_tier || 'free',
-        status: profile.status || 'active',
+        role: userRole,
+        subscription_tier: subscriptionTier,
+        status: userStatus,
         created_at: authUser.created_at || new Date().toISOString(),
         last_sign_in_at: authUser.last_sign_in_at || profile.last_sign_in_at || null
       };
     });
     
-    return users;
+    return users as UserProfile[];
   } catch (error) {
     console.error("Error in fetchAllUsers:", error);
     

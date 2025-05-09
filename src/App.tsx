@@ -1,10 +1,10 @@
+
 import { useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider, useAuth } from "./contexts/auth/AuthProvider";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { SubscriptionProvider } from "./contexts/SubscriptionContext";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { ThemeProvider } from "./contexts/ThemeContext";
@@ -31,39 +31,12 @@ import Admin from "./pages/Admin";
 // Create a query client
 const queryClient = new QueryClient();
 
-// Protected route component
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { isAuthenticated, loading } = useAuth();
-  
-  if (loading) {
-    return <LoadingSpinner fullScreen />;
-  }
-  
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-  
-  return <>{children}</>;
+// Simple auth context provider that doesn't require authentication
+const SimpleAuthProvider = ({ children }) => {
+  return children;
 };
 
-// Admin route component
-const AdminRoute = ({ children }: { children: React.ReactNode }) => {
-  const { isAuthenticated, loading, user } = useAuth();
-  
-  if (loading) {
-    return <LoadingSpinner fullScreen />;
-  }
-  
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-  
-  // In a real app, you would check admin status from user object or backend
-  
-  return <>{children}</>;
-};
-
-const Layout = ({ children }: { children: React.ReactNode }) => {
+const Layout = ({ children }) => {
   return (
     <div className="flex flex-col min-h-screen">
       {children}
@@ -78,12 +51,11 @@ const AppRoutes = () => {
   useEffect(() => {
     // Log initial app load
     console.log("User activity: Application loaded");
-    // In a real application, this would call an API to record the activity
-
+    
     // Simulate initial app loading
     const timer = setTimeout(() => {
       setIsLoading(false);
-    }, 1500); // Extended loading time for better UX
+    }, 1000); // Reduced loading time
 
     return () => clearTimeout(timer);
   }, []);
@@ -108,71 +80,21 @@ const AppRoutes = () => {
       <Route path="/" element={<HomePage />} />
       <Route path="/login" element={<Login />} />
       <Route path="/feedback" element={<Feedback />} />
-      <Route path="/home" element={
-        <Layout>
-          <ProtectedRoute><Index /></ProtectedRoute>
-        </Layout>
-      } />
-      <Route path="/profile" element={
-        <Layout>
-          <ProtectedRoute><Profile /></ProtectedRoute>
-        </Layout>
-      } />
-      <Route path="/photos" element={
-        <Layout>
-          <ProtectedRoute><Photos /></ProtectedRoute>
-        </Layout>
-      } />
-      <Route path="/activity" element={
-        <Layout>
-          <ProtectedRoute><Activity /></ProtectedRoute>
-        </Layout>
-      } />
-      <Route path="/videos" element={
-        <Layout>
-          <ProtectedRoute><Videos /></ProtectedRoute>
-        </Layout>
-      } />
-      <Route path="/people" element={
-        <Layout>
-          <ProtectedRoute><People /></ProtectedRoute>
-        </Layout>
-      } />
-      <Route path="/notifications" element={
-        <Layout>
-          <ProtectedRoute><Notifications /></ProtectedRoute>
-        </Layout>
-      } />
-      <Route path="/shop" element={
-        <Layout>
-          <ProtectedRoute><Shop /></ProtectedRoute>
-        </Layout>
-      } />
-      <Route path="/basket" element={
-        <Layout>
-          <ProtectedRoute><Basket /></ProtectedRoute>
-        </Layout>
-      } />
-      <Route path="/settings" element={
-        <Layout>
-          <ProtectedRoute><Settings /></ProtectedRoute>
-        </Layout>
-      } />
-      <Route path="/messages" element={
-        <Layout>
-          <ProtectedRoute><Messages /></ProtectedRoute>
-        </Layout>
-      } />
-      {/* Admin Portal Route */}
-      <Route path="/admin/*" element={
-        <AdminRoute><Admin /></AdminRoute>
-      } />
-      {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-      <Route path="*" element={
-        <Layout>
-          <ProtectedRoute><NotFound /></ProtectedRoute>
-        </Layout>
-      } />
+      {/* Remove ProtectedRoute wrappers */}
+      <Route path="/home" element={<Layout><Index /></Layout>} />
+      <Route path="/profile" element={<Layout><Profile /></Layout>} />
+      <Route path="/photos" element={<Layout><Photos /></Layout>} />
+      <Route path="/activity" element={<Layout><Activity /></Layout>} />
+      <Route path="/videos" element={<Layout><Videos /></Layout>} />
+      <Route path="/people" element={<Layout><People /></Layout>} />
+      <Route path="/notifications" element={<Layout><Notifications /></Layout>} />
+      <Route path="/shop" element={<Layout><Shop /></Layout>} />
+      <Route path="/basket" element={<Layout><Basket /></Layout>} />
+      <Route path="/settings" element={<Layout><Settings /></Layout>} />
+      <Route path="/messages" element={<Layout><Messages /></Layout>} />
+      {/* Admin route without protection */}
+      <Route path="/admin/*" element={<Admin />} />
+      <Route path="*" element={<Layout><NotFound /></Layout>} />
     </Routes>
   );
 };
@@ -182,13 +104,13 @@ const App = () => (
     <BrowserRouter>
       <TooltipProvider>
         <ThemeProvider>
-          <AuthProvider>
+          <SimpleAuthProvider>
             <SubscriptionProvider>
               <Toaster />
               <Sonner />
               <AppRoutes />
             </SubscriptionProvider>
-          </AuthProvider>
+          </SimpleAuthProvider>
         </ThemeProvider>
       </TooltipProvider>
     </BrowserRouter>

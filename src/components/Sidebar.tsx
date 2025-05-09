@@ -1,4 +1,3 @@
-
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Activity, Image, Play, User, Users, ShoppingBag, Bell, Home, Settings, ChevronLeft, LogOut, MessageSquare, Shield } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
@@ -137,7 +136,7 @@ const Sidebar = () => {
               <NavItem 
                 icon={<Shield className="w-5 h-5" />} 
                 label="Admin" 
-                isActive={currentPath.includes("/admin")} 
+                isActive={currentPath.startsWith("/admin")} 
                 to="/admin" 
                 collapsed={collapsed} 
               />

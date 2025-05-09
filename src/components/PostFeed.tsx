@@ -1,4 +1,3 @@
-
 import { Separator } from "@/components/ui/separator";
 import { User, Heart, MessageCircle, Lock, Gift } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -8,7 +7,7 @@ import { useSubscription } from "@/contexts/SubscriptionContext";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import MediaViewer from "@/components/media/MediaViewer";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/auth/AuthProvider";
 import { getFeedPosts, likePost, Post as PostType } from "@/services/feedService";
 import { format } from "date-fns";
 import RefreshableFeed from "./RefreshableFeed";
@@ -29,18 +28,34 @@ const PostFeed = () => {
   }, [activeTab, user]);
 
   const loadPosts = async () => {
-    if (!user) return;
+    if (!user) {
+      console.log('No user available for loadPosts');
+      setLoading(false);
+      return;
+    }
     
     setLoading(true);
-    // Fix: Use a default location instead of trying to access user.location
-    const userLocation = 'New York'; // Default location since AuthUser doesn't have location property
-    const fetchedPosts = await getFeedPosts(
-      activeTab as 'all' | 'local' | 'hotlist' | 'friends', 
-      user.id,
-      userLocation
-    );
-    setPosts(fetchedPosts);
-    setLoading(false);
+    // Use location from user profile if available
+    const userLocation = user.location || 'New York'; // Default location as fallback
+    console.log(`Loading ${activeTab} posts for user: ${user.id}, location: ${userLocation}`);
+    
+    try {
+      const fetchedPosts = await getFeedPosts(
+        activeTab as 'all' | 'local' | 'hotlist' | 'friends', 
+        user.id,
+        userLocation
+      );
+      setPosts(fetchedPosts);
+    } catch (err) {
+      console.error('Error loading posts:', err);
+      toast({
+        title: "Error Loading Posts",
+        description: "Could not load posts. Please try again later.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleRefresh = async () => {

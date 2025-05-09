@@ -1,11 +1,10 @@
-
 import { useEffect, useState } from "react";
 import Header from "@/components/Header";
 import PostFeed from "@/components/PostFeed";
 import Sidebar from "@/components/Sidebar";
 import AdDisplay from "@/components/AdDisplay";
 import { Image, MessageSquare, Video, X, Tag, Smile, Gift } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/auth/AuthProvider";
 import { useNavigate, Link } from "react-router-dom";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
@@ -38,6 +37,16 @@ const Index = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isPostLoading, setIsPostLoading] = useState(false);
 
+  // Check authentication
+  useEffect(() => {
+    if (!user) {
+      console.log("No authenticated user found, redirecting to login");
+      navigate('/login');
+    } else {
+      console.log("Authenticated user found:", user.id, user.name);
+    }
+  }, [user, navigate]);
+
   // Load banner state from localStorage on component mount
   useEffect(() => {
     const bannerState = localStorage.getItem('bannerHidden');
@@ -58,7 +67,7 @@ const Index = () => {
 
     // Log user activity
     const logActivity = () => {
-      console.log("User activity: Visited home page");
+      console.log("User activity: Visited home page", user?.id);
       // In a real application, this would call an API to record the activity
     };
 
@@ -76,17 +85,24 @@ const Index = () => {
     return () => {
       if (sidebar) observer.unobserve(sidebar);
     };
-  }, [showBanner]);
+  }, [showBanner, user]);
 
   // Fetch active friends
   useEffect(() => {
     const loadActiveFriends = async () => {
       if (!user) return;
       
+      console.log("Loading active friends for user:", user.id);
       setIsLoading(true);
-      const friends = await getActiveFriends(user.id);
-      setActiveFriends(friends);
-      setIsLoading(false);
+      try {
+        const friends = await getActiveFriends(user.id);
+        console.log(`Loaded ${friends.length} active friends`);
+        setActiveFriends(friends);
+      } catch (error) {
+        console.error("Error loading active friends:", error);
+      } finally {
+        setIsLoading(false);
+      }
     };
     
     loadActiveFriends();
@@ -172,6 +188,18 @@ const Index = () => {
       navigate("/shop");
     }
   };
+
+  // If no user, show loading state
+  if (!user) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-center">
+          <div className="w-16 h-16 mx-auto mb-4 border-4 border-gray-300 border-t-purple-600 rounded-full animate-spin"></div>
+          <p className="text-gray-500">Logging in...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex flex-col">

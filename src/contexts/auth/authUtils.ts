@@ -8,6 +8,7 @@ export const transformUser = async (supabaseUser: User | null): Promise<AuthUser
   if (!supabaseUser) return null;
   
   try {
+    console.log('Transforming user:', supabaseUser.id);
     // Fetch the user's profile from the profiles table
     const { data: profile, error } = await supabase
       .from('profiles')
@@ -54,6 +55,8 @@ export const transformUser = async (supabaseUser: User | null): Promise<AuthUser
       return null;
     }
     
+    console.log('Profile data retrieved:', profile);
+    
     // Define admin emails - for fallback if role isn't set
     const adminEmails = ['markwsims1998@gmail.com', 'admin@example.com'];
     const isAdminEmail = adminEmails.includes(supabaseUser.email || '');
@@ -64,6 +67,7 @@ export const transformUser = async (supabaseUser: User | null): Promise<AuthUser
       userRole = profile.role as 'admin' | 'moderator' | 'user';
     } else if (isAdminEmail) {
       userRole = 'admin';
+      console.log('Admin email detected, setting role to admin');
     }
     
     // Cast the status to the correct type or use a default value
@@ -74,7 +78,7 @@ export const transformUser = async (supabaseUser: User | null): Promise<AuthUser
     
     // Create a user object with data from auth and profile
     // Parse JSON fields with safe defaults
-    return {
+    const transformedUser: AuthUser = {
       id: supabaseUser.id,
       username: profile?.username || supabaseUser.email?.split('@')[0] || '',
       name: profile?.full_name || supabaseUser.email?.split('@')[0] || 'User',
@@ -103,6 +107,9 @@ export const transformUser = async (supabaseUser: User | null): Promise<AuthUser
       followers: 0, // These will be populated from relationship counts in future updates
       joinDate: profile?.created_at || new Date().toISOString() // Use created_at if available, otherwise current date
     };
+    
+    console.log('User transformed successfully:', userRole);
+    return transformedUser;
   } catch (err) {
     console.error('Error transforming user:', err);
     

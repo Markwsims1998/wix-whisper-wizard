@@ -31,8 +31,11 @@ export const getFeedPosts = async (
 ): Promise<Post[]> => {
   try {
     if (!userId) {
+      console.log('No user ID provided to getFeedPosts');
       return [];
     }
+
+    console.log(`Fetching ${category} feed posts for user ${userId} with location ${userLocation || 'undefined'}`);
 
     let query = supabase
       .from('posts')
@@ -55,12 +58,17 @@ export const getFeedPosts = async (
       
       if (usersInSameLocation && usersInSameLocation.length > 0) {
         const userIds = usersInSameLocation.map(user => user.id);
+        console.log(`Found ${userIds.length} users in location ${userLocation}`);
         query = query.in('user_id', userIds);
+      } else {
+        console.log(`No users found in location ${userLocation}`);
+        // If no users found in this location, just fallback to all posts
       }
     } else if (category === 'hotlist') {
       // For hotlist, get most liked/commented posts
       query = query.order('likes_count', { ascending: false }).limit(20);
     } else if (category === 'friends') {
+      console.log(`Fetching friends for user ${userId}`);
       // For friends feed, get posts from users the current user follows
       const { data: following } = await supabase
         .from('relationships')
@@ -70,8 +78,10 @@ export const getFeedPosts = async (
       
       if (following && following.length > 0) {
         const friendIds = following.map(relation => relation.followed_id);
+        console.log(`Found ${friendIds.length} friends, including user in feed`);
         query = query.in('user_id', [...friendIds, userId]);  // Include user's own posts
       } else {
+        console.log('No friends found, showing only user posts');
         // If no friends, just show own posts
         query = query.eq('user_id', userId);
       }
@@ -83,6 +93,8 @@ export const getFeedPosts = async (
       console.error('Error fetching feed posts:', error);
       return [];
     }
+    
+    console.log(`Retrieved ${data?.length || 0} posts for ${category} feed`);
     
     // Process and return the posts
     return (data || []).map(post => ({

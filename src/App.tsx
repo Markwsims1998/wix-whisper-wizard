@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -9,7 +8,7 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Footer from "./components/Footer";
 import { useAuth } from "./contexts/auth/AuthContext";
-import { useState, useEffect } from "react"; // Add missing hook imports
+import { useState, useEffect } from "react";
 
 // Import pages
 import Index from "./pages/Index";
@@ -80,11 +79,24 @@ const AppRoutes = () => {
       // Add a small delay for smoother transition
       const timer = setTimeout(() => {
         setIsAppLoading(false);
-      }, 500);
+      }, 300); // Reduced from 500ms to 300ms for faster initial load
       
       return () => clearTimeout(timer);
     }
   }, [loading]);
+  
+  // Set a timeout to force loading to end after 3 seconds even if auth is still loading
+  // This prevents infinite loading spinner if auth gets stuck
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (isAppLoading) {
+        console.log("Force ending loading state after timeout");
+        setIsAppLoading(false);
+      }
+    }, 3000);
+    
+    return () => clearTimeout(timeoutId);
+  }, [isAppLoading]);
 
   // Show global loading spinner until both auth and app are ready
   if (isAppLoading || loading) {

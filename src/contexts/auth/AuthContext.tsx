@@ -101,10 +101,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Setup auth state listener
   useEffect(() => {
     console.log("Setting up auth state listener...");
+    let mounted = true;
     
     // First set up the auth state change listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, currentSession) => {
+        if (!mounted) return;
+        
         console.log("Auth state changed:", event, !!currentSession);
         
         // Update session state synchronously
@@ -112,23 +115,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         // Transform the user if available
         if (currentSession?.user) {
-          const authUser = await transformUser(currentSession.user);
-          setUser(authUser);
-          setIsAuthenticated(!!authUser);
+          try {
+            const authUser = await transformUser(currentSession.user);
+            if (mounted) {
+              setUser(authUser);
+              setIsAuthenticated(!!authUser);
+              setLoading(false);
+            }
+          } catch (error) {
+            console.error("Error transforming user:", error);
+            if (mounted) setLoading(false);
+          }
         } else {
-          setUser(null);
-          setIsAuthenticated(false);
+          if (mounted) {
+            setUser(null);
+            setIsAuthenticated(false);
+            setLoading(false);
+          }
         }
         
         // If user just signed in, show toast
-        if (event === 'SIGNED_IN' && currentSession?.user) {
+        if (event === 'SIGNED_IN' && currentSession?.user && mounted) {
           toast({
             title: "Logged in",
             description: `Welcome back, ${currentSession.user.email}!`,
           });
         } 
         // If user signed out, show toast
-        else if (event === 'SIGNED_OUT') {
+        else if (event === 'SIGNED_OUT' && mounted) {
           toast({
             title: "Logged out",
             description: "You have been successfully logged out",
@@ -143,6 +157,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.log("Checking for existing session...");
         const { data: { session: existingSession }, error } = await supabase.auth.getSession();
         
+        if (!mounted) return;
+        
         if (error) {
           console.error("Error getting session:", error);
           setLoading(false);
@@ -153,25 +169,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         if (existingSession?.user) {
           setSession(existingSession);
-          // Transform the Supabase user to our AuthUser type
-          const authUser = await transformUser(existingSession.user);
-          setUser(authUser);
-          setIsAuthenticated(!!authUser);
-          console.log("User authenticated from stored session:", existingSession.user.email);
+          try {
+            // Transform the Supabase user to our AuthUser type
+            const authUser = await transformUser(existingSession.user);
+            if (mounted) {
+              setUser(authUser);
+              setIsAuthenticated(!!authUser);
+              console.log("User authenticated from stored session:", existingSession.user.email);
+            }
+          } catch (error) {
+            console.error("Error transforming user during session check:", error);
+          } 
         }
       } catch (error) {
         console.error("Error checking session:", error);
       } finally {
         // Always set loading to false when done checking
-        setLoading(false);
+        if (mounted) setLoading(false);
       }
     };
     
     // Run the session check
     checkExistingSession();
 
-    // Clean up subscription when component unmounts
+    // Clean up subscription and prevent state updates after unmount
     return () => {
+      mounted = false;
       subscription.unsubscribe();
     };
   }, [toast]);

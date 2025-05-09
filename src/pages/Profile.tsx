@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/auth/AuthProvider';
 import { useToast } from '@/components/ui/use-toast';
@@ -578,47 +577,45 @@ const Profile = () => {
   }, [user?.id, profileId, location.search]);
   
   if (loading) return (
-    <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex flex-col">
+    <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
       <Sidebar />
-      <Header />
-      <main className="flex-1 ml-[var(--sidebar-width,280px)] pt-16 px-4 pb-10 transition-all duration-300">
-        <LoadingProfile />
-      </main>
+      <div className="flex-1 flex flex-col">
+        <Header />
+        <main className="flex-1 p-4 pt-16 overflow-auto">
+          <div className="container max-w-4xl mx-auto">
+            <LoadingProfile />
+          </div>
+        </main>
+      </div>
     </div>
   );
 
   if (!profileData) return (
-    <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex flex-col">
+    <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
       <Sidebar />
-      <Header />
-      <main className="flex-1 ml-[var(--sidebar-width,280px)] pt-16 px-4 pb-10 transition-all duration-300">
-        <div className="container max-w-4xl mx-auto px-4 pb-10 pt-5">
-          <div className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow text-center">
-            <h2 className="text-2xl font-semibold mb-4">Profile Not Found</h2>
-            <p className="text-gray-600 dark:text-gray-300">
-              The profile you're looking for doesn't exist or you don't have permission to view it.
-            </p>
+      <div className="flex-1 flex flex-col">
+        <Header />
+        <main className="flex-1 p-4 pt-16 overflow-auto">
+          <div className="container max-w-4xl mx-auto">
+            <div className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow text-center">
+              <h2 className="text-2xl font-semibold mb-4">Profile Not Found</h2>
+              <p className="text-gray-600 dark:text-gray-300">
+                The profile you're looking for doesn't exist or you don't have permission to view it.
+              </p>
+            </div>
           </div>
-        </div>
-      </main>
+        </main>
+      </div>
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex flex-col">
+    <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
       <Sidebar />
-      <Header />
-      
-      <main className="flex-1 transition-all duration-300">
-        <div 
-          className="ml-[var(--sidebar-width,280px)] pt-16 px-4 pb-10"
-          style={{
-            transitionProperty: 'margin-left',
-            transitionDuration: '300ms',
-            transitionTimingFunction: 'ease-in-out'
-          }}
-        >
-          <div className="container max-w-4xl mx-auto px-4 pb-10 pt-5">
+      <div className="flex-1 flex flex-col">
+        <Header />
+        <main className="flex-1 p-4 pt-16 overflow-auto">
+          <div className="container max-w-4xl mx-auto">
             <ProfileHeader 
               profile={profileData}
               isMyProfile={isMyProfile}
@@ -664,8 +661,8 @@ const Profile = () => {
               />
             )}
           </div>
-        </div>
-      </main>
+        </main>
+      </div>
     </div>
   );
 };

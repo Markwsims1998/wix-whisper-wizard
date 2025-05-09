@@ -1,4 +1,3 @@
-
 import { Separator } from "@/components/ui/separator";
 import { User, Heart, MessageCircle, Lock, Gift } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -11,6 +10,7 @@ import MediaViewer from "@/components/media/MediaViewer";
 import { useAuth } from "@/contexts/AuthContext";
 import { getFeedPosts, likePost, Post as PostType } from "@/services/feedService";
 import { format } from "date-fns";
+import RefreshableFeed from "./RefreshableFeed";
 
 const PostFeed = () => {
   const [activeTab, setActiveTab] = useState("all");
@@ -24,21 +24,25 @@ const PostFeed = () => {
 
   // Load posts based on active tab
   useEffect(() => {
-    const loadPosts = async () => {
-      if (!user) return;
-      
-      setLoading(true);
-      const fetchedPosts = await getFeedPosts(
-        activeTab as 'all' | 'local' | 'hotlist' | 'friends', 
-        user.id,
-        'New York' // Ideally, this would come from the user's profile
-      );
-      setPosts(fetchedPosts);
-      setLoading(false);
-    };
-    
     loadPosts();
   }, [activeTab, user]);
+
+  const loadPosts = async () => {
+    if (!user) return;
+    
+    setLoading(true);
+    const fetchedPosts = await getFeedPosts(
+      activeTab as 'all' | 'local' | 'hotlist' | 'friends', 
+      user.id,
+      user?.location || 'New York' // Get location from user's profile if available
+    );
+    setPosts(fetchedPosts);
+    setLoading(false);
+  };
+
+  const handleRefresh = async () => {
+    return loadPosts();
+  };
 
   // Handle profile click to navigate to the user's profile
   const handleProfileClick = (author: any) => {
@@ -141,137 +145,139 @@ const PostFeed = () => {
             <TabsTrigger value="friends" className="text-xs">Friends</TabsTrigger>
           </TabsList>
           
-          <TabsContent value={activeTab} className="mt-4">
-            {subscriptionDetails.tier !== 'free' && (
-              <div className="bg-blue-50 dark:bg-blue-900/30 p-4 rounded-md mb-6 flex justify-between items-center">
-                <div>
-                  <p className="text-sm font-medium text-blue-800 dark:text-blue-200">
-                    You have an active {subscriptionDetails.tier} subscription
-                  </p>
-                  <p className="text-xs text-blue-600 dark:text-blue-300 mt-1">
-                    {subscriptionDetails.messageResetTime ? 
-                      `Next reset: ${new Date(subscriptionDetails.messageResetTime).toLocaleDateString()}` : 
-                      'Unlimited messages'}
-                  </p>
+          <RefreshableFeed onRefresh={handleRefresh}>
+            <TabsContent value={activeTab} className="mt-4">
+              {subscriptionDetails.tier !== 'free' && (
+                <div className="bg-blue-50 dark:bg-blue-900/30 p-4 rounded-md mb-6 flex justify-between items-center">
+                  <div>
+                    <p className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                      You have an active {subscriptionDetails.tier} subscription
+                    </p>
+                    <p className="text-xs text-blue-600 dark:text-blue-300 mt-1">
+                      {subscriptionDetails.messageResetTime ? 
+                        `Next reset: ${new Date(subscriptionDetails.messageResetTime).toLocaleDateString()}` : 
+                        'Unlimited messages'}
+                    </p>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="text-blue-700 border-blue-700 hover:bg-blue-50 dark:text-blue-300 dark:border-blue-400 dark:hover:bg-blue-800/30"
+                    onClick={() => navigate('/settings?tab=subscription')}
+                  >
+                    Manage Subscription
+                  </Button>
                 </div>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="text-blue-700 border-blue-700 hover:bg-blue-50 dark:text-blue-300 dark:border-blue-400 dark:hover:bg-blue-800/30"
-                  onClick={() => navigate('/settings?tab=subscription')}
-                >
-                  Manage Subscription
-                </Button>
-              </div>
-            )}
+              )}
 
-            {loading ? (
-              <div className="flex justify-center py-8">
-                <div className="animate-pulse flex flex-col w-full space-y-4">
-                  {[1, 2, 3].map((i) => (
-                    <div key={i} className="space-y-3">
-                      <div className="flex items-start gap-3">
-                        <div className="rounded-full bg-gray-200 h-10 w-10"></div>
-                        <div className="flex-1 space-y-2">
-                          <div className="h-4 bg-gray-200 rounded w-1/4"></div>
-                          <div className="h-3 bg-gray-200 rounded w-1/5"></div>
+              {loading ? (
+                <div className="flex justify-center py-8">
+                  <div className="animate-pulse flex flex-col w-full space-y-4">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="space-y-3">
+                        <div className="flex items-start gap-3">
+                          <div className="rounded-full bg-gray-200 h-10 w-10"></div>
+                          <div className="flex-1 space-y-2">
+                            <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+                            <div className="h-3 bg-gray-200 rounded w-1/5"></div>
+                          </div>
+                        </div>
+                        <div className="h-16 bg-gray-200 rounded"></div>
+                        <div className="flex gap-4">
+                          <div className="h-4 bg-gray-200 rounded w-12"></div>
+                          <div className="h-4 bg-gray-200 rounded w-12"></div>
                         </div>
                       </div>
-                      <div className="h-16 bg-gray-200 rounded"></div>
-                      <div className="flex gap-4">
-                        <div className="h-4 bg-gray-200 rounded w-12"></div>
-                        <div className="h-4 bg-gray-200 rounded w-12"></div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : posts.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-8">
-                <p className="text-gray-500 dark:text-gray-400 text-center">No posts available in this category.</p>
-                {activeTab === 'friends' && (
-                  <p className="text-gray-400 dark:text-gray-500 text-sm text-center mt-2">
-                    Follow other users to see their posts here!
-                  </p>
-                )}
-              </div>
-            ) : (
-              posts.map((post) => (
-                <div key={post.id} className="mb-8">
-                  <div className="flex items-start gap-3 mb-3">
-                    <div 
-                      className="h-10 w-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center overflow-hidden cursor-pointer"
-                      onClick={() => post.author && handleProfileClick(post.author)}
-                    >
-                      {post.author?.avatar_url ? (
-                        <img 
-                          src={post.author.avatar_url} 
-                          alt={post.author.full_name} 
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        <User className="h-5 w-5 text-gray-500" />
-                      )}
-                    </div>
-                    <div>
-                      <div className="flex items-center">
-                        <h3 
-                          className="text-md font-medium cursor-pointer hover:underline flex items-center"
-                          onClick={() => post.author && handleProfileClick(post.author)}
-                        >
-                          {post.author?.full_name || 'Unknown User'}
-                          {getSubscriptionBadge(post)}
-                        </h3>
-                      </div>
-                      <p className="text-xs text-gray-500">
-                        {post.created_at && format(new Date(post.created_at), 'MMM d, yyyy')}
-                      </p>
-                    </div>
+                    ))}
                   </div>
-                  
-                  <p className="mb-4">{post.content}</p>
-                  
-                  {post.media && post.media.length > 0 && post.media[0].media_type && (
-                    <div 
-                      className="relative mt-2 mb-4 cursor-pointer"
-                      onClick={() => handleMediaClick(post)}
-                    >
-                      {post.media[0].media_type.startsWith('image/') && (
-                        subscriptionDetails.canViewPhotos ? (
+                </div>
+              ) : posts.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-8">
+                  <p className="text-gray-500 dark:text-gray-400 text-center">No posts available in this category.</p>
+                  {activeTab === 'friends' && (
+                    <p className="text-gray-400 dark:text-gray-500 text-sm text-center mt-2">
+                      Follow other users to see their posts here!
+                    </p>
+                  )}
+                </div>
+              ) : (
+                posts.map((post) => (
+                  <div key={post.id} className="mb-8">
+                    <div className="flex items-start gap-3 mb-3">
+                      <div 
+                        className="h-10 w-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center overflow-hidden cursor-pointer"
+                        onClick={() => post.author && handleProfileClick(post.author)}
+                      >
+                        {post.author?.avatar_url ? (
                           <img 
-                            src={post.media[0].file_url} 
-                            alt="Post image" 
-                            className="rounded-lg w-full"
+                            src={post.author.avatar_url} 
+                            alt={post.author.full_name} 
+                            className="h-full w-full object-cover"
                           />
                         ) : (
-                          <div className="relative">
+                          <User className="h-5 w-5 text-gray-500" />
+                        )}
+                      </div>
+                      <div>
+                        <div className="flex items-center">
+                          <h3 
+                            className="text-md font-medium cursor-pointer hover:underline flex items-center"
+                            onClick={() => post.author && handleProfileClick(post.author)}
+                          >
+                            {post.author?.full_name || 'Unknown User'}
+                            {getSubscriptionBadge(post)}
+                          </h3>
+                        </div>
+                        <p className="text-xs text-gray-500">
+                          {post.created_at && format(new Date(post.created_at), 'MMM d, yyyy')}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <p className="mb-4">{post.content}</p>
+                    
+                    {post.media && post.media.length > 0 && post.media[0].media_type && (
+                      <div 
+                        className="relative mt-2 mb-4 cursor-pointer"
+                        onClick={() => handleMediaClick(post)}
+                      >
+                        {post.media[0].media_type.startsWith('image/') && (
+                          subscriptionDetails.canViewPhotos ? (
                             <img 
                               src={post.media[0].file_url} 
                               alt="Post image" 
-                              className="rounded-lg w-full blur-sm filter saturate-50"
+                              className="rounded-lg w-full"
                             />
-                            <div className="absolute inset-0 flex flex-col items-center justify-center">
-                              <Lock className="h-12 w-12 text-white/70 mb-2" />
-                              <p className="text-white/80 mb-4">Full quality photo requires a subscription</p>
-                              <Button 
-                                size="sm" 
-                                variant="outline" 
-                                className="bg-white/20 hover:bg-white/30 text-white border-white/20"
-                              >
-                                View Plans
-                              </Button>
+                          ) : (
+                            <div className="relative">
+                              <img 
+                                src={post.media[0].file_url} 
+                                alt="Post image" 
+                                className="rounded-lg w-full blur-sm filter saturate-50"
+                              />
+                              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                <Lock className="h-12 w-12 text-white/70 mb-2" />
+                                <p className="text-white/80 mb-4">Full quality photo requires a subscription</p>
+                                <Button 
+                                  size="sm" 
+                                  variant="outline" 
+                                  className="bg-white/20 hover:bg-white/30 text-white border-white/20"
+                                >
+                                  View Plans
+                                </Button>
+                              </div>
                             </div>
-                          </div>
-                        )
-                      )}
-                      
-                      {post.media[0].media_type.startsWith('video/') && (
-                        subscriptionDetails.canViewVideos ? (
-                          <div className="relative rounded-lg overflow-hidden bg-black aspect-video">
-                            <div className="absolute inset-0 flex items-center justify-center">
-                              <div className="w-16 h-16 rounded-full bg-white/30 flex items-center justify-center">
-                                <div className="w-14 h-14 rounded-full bg-white/80 flex items-center justify-center">
-                                  <div className="w-0 h-0 border-t-8 border-b-8 border-l-12 border-t-transparent border-b-transparent border-l-red-600 ml-1"></div>
+                          )
+                        )}
+                        
+                        {post.media[0].media_type.startsWith('video/') && (
+                          subscriptionDetails.canViewVideos ? (
+                            <div className="relative rounded-lg overflow-hidden bg-black aspect-video">
+                              <div className="absolute inset-0 flex items-center justify-center">
+                                <div className="w-16 h-16 rounded-full bg-white/30 flex items-center justify-center">
+                                  <div className="w-14 h-14 rounded-full bg-white/80 flex items-center justify-center">
+                                    <div className="w-0 h-0 border-t-8 border-b-8 border-l-12 border-t-transparent border-b-transparent border-l-red-600 ml-1"></div>
+                                  </div>
                                 </div>
                               </div>
                             </div>

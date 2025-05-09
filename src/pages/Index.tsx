@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import Header from "@/components/Header";
 import PostFeed from "@/components/PostFeed";
@@ -16,7 +17,9 @@ import ContentUploader from "@/components/media/ContentUploader";
 import data from '@emoji-mart/data';
 import Picker from '@emoji-mart/react';
 import GifPicker from "@/components/media/GifPicker";
-import { createPost, getActiveFriends } from "@/services/feedService";
+import { createPost } from "@/services/feedService";
+import { getActiveFriends } from "@/services/userService";
+import { FriendProfile } from "@/services/userService";
 
 const Index = () => {
   const { user } = useAuth();
@@ -31,7 +34,7 @@ const Index = () => {
   const [tagSuggestions, setTagSuggestions] = useState<boolean>(false);
   const [selectedGif, setSelectedGif] = useState<string | null>(null);
   const [showBanner, setShowBanner] = useState(true);
-  const [activeFriends, setActiveFriends] = useState<any[]>([]);
+  const [activeFriends, setActiveFriends] = useState<FriendProfile[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isPostLoading, setIsPostLoading] = useState(false);
 
@@ -355,9 +358,9 @@ const Index = () => {
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      {activeFriends.map((friend, id) => (
+                      {activeFriends.map((friend) => (
                         <Link 
-                          key={id} 
+                          key={friend.id} 
                           to={`/profile?id=${friend.id}`} 
                           className="flex items-center gap-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 p-2 rounded-lg"
                         >
@@ -370,14 +373,16 @@ const Index = () => {
                                   className="w-full h-full object-cover" 
                                 />
                               ) : (
-                                <span className="font-medium text-gray-500">{friend.full_name?.charAt(0) || 'U'}</span>
+                                <span className="font-medium text-gray-500">{friend.full_name?.charAt(0) || friend.username?.charAt(0) || 'U'}</span>
                               )}
                             </div>
-                            <div className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-green-400 border-2 border-white dark:border-gray-800"></div>
+                            <div className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white dark:border-gray-800 ${friend.status === 'online' ? 'bg-green-400' : 'bg-gray-400'}`}></div>
                           </div>
                           <div>
                             <p className="text-sm font-medium dark:text-gray-200">{friend.full_name || friend.username}</p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">Online</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                              {friend.status === 'online' ? 'Online' : 'Offline'}
+                            </p>
                           </div>
                         </Link>
                       ))}
@@ -388,8 +393,6 @@ const Index = () => {
 
               {/* Advertisement Section */}
               <AdDisplay />
-              
-              {/* Removed the separate subscription upsell section since it's now integrated in the ad display */}
             </div>
           </div>
         </div>

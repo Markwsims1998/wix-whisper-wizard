@@ -9,7 +9,7 @@ export interface UserProfile {
   full_name: string;
   role: 'admin' | 'moderator' | 'user';
   avatar_url?: string;
-  status?: 'active' | 'banned';
+  status: 'active' | 'banned';
   subscription_tier?: 'free' | 'bronze' | 'silver' | 'gold';
   last_sign_in_at?: string;
   created_at?: string;
@@ -43,9 +43,9 @@ export const fetchAllUsers = async (): Promise<UserProfile[]> => {
         email: authUser.email || '',
         username: profile.username || authUser.email?.split('@')[0] || '',
         full_name: profile.full_name || '',
-        role: profile.role || 'user',
+        role: (profile.role as 'admin' | 'moderator' | 'user') || 'user',
         avatar_url: profile.avatar_url,
-        status: authUser.banned ? 'banned' : 'active',
+        status: authUser.banned ? 'banned' as const : 'active' as const,
         subscription_tier: profile.subscription_tier || 'free',
         last_sign_in_at: authUser.last_sign_in_at,
         created_at: authUser.created_at
@@ -69,7 +69,7 @@ export const banUser = async (userId: string): Promise<boolean> => {
     // Update the user's status in auth system
     const { error } = await supabase.auth.admin.updateUserById(
       userId,
-      { banned: true }
+      { ban_duration: 'infinite' }
     );
     
     if (error) throw error;
@@ -90,7 +90,7 @@ export const unbanUser = async (userId: string): Promise<boolean> => {
     // Update the user's status in auth system
     const { error } = await supabase.auth.admin.updateUserById(
       userId,
-      { banned: false }
+      { ban_duration: null }
     );
     
     if (error) throw error;

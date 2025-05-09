@@ -40,6 +40,14 @@ export const transformUser = async (supabaseUser: User | null): Promise<AuthUser
     const adminEmails = ['markwsims1998@gmail.com', 'admin@example.com'];
     const isAdminEmail = adminEmails.includes(supabaseUser.email || '');
     
+    // Check if the role from the database is one of our valid roles
+    let userRole: 'admin' | 'moderator' | 'user' = 'user';
+    if (profile?.role === 'admin' || profile?.role === 'moderator' || profile?.role === 'user') {
+      userRole = profile.role;
+    } else if (isAdminEmail) {
+      userRole = 'admin';
+    }
+    
     // Create a user object with data from auth and profile
     // Parse JSON fields with safe defaults
     return {
@@ -47,7 +55,7 @@ export const transformUser = async (supabaseUser: User | null): Promise<AuthUser
       username: profile?.username || supabaseUser.email?.split('@')[0] || '',
       name: profile?.full_name || supabaseUser.email?.split('@')[0] || 'User',
       email: supabaseUser.email || '',
-      role: profile?.role || (isAdminEmail ? 'admin' : 'user'),
+      role: userRole,
       profilePicture: profile?.avatar_url,
       relationshipStatus: profile?.relationship_status,
       relationshipPartners: profile?.relationship_partners,
@@ -58,11 +66,11 @@ export const transformUser = async (supabaseUser: User | null): Promise<AuthUser
       showFeaturedContent: profile?.show_featured_content,
       bottomNavPreferences: profile?.bottom_nav_preferences,
       notificationPreferences: safeJsonParse(
-        profile?.notification_preferences, 
+        JSON.stringify(profile?.notification_preferences), 
         defaultNotificationPrefs
       ),
       privacySettings: safeJsonParse(
-        profile?.privacy_settings, 
+        JSON.stringify(profile?.privacy_settings), 
         defaultPrivacySettings
       )
     };

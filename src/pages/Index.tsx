@@ -1,7 +1,5 @@
-
 import { useEffect, useState } from "react";
 import Header from "@/components/Header";
-import MembersList from "@/components/MembersList";
 import PostFeed from "@/components/PostFeed";
 import Sidebar from "@/components/Sidebar";
 import AdDisplay from "@/components/AdDisplay";
@@ -18,6 +16,7 @@ import ContentUploader from "@/components/media/ContentUploader";
 import data from '@emoji-mart/data';
 import Picker from '@emoji-mart/react';
 import GifPicker from "@/components/media/GifPicker";
+import { createPost, getActiveFriends } from "@/services/feedService";
 
 const Index = () => {
   const { user } = useAuth();
@@ -32,6 +31,9 @@ const Index = () => {
   const [tagSuggestions, setTagSuggestions] = useState<boolean>(false);
   const [selectedGif, setSelectedGif] = useState<string | null>(null);
   const [showBanner, setShowBanner] = useState(true);
+  const [activeFriends, setActiveFriends] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isPostLoading, setIsPostLoading] = useState(false);
 
   // Load banner state from localStorage on component mount
   useEffect(() => {
@@ -73,6 +75,20 @@ const Index = () => {
     };
   }, [showBanner]);
 
+  // Fetch active friends
+  useEffect(() => {
+    const loadActiveFriends = async () => {
+      if (!user) return;
+      
+      setIsLoading(true);
+      const friends = await getActiveFriends(user.id);
+      setActiveFriends(friends);
+      setIsLoading(false);
+    };
+    
+    loadActiveFriends();
+  }, [user]);
+
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setPostText(e.target.value);
     // Check for @ symbol to trigger tag suggestions
@@ -102,21 +118,50 @@ const Index = () => {
     setUploadDialogOpen(true);
   };
 
-  const handleCreatePost = () => {
-    if ((postText.trim() === "" && !selectedGif)) return;
+  const handleCreatePost = async () => {
+    if ((postText.trim() === "" && !selectedGif) || !user) return;
     
-    // Here you would normally send the post to your backend
-    console.log("Creating post:", { text: postText, gif: selectedGif });
+    setIsPostLoading(true);
     
-    // Show success toast
-    toast({
-      title: "Post Created",
-      description: "Your post has been published successfully.",
-    });
-    
-    // Reset post text and gif
-    setPostText("");
-    setSelectedGif(null);
+    try {
+      let mediaUrl = selectedGif;
+      let mediaType = selectedGif ? 'gif' : undefined;
+      
+      const { success, post, error } = await createPost(
+        postText,
+        user.id,
+        mediaUrl,
+        mediaType
+      );
+      
+      if (success && post) {
+        toast({
+          title: "Post Created",
+          description: "Your post has been published successfully.",
+        });
+        
+        // Reset post text and gif
+        setPostText("");
+        setSelectedGif(null);
+        
+        // Refresh the feed (handled by the PostFeed component)
+      } else if (error) {
+        toast({
+          title: "Error Creating Post",
+          description: error,
+          variant: "destructive",
+        });
+      }
+    } catch (err) {
+      console.error('Error creating post:', err);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred while creating your post.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsPostLoading(false);
+    }
   };
 
   const handleRemoveAds = () => {
@@ -156,6 +201,7 @@ const Index = () => {
                     className="w-full min-h-[80px] bg-gray-100 dark:bg-gray-700 rounded-lg text-sm focus:outline-none p-3 resize-none"
                     value={postText}
                     onChange={handleTextChange}
+                    disabled={isPostLoading}
                   />
                   
                   {tagSuggestions && (
@@ -186,6 +232,7 @@ const Index = () => {
                       <button
                         className="absolute top-2 right-2 bg-black/50 rounded-full p-1 text-white hover:bg-black/70"
                         onClick={removeGif}
+                        disabled={isPostLoading}
                       >
                         <X size={16} />
                       </button>
@@ -201,6 +248,7 @@ const Index = () => {
                     size="sm" 
                     className="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
                     onClick={() => handleUploadClick('photo')}
+                    disabled={isPostLoading}
                   >
                     <Image className="w-5 h-5 text-green-500 mr-2" />
                     Photo
@@ -210,6 +258,7 @@ const Index = () => {
                     size="sm" 
                     className="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
                     onClick={() => handleUploadClick('video')}
+                    disabled={isPostLoading}
                   >
                     <Video className="w-5 h-5 text-red-500 mr-2" />
                     Video
@@ -218,6 +267,7 @@ const Index = () => {
                     variant="ghost" 
                     size="sm" 
                     className="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
+                    disabled={isPostLoading}
                   >
                     <Tag className="w-5 h-5 text-blue-500 mr-2" />
                     Tag
@@ -228,6 +278,7 @@ const Index = () => {
                         variant="ghost" 
                         size="sm" 
                         className="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
+                        disabled={isPostLoading}
                       >
                         <Smile className="w-5 h-5 text-amber-500 mr-2" />
                         Emoji
@@ -247,6 +298,7 @@ const Index = () => {
                         variant="ghost" 
                         size="sm" 
                         className="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
+                        disabled={isPostLoading}
                       >
                         <Gift className="w-5 h-5 text-purple-500 mr-2" />
                         GIF
@@ -261,9 +313,9 @@ const Index = () => {
                 <Button 
                   size="sm"
                   onClick={handleCreatePost}
-                  disabled={postText.trim() === "" && !selectedGif}
+                  disabled={postText.trim() === "" && !selectedGif || isPostLoading}
                 >
-                  Post
+                  {isPostLoading ? "Posting..." : "Post"}
                 </Button>
               </div>
             </div>
@@ -274,30 +326,63 @@ const Index = () => {
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4">
                 <h3 className="font-medium text-gray-800 dark:text-gray-200 mb-4">Active Friends</h3>
                 <ScrollArea className="h-[300px] pr-4">
-                  <div className="space-y-3">
-                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((id) => (
-                      <Link 
-                        key={id} 
-                        to={`/profile/${id}`} 
-                        className="flex items-center gap-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 p-2 rounded-lg"
-                      >
-                        <div className="relative">
-                          <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center overflow-hidden">
-                            <img 
-                              src={`https://randomuser.me/api/portraits/men/${id + 20}.jpg`} 
-                              alt={`Friend ${id}`}
-                              className="w-full h-full object-cover" 
-                            />
+                  {isLoading ? (
+                    <div className="space-y-3">
+                      {[1, 2, 3, 4].map((id) => (
+                        <div key={id} className="animate-pulse flex items-center gap-3 p-2">
+                          <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700"></div>
+                          <div className="flex-1">
+                            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-24"></div>
+                            <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-16 mt-1"></div>
                           </div>
-                          <div className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-green-400 border-2 border-white dark:border-gray-800"></div>
                         </div>
-                        <div>
-                          <p className="text-sm font-medium dark:text-gray-200">Friend {id}</p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">Online</p>
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  ) : activeFriends.length === 0 ? (
+                    <div className="text-center py-8">
+                      <p className="text-gray-500 dark:text-gray-400 text-sm">No active friends found.</p>
+                      <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">
+                        Connect with others to see them here!
+                      </p>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="mt-4"
+                        onClick={() => navigate('/people')}
+                      >
+                        Find Friends
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {activeFriends.map((friend, id) => (
+                        <Link 
+                          key={id} 
+                          to={`/profile?id=${friend.id}`} 
+                          className="flex items-center gap-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 p-2 rounded-lg"
+                        >
+                          <div className="relative">
+                            <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center overflow-hidden">
+                              {friend.avatar_url ? (
+                                <img 
+                                  src={friend.avatar_url}
+                                  alt={friend.full_name} 
+                                  className="w-full h-full object-cover" 
+                                />
+                              ) : (
+                                <span className="font-medium text-gray-500">{friend.full_name?.charAt(0) || 'U'}</span>
+                              )}
+                            </div>
+                            <div className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-green-400 border-2 border-white dark:border-gray-800"></div>
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium dark:text-gray-200">{friend.full_name || friend.username}</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">Online</p>
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  )}
                 </ScrollArea>
               </div>
 

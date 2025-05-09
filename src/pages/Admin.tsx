@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
@@ -72,9 +71,8 @@ const Admin = () => {
           return;
         }
         
-        // Check if email contains "admin" for quick admin access
-        // In a real app, you would check a roles table or admin flag
-        if (user.email.includes('admin')) {
+        // Check if user role is admin
+        if (user.role === 'admin') {
           setIsAdmin(true);
         } else {
           toast({

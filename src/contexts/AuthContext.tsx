@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from "@/components/ui/use-toast";
@@ -69,13 +68,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return null;
       }
       
+      // Define admin emails - add your email here
+      const adminEmails = ['markwsims1998@gmail.com', 'admin@example.com'];
+      const isAdmin = adminEmails.includes(supabaseUser.email || '');
+      
       // Create a user object with data from auth and profile
       return {
         id: supabaseUser.id,
         username: profile?.username || supabaseUser.email?.split('@')[0] || '',
         name: profile?.full_name || supabaseUser.email?.split('@')[0] || 'User',
         email: supabaseUser.email || '',
-        role: supabaseUser.email?.includes('admin') ? 'admin' : 'user',
+        role: isAdmin ? 'admin' : 'user',
         profilePicture: profile?.avatar_url,
         relationshipStatus: profile?.relationship_status,
         relationshipPartners: profile?.relationship_partners

@@ -1,8 +1,8 @@
 
+import { useEffect, useState } from "react";
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
-import { useEffect, useState } from "react";
-import { Image as ImageIcon, User, Heart, Filter } from "lucide-react";
+import { Image as ImageIcon, User, Heart, Filter, Info } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { Button } from "@/components/ui/button";
@@ -10,13 +10,16 @@ import MediaViewer from "@/components/media/MediaViewer";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import ContentUploader from "@/components/media/ContentUploader";
+import { useToast } from "@/hooks/use-toast";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const Photos = () => {
   const { subscriptionDetails } = useSubscription();
-  const canViewPhotos = true; // All users can view photos
   const [selectedPhoto, setSelectedPhoto] = useState<any | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [uploaderOpen, setUploaderOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
 
   // Categories for filtering
   const categories = [
@@ -53,12 +56,32 @@ const Photos = () => {
     };
   }, []);
 
-  // Log user activity
+  // Log user activity and load photos
   useEffect(() => {
     console.log("User activity: Viewed Photos page");
-    // In a real app, this would call an API to record the activity
-  }, []);
+    
+    // Simulate loading photos from API
+    const loadPhotos = async () => {
+      try {
+        setIsLoading(true);
+        // In a real app, fetch photos from API
+        await new Promise(resolve => setTimeout(resolve, 800));
+        setIsLoading(false);
+      } catch (error) {
+        console.error("Failed to load photos:", error);
+        toast({
+          title: "Error loading photos",
+          description: "There was a problem loading the photos. Please try again.",
+          variant: "destructive",
+        });
+        setIsLoading(false);
+      }
+    };
+    
+    loadPhotos();
+  }, [toast]);
 
+  // Sample photos data - this would come from an API in a real app
   const photos = [
     { id: 1, image: 'https://via.placeholder.com/400x400', title: 'Community Event', author: 'Admin', views: '1.2k', likes: 45, postId: '101', category: 'events' },
     { id: 2, thumbnail: 'https://via.placeholder.com/400x400', title: 'Fashion Showcase', author: 'Sephiroth', views: '856', likes: 32, postId: '102', category: 'fashion' },
@@ -79,6 +102,18 @@ const Photos = () => {
     setSelectedPhoto(photo);
   };
 
+  const handleOpenUploader = () => {
+    setUploaderOpen(true);
+  };
+  
+  // Handle successful upload
+  const handleUploadSuccess = () => {
+    toast({
+      title: "Upload successful",
+      description: "Your photo has been uploaded successfully.",
+    });
+  };
+
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
       <Sidebar />
@@ -93,7 +128,7 @@ const Photos = () => {
                 <div className="border-b-2 border-purple-500 w-16 mt-1"></div>
               </div>
 
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-4 flex-wrap">
                 <div className="flex items-center gap-2">
                   <Filter className="w-5 h-5 text-gray-500 dark:text-gray-300" />
                   <span className="text-sm font-medium text-gray-700 dark:text-gray-200">Filter:</span>
@@ -119,7 +154,7 @@ const Photos = () => {
                 </div>
 
                 <Button 
-                  onClick={() => setUploaderOpen(true)} 
+                  onClick={handleOpenUploader} 
                   className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition ml-auto"
                 >
                   <ImageIcon className="w-5 h-5" />
@@ -128,45 +163,60 @@ const Photos = () => {
               </div>
             </div>
             
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-              {filteredPhotos.map(photo => (
-                <div 
-                  key={photo.id} 
-                  className="bg-gray-50 dark:bg-gray-700 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition cursor-pointer group"
-                  onClick={() => handlePhotoClick(photo)}
-                >
-                  <div className="relative aspect-square">
-                    <img 
-                      src={photo.thumbnail || photo.image} 
-                      alt={photo.title} 
-                      className="w-full h-full object-cover"
-                    />
-                    <Badge className="absolute top-3 right-3 bg-gray-800/80 text-white">
-                      {photo.category}
-                    </Badge>
-                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-200 flex items-center justify-center opacity-0 group-hover:opacity-100">
-                      <div className="text-white font-medium">View Photo</div>
+            {isLoading ? (
+              <div className="flex flex-col items-center justify-center py-12">
+                <div className="w-16 h-16 border-4 border-purple-200 border-t-purple-500 rounded-full animate-spin mb-4"></div>
+                <p className="text-gray-500 dark:text-gray-400">Loading photos...</p>
+              </div>
+            ) : filteredPhotos.length > 0 ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                {filteredPhotos.map(photo => (
+                  <div 
+                    key={photo.id} 
+                    className="bg-gray-50 dark:bg-gray-700 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition cursor-pointer group"
+                    onClick={() => handlePhotoClick(photo)}
+                  >
+                    <div className="relative aspect-square">
+                      <img 
+                        src={photo.thumbnail || photo.image} 
+                        alt={photo.title} 
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                      />
+                      <Badge className="absolute top-3 right-3 bg-gray-800/80 text-white">
+                        {photo.category}
+                      </Badge>
+                      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-200 flex items-center justify-center opacity-0 group-hover:opacity-100">
+                        <div className="text-white font-medium">View Photo</div>
+                      </div>
+                    </div>
+                    <div className="p-3 dark:text-gray-100">
+                      <div className="flex items-center gap-2">
+                        <div className="h-10 w-10 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center overflow-hidden">
+                          <User className="h-4 w-4 text-gray-500 dark:text-gray-300" />
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="font-medium text-sm line-clamp-1">{photo.title}</h3>
+                          <p className="text-xs text-gray-500 dark:text-gray-300">{photo.author}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-end mt-2">
+                        <div className="flex items-center text-gray-500 dark:text-gray-300 text-xs bg-gray-100 dark:bg-gray-600 px-2 py-1 rounded-full">
+                          <Heart className="h-3 w-3 mr-1 text-red-400" /> {photo.likes}
+                        </div>
+                      </div>
                     </div>
                   </div>
-                  <div className="p-3 dark:text-gray-100">
-                    <div className="flex items-center gap-2">
-                      <div className="h-10 w-10 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center overflow-hidden">
-                        <User className="h-4 w-4 text-gray-500 dark:text-gray-300" />
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="font-medium text-sm line-clamp-1">{photo.title}</h3>
-                        <p className="text-xs text-gray-500 dark:text-gray-300">{photo.author}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-end mt-2">
-                      <div className="flex items-center text-gray-500 dark:text-gray-300 text-xs bg-gray-100 dark:bg-gray-600 px-2 py-1 rounded-full">
-                        <Heart className="h-3 w-3 mr-1 text-red-400" /> {photo.likes}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <Alert className="bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800">
+                <Info className="h-4 w-4" />
+                <AlertDescription>
+                  No photos found for the selected category. Try selecting a different category or upload a new photo.
+                </AlertDescription>
+              </Alert>
+            )}
           </div>
         </div>
       </div>
@@ -186,6 +236,7 @@ const Photos = () => {
         open={uploaderOpen} 
         onOpenChange={setUploaderOpen}
         type="photo"
+        onSuccess={handleUploadSuccess}
       />
     </div>
   );

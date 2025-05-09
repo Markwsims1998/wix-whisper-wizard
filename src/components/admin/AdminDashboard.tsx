@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -6,7 +7,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Activity, TrendingUp, TrendingDown, Users, Database, AlertTriangle, CreditCard, Eye } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
 
-// Sample data for charts
+// Sample data for charts - kept the same
 const weeklyStats = [
   { name: 'Mon', users: 400, content: 240 },
   { name: 'Tue', users: 300, content: 138 },
@@ -39,14 +40,25 @@ const COLORS = ['#CBD5E1', '#B45309', '#94A3B8', '#EAB308'];
 
 const AdminDashboard = () => {
   const [period, setPeriod] = useState("7d");
+  const [isLoading, setIsLoading] = useState(false);
+  
+  const refreshData = () => {
+    setIsLoading(true);
+    // Simulate data refresh
+    setTimeout(() => {
+      setIsLoading(false);
+    }, 1000);
+  };
   
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-4">
         <h1 className="text-2xl font-bold tracking-tight">Admin Dashboard</h1>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm">Export Data</Button>
-          <Button size="sm">Refresh</Button>
+          <Button size="sm" onClick={refreshData} disabled={isLoading}>
+            {isLoading ? "Refreshing..." : "Refresh"}
+          </Button>
         </div>
       </div>
       
@@ -192,7 +204,7 @@ const AdminDashboard = () => {
       
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-4">
             <div>
               <CardTitle>Revenue Overview</CardTitle>
               <CardDescription>Subscription revenue by tier</CardDescription>
@@ -223,7 +235,7 @@ const AdminDashboard = () => {
           </div>
         </CardContent>
         <CardFooter className="border-t px-6 py-3">
-          <div className="flex items-center justify-between w-full">
+          <div className="flex items-center justify-between w-full flex-wrap gap-2">
             <div className="text-sm text-muted-foreground">
               Total Revenue for {period === "7d" ? "last 7 days" : period === "30d" ? "last 30 days" : "last 90 days"}
             </div>
@@ -280,13 +292,13 @@ const AdminDashboard = () => {
                   <div className="text-sm font-medium">
                     {['Post', 'Photo', 'Comment', 'Video', 'User Report'][i]} needs review
                   </div>
-                  <div className="flex items-center justify-between mt-1">
+                  <div className="flex items-center justify-between mt-1 flex-wrap gap-1">
                     <span className="text-xs text-gray-500">Flagged {i * 3 + 2} hours ago</span>
                     <div className="flex gap-1">
-                      <Button variant="ghost" size="sm" className="h-7 text-red-500 hover:text-red-700 hover:bg-red-50">
+                      <Button variant="ghost" size="sm" className="h-7 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30">
                         Reject
                       </Button>
-                      <Button variant="ghost" size="sm" className="h-7 text-green-500 hover:text-green-700 hover:bg-green-50">
+                      <Button variant="ghost" size="sm" className="h-7 text-green-500 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-950/30">
                         Approve
                       </Button>
                     </div>

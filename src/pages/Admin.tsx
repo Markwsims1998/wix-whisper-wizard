@@ -18,23 +18,59 @@ import AdminReports from "@/components/admin/AdminReports";
 import AdminSettings from "@/components/admin/AdminSettings";
 import AdminSubscriptions from "@/components/admin/AdminSubscriptions";
 
+// Add CSS variables for the admin sidebar
+const initAdminStyles = () => {
+  document.documentElement.style.setProperty('--admin-sidebar-width', '280px');
+  
+  // Add media query listener for responsive design
+  const mediaQuery = window.matchMedia('(max-width: 768px)');
+  
+  const handleMediaQueryChange = (e: MediaQueryListEvent | MediaQueryList) => {
+    if (e.matches) {
+      // Mobile view - start with sidebar closed
+      document.documentElement.style.setProperty('--admin-sidebar-width', '0px');
+    } else {
+      // Desktop view - sidebar open
+      document.documentElement.style.setProperty('--admin-sidebar-width', '280px');
+    }
+  };
+  
+  // Set initial value
+  handleMediaQueryChange(mediaQuery);
+  
+  // Add listener for changes
+  mediaQuery.addEventListener('change', handleMediaQueryChange);
+  
+  // Clean up function
+  return () => mediaQuery.removeEventListener('change', handleMediaQueryChange);
+};
+
 const Admin = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("dashboard");
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Initialize admin styles
+  useEffect(() => {
+    const cleanup = initAdminStyles();
+    return cleanup;
+  }, []);
 
   // Simulate checking if user is an admin
   useEffect(() => {
     // In a real app, this would check server-side authorization
     const checkAdminStatus = async () => {
       try {
+        setIsLoading(true);
         // Simulating an API call
         await new Promise(resolve => setTimeout(resolve, 500));
         
         // For demo purposes, we'll consider the user is an admin
         setIsAdmin(true);
+        setIsLoading(false);
         
         // In a real application, you would verify admin status with backend
         // If not an admin, redirect
@@ -48,6 +84,11 @@ const Admin = () => {
         }
       } catch (error) {
         console.error("Failed to verify admin status:", error);
+        toast({
+          title: "Authentication Error",
+          description: "Failed to verify your admin access. Please try again.",
+          variant: "destructive",
+        });
         navigate("/");
       }
     };
@@ -59,13 +100,26 @@ const Admin = () => {
     setActiveTab(value);
   };
 
-  if (!isAdmin) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <AlertTriangle className="mx-auto h-12 w-12 text-yellow-500" />
           <h1 className="mt-4 text-lg font-semibold">Verifying Admin Status</h1>
           <p className="mt-2 text-sm text-gray-500">Please wait while we verify your credentials...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <Ban className="mx-auto h-12 w-12 text-red-500" />
+          <h1 className="mt-4 text-xl font-semibold">Access Denied</h1>
+          <p className="mt-2 text-sm text-gray-500 mb-4">You don't have permission to access the admin portal</p>
+          <Button onClick={() => navigate("/")}>Return to Home</Button>
         </div>
       </div>
     );
@@ -79,11 +133,12 @@ const Admin = () => {
       <div className="pl-[280px] pt-16 pr-4 pb-10 transition-all duration-300" 
         style={{ paddingLeft: 'var(--admin-sidebar-width, 280px)' }}>
         <div className="max-w-7xl mx-auto">
-          <div className="flex justify-between items-center mb-6">
+          <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
             <div className="flex items-center gap-2">
               <button 
                 onClick={() => navigate("/")} 
                 className="flex items-center gap-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+                aria-label="Back to site"
               >
                 <ArrowLeft className="w-5 h-5" />
                 <span className="font-medium">Back to Site</span>

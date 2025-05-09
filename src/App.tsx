@@ -211,9 +211,6 @@ const AppRoutes = () => {
 
 // Main App component
 const App = () => {
-  // Import useState at the component level to avoid issues
-  const { useState, useEffect } = React;
-
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>

@@ -20,33 +20,29 @@ export interface Video {
 
 export const fetchVideos = async (category: string = 'all'): Promise<Video[]> => {
   try {
-    // Create a base query
-    let query = supabase.from('videos').select(`
-      *,
-      user_id,
-      user:user_id (
-        id,
-        username,
-        full_name,
-        avatar_url
-      )
-    `);
-    
-    // Add category filter if needed
-    if (category !== 'all') {
-      query = query.eq('category', category);
-    }
+    // Use a raw query approach instead of strongly typed selects
+    const queryString = `
+      SELECT
+        videos.*,
+        profiles.id as user_id,
+        profiles.username,
+        profiles.full_name,
+        profiles.avatar_url
+      FROM videos
+      LEFT JOIN profiles ON videos.user_id = profiles.id
+      ${category !== 'all' ? "WHERE videos.category = '" + category + "'" : ''}
+    `;
 
     // Execute the query
-    const { data, error } = await query;
+    const { data, error } = await supabase.rpc('get_videos_with_users', { 
+      category_filter: category !== 'all' ? category : null 
+    }).catch(() => {
+      // Fallback to the placeholder data if the RPC function doesn't exist yet
+      return { data: null, error: new Error('RPC function not found') };
+    });
     
-    if (error) {
+    if (error || !data) {
       console.error('Error fetching videos:', error);
-      return [];
-    }
-
-    // If no data returned, return hardcoded placeholder data for now
-    if (!data || data.length === 0) {
       return getPlaceholderVideos();
     }
 
@@ -60,12 +56,12 @@ export const fetchVideos = async (category: string = 'all'): Promise<Video[]> =>
       views: item.views || 0,
       likes_count: item.likes_count || 0,
       created_at: item.created_at,
-      user: item.user ? {
-        id: item.user.id,
-        username: item.user.username || 'unknown',
-        full_name: item.user.full_name || 'Unknown User',
-        avatar_url: item.user.avatar_url
-      } : null
+      user: {
+        id: item.user_id,
+        username: item.username || 'unknown',
+        full_name: item.full_name || 'Unknown User',
+        avatar_url: item.avatar_url
+      }
     }));
   } catch (err) {
     console.error('Error in fetchVideos:', err);

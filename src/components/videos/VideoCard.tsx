@@ -47,7 +47,15 @@ const VideoCard = ({ video, canViewVideos, onVideoClick }: VideoCardProps) => {
       <div className="p-4 dark:text-gray-100">
         <div className="flex items-start gap-3">
           <div className="h-12 w-12 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center overflow-hidden">
-            <User className="h-5 w-5 text-gray-500 dark:text-gray-300" />
+            {video.user?.avatar_url ? (
+              <img 
+                src={video.user.avatar_url} 
+                alt={video.user.full_name} 
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <User className="h-5 w-5 text-gray-500 dark:text-gray-300" />
+            )}
           </div>
           <div className="flex-1">
             <h3 className="font-medium">{video.title}</h3>

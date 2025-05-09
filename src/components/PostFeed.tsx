@@ -201,7 +201,7 @@ const posts: Post[] = [
 const PostFeed = () => {
   const [activeTab, setActiveTab] = useState("all");
   const [selectedMedia, setSelectedMedia] = useState<any | null>(null);
-  const { subscriptionDetails, updateSubscription } = useSubscription();
+  const { subscriptionDetails, upgradeSubscription } = useSubscription();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -244,13 +244,7 @@ const PostFeed = () => {
 
   const cancelSubscription = () => {
     // Update the subscription to free tier
-    updateSubscription({
-      tier: 'free',
-      canViewPhotos: false,
-      canViewVideos: false,
-      renewalDate: null,
-      price: 0
-    });
+    upgradeSubscription('free');
     
     // Show toast notification
     toast({
@@ -298,7 +292,9 @@ const PostFeed = () => {
                     You have an active {subscriptionDetails.tier} subscription
                   </p>
                   <p className="text-xs text-blue-600 dark:text-blue-300 mt-1">
-                    Renewal date: {subscriptionDetails.renewalDate || 'N/A'}
+                    {subscriptionDetails.messageResetTime ? 
+                      `Next reset: ${new Date(subscriptionDetails.messageResetTime).toLocaleDateString()}` : 
+                      'Unlimited messages'}
                   </p>
                 </div>
                 <Button 

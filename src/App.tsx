@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -9,8 +8,8 @@ import { SubscriptionProvider } from "./contexts/SubscriptionContext";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Footer from "./components/Footer";
-import { AuthProvider } from "./contexts/auth/AuthProvider";
-import { useAuth } from "./contexts/auth/AuthProvider";
+import { AuthProvider } from "./contexts/AuthContext";
+import { useAuth } from "./contexts/AuthContext";
 
 // Import pages
 import Index from "./pages/Index";
@@ -72,22 +71,23 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
 const AppRoutes = () => {
   const [isLoading, setIsLoading] = useState(true);
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
 
   useEffect(() => {
-    // Log initial app load
-    console.log("User activity: Application loaded");
-    console.log("Current user:", user);
-    
-    // Simulate initial app loading
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 1000); // Reduced loading time
+    // Only start app loading once auth is determined
+    if (!authLoading) {
+      console.log("User activity: Application loaded", { user });
+      
+      // Shorter loading time once auth is determined
+      const timer = setTimeout(() => {
+        setIsLoading(false);
+      }, 500);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [user, authLoading]);
 
-    return () => clearTimeout(timer);
-  }, [user]);
-
-  if (isLoading) {
+  if (isLoading || authLoading) {
     return (
       <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center">
         <div className="flex flex-col items-center">
@@ -210,17 +210,7 @@ const AppRoutes = () => {
   );
 };
 
-// Wrapper component to properly initialize auth and provide it to components
-const AuthenticatedApp = () => {
-  return (
-    <AuthProvider>
-      <SubscriptionProvider>
-        <AppRoutes />
-      </SubscriptionProvider>
-    </AuthProvider>
-  );
-};
-
+// Updated APP structure to improve authentication flow
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <BrowserRouter>
@@ -228,7 +218,11 @@ const App = () => (
         <ThemeProvider>
           <Toaster />
           <Sonner />
-          <AuthenticatedApp />
+          <AuthProvider>
+            <SubscriptionProvider>
+              <AppRoutes />
+            </SubscriptionProvider>
+          </AuthProvider>
         </ThemeProvider>
       </TooltipProvider>
     </BrowserRouter>

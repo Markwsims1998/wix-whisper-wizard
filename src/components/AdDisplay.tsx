@@ -42,7 +42,7 @@ const AdDisplay = ({ className = "" }: AdDisplayProps) => {
     };
     
     verifyAuth();
-  }, [isAuthenticated, user, subscriptionTier]);
+  }, [isAuthenticated, user, subscriptionTier, refreshSubscription]);
   
   // Determine whether to show ads based on subscription tier
   // Only show ads for free and bronze tiers, hide for silver and gold

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Award, Diamond, Badge as BadgeIcon, Check, ChevronDown, ChevronUp, ShoppingCart, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -53,7 +54,7 @@ const Shop = () => {
     };
     
     checkAuth();
-  }, [user, isAuthenticated]);
+  }, [user, isAuthenticated, refreshSubscription]);
 
   // Set showSubscriptions based on subscription tier - collapse for premium tiers
   useEffect(() => {

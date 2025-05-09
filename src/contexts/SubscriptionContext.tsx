@@ -1,5 +1,4 @@
-
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useAuth } from './AuthContext';
 import { Badge } from "@/components/ui/badge";
 import { Award, Diamond, Badge as BadgeIcon } from "lucide-react";
@@ -83,7 +82,7 @@ export const SubscriptionProvider: React.FC<{children: React.ReactNode}> = ({ ch
   const { toast } = useToast();
   
   // Function to refresh subscription from database - can be called externally
-  const refreshSubscription = async () => {
+  const refreshSubscription = useCallback(async () => {
     setIsLoading(true);
     
     if (!isAuthenticated) {
@@ -181,22 +180,24 @@ export const SubscriptionProvider: React.FC<{children: React.ReactNode}> = ({ ch
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [isAuthenticated, toast]);
   
   // Load subscription from Supabase on init and when user changes
   useEffect(() => {
     refreshSubscription();
-  }, [user, isAuthenticated]);
+  }, [user, isAuthenticated, refreshSubscription]);
 
-  // Setup a periodic refresh of the subscription data
+  // Setup a more frequent refresh of the subscription data to catch changes
   useEffect(() => {
-    // Refresh subscription every minute to catch any external changes
+    // Refresh subscription every 30 seconds to catch any external changes
     const refreshInterval = setInterval(() => {
-      refreshSubscription();
-    }, 60000); // 60 seconds
+      if (isAuthenticated) {
+        refreshSubscription();
+      }
+    }, 30000); // 30 seconds
     
     return () => clearInterval(refreshInterval);
-  }, []);
+  }, [isAuthenticated, refreshSubscription]);
 
   const upgradeSubscription = async (tier: SubscriptionTier): Promise<boolean> => {
     console.log("SubscriptionContext: Attempting to upgrade subscription", {
@@ -237,7 +238,6 @@ export const SubscriptionProvider: React.FC<{children: React.ReactNode}> = ({ ch
         toast({
           title: "Update Failed",
           description: "Could not update your subscription. Please try again.",
-          variant: "destructive",
         });
         return false;
       }

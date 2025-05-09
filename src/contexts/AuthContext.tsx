@@ -29,10 +29,54 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // Initialize session and user from Supabase on component mount
   useEffect(() => {
-    // Get the initial session
+    console.log("AuthContext: Setting up authentication system");
+    setLoading(true);
+    
+    // Step 1: Set up the auth state change listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, newSession) => {
+        console.log("AuthContext: Auth state changed:", event, !!newSession);
+        
+        // First update the session state immediately to avoid flickering
+        setSession(newSession);
+        
+        if (newSession?.user) {
+          // For auth state changes, use setTimeout to avoid potential deadlocks
+          setTimeout(async () => {
+            try {
+              const transformedUser = await transformUser(newSession.user);
+              
+              if (transformedUser) {
+                console.log("AuthContext: User authenticated after state change:", transformedUser.id);
+                setUser(transformedUser);
+                setIsAuthenticated(true);
+              } else {
+                console.error("AuthContext: User transformation failed during state change");
+                setUser(null);
+                setIsAuthenticated(false);
+              }
+              
+              setLoading(false);
+            } catch (error) {
+              console.error("Error transforming user after auth state change:", error);
+              setUser(null);
+              setIsAuthenticated(false);
+              setLoading(false);
+            }
+          }, 0);
+        } else {
+          setUser(null);
+          setIsAuthenticated(false);
+          setLoading(false);
+          console.log("AuthContext: No authenticated user after state change");
+        }
+      }
+    );
+    
+    // Step 2: THEN check for existing session
     const initializeAuth = async () => {
       try {
-        console.log("AuthContext: Initializing authentication");
+        console.log("AuthContext: Checking for existing session");
         
         // Get current session
         const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
@@ -42,6 +86,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
         
         console.log("AuthContext: Session exists:", !!currentSession);
+        
+        // Update session state immediately
         setSession(currentSession);
         
         // If there's a session, get and transform the user
@@ -76,41 +122,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     };
     
+    // Execute initialization
     initializeAuth();
-    
-    // Set up auth state change listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, currentSession) => {
-        console.log("AuthContext: Auth state changed, session exists:", !!currentSession);
-        setSession(currentSession);
-        
-        if (currentSession?.user) {
-          try {
-            const transformedUser = await transformUser(currentSession.user);
-            
-            if (transformedUser) {
-              console.log("AuthContext: User authenticated after state change:", transformedUser.id);
-              setUser(transformedUser);
-              setIsAuthenticated(true);
-            } else {
-              console.error("AuthContext: User transformation failed during state change");
-              setUser(null);
-              setIsAuthenticated(false);
-            }
-          } catch (error) {
-            console.error("Error transforming user after auth state change:", error);
-            setUser(null);
-            setIsAuthenticated(false);
-          }
-        } else {
-          setUser(null);
-          setIsAuthenticated(false);
-          console.log("AuthContext: No authenticated user after state change");
-        }
-        
-        setLoading(false);
-      }
-    );
     
     // Clean up subscription when component unmounts
     return () => {
@@ -340,7 +353,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     updateUserRole,
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {loading ? (
+        <div className="flex items-center justify-center h-screen">
+          <div className="flex flex-col items-center">
+            <div className="w-16 h-16 rounded-full border-4 border-purple-500 border-t-transparent animate-spin"></div>
+            <p className="mt-4 text-gray-600">Loading...</p>
+          </div>
+        </div>
+      ) : (
+        children
+      )}
+    </AuthContext.Provider>
+  );
 };
 
 // Custom hook to use the AuthContext

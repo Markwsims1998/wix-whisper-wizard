@@ -9,15 +9,33 @@ import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useNavigate } from "react-router-dom";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/auth/AuthProvider";
+
+interface ProfileData {
+  id: string;
+  username: string;
+  full_name: string;
+  avatar_url?: string;
+  last_active?: string;
+  relationship_status?: string;
+  location?: string;
+  is_local?: boolean;
+  is_hotlist?: boolean;
+  subscription_tier?: 'free' | 'bronze' | 'silver' | 'gold';
+  role?: string;
+}
 
 const People = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
   const { subscriptionTier } = useSubscription();
   const [searchTerm, setSearchTerm] = useState("");
   const [friendRequests, setFriendRequests] = useState<Set<string>>(new Set());
-  const [friendsList, setFriendsList] = useState<Set<string>>(new Set(['1', '2', '3', '4']));
+  const [friendsList, setFriendsList] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
+  const [members, setMembers] = useState<ProfileData[]>([]);
   
   // Update header position based on sidebar width
   useEffect(() => {
@@ -44,13 +62,99 @@ const People = () => {
     };
   }, []);
 
+  // Load friends data
+  useEffect(() => {
+    if (!user?.id) return;
+    
+    const fetchFriends = async () => {
+      try {
+        // Get relationships where user is the follower and status is accepted
+        const { data: relationships, error: relationshipsError } = await supabase
+          .from('relationships')
+          .select('followed_id, status')
+          .eq('follower_id', user.id);
+          
+        if (relationshipsError) throw relationshipsError;
+        
+        // Extract accepted friend IDs
+        const acceptedFriends = relationships
+          ?.filter(rel => rel.status === 'accepted')
+          .map(rel => rel.followed_id) || [];
+        
+        // Extract pending friend requests
+        const pendingRequests = relationships
+          ?.filter(rel => rel.status === 'pending')
+          .map(rel => rel.followed_id) || [];
+          
+        setFriendsList(new Set(acceptedFriends));
+        setFriendRequests(new Set(pendingRequests));
+      } catch (error) {
+        console.error('Error fetching friends:', error);
+      }
+    };
+    
+    fetchFriends();
+  }, [user?.id]);
+
   // Load members data
   useEffect(() => {
     const loadMembers = async () => {
       try {
         setIsLoading(true);
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 800));
+        
+        // Fetch profiles from database
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, username, full_name, avatar_url, location, relationship_status, subscription_tier, role, last_sign_in_at')
+          .eq('status', 'active')
+          .order('last_sign_in_at', { ascending: false });
+          
+        if (profilesError) throw profilesError;
+        
+        // Transform to expected format
+        const formattedProfiles: ProfileData[] = (profilesData || []).map(profile => {
+          // Calculate time ago string
+          const lastActive = profile.last_sign_in_at ? new Date(profile.last_sign_in_at) : null;
+          const now = new Date();
+          let timeAgo = 'Unknown';
+          
+          if (lastActive) {
+            const diffHours = Math.floor((now.getTime() - lastActive.getTime()) / (1000 * 60 * 60));
+            const diffDays = Math.floor(diffHours / 24);
+            const diffMonths = Math.floor(diffDays / 30);
+            const diffYears = Math.floor(diffDays / 365);
+            
+            if (diffHours < 24) {
+              timeAgo = diffHours === 1 ? '1 hour ago' : `${diffHours} hours ago`;
+            } else if (diffDays < 30) {
+              timeAgo = diffDays === 1 ? '1 day ago' : `${diffDays} days ago`;
+            } else if (diffMonths < 12) {
+              timeAgo = diffMonths === 1 ? '1 month ago' : `${diffMonths} months ago`;
+            } else {
+              timeAgo = diffYears === 1 ? '1 year ago' : `${diffYears} years ago`;
+            }
+          }
+          
+          // Check if profile is local or hotlist (simplified mock logic)
+          const isLocal = !!profile.location;
+          const isHotlist = profile.subscription_tier === 'gold' || profile.role === 'admin';
+          
+          return {
+            id: profile.id,
+            username: profile.username,
+            full_name: profile.full_name || profile.username,
+            avatar_url: profile.avatar_url,
+            last_active: timeAgo,
+            relationship_status: profile.relationship_status,
+            location: profile.location,
+            is_local: isLocal,
+            is_hotlist: isHotlist,
+            subscription_tier: profile.subscription_tier as 'free' | 'bronze' | 'silver' | 'gold',
+            role: profile.role
+          };
+        });
+        
+        setMembers(formattedProfiles);
         setIsLoading(false);
       } catch (error) {
         console.error("Error loading members:", error);
@@ -65,22 +169,18 @@ const People = () => {
     
     loadMembers();
   }, [toast]);
-
-  const members = [
-    { id: '1', name: 'Admin', username: '@admin', timeAgo: '3 hours ago', isFriend: true, subscribed: true, tier: 'gold' },
-    { id: '2', name: 'Sephiroth', username: '@seph', timeAgo: '19 days ago', isFriend: true, isHotlist: true, subscribed: true, tier: 'gold' },
-    { id: '3', name: 'Linda Lohan', username: '@linda', timeAgo: 'a year ago', isLocal: true, isFriend: true, subscribed: true, tier: 'silver' },
-    { id: '4', name: 'Irina Petrova', username: '@irina', timeAgo: 'a year ago', isLocal: true, isFriend: true, subscribed: true, tier: 'bronze' },
-    { id: '5', name: 'Jennie Ferguson', username: '@jennie', timeAgo: '2 years ago', isHotlist: true, subscribed: false },
-    { id: '6', name: 'Robert Cook', username: '@robert', timeAgo: '2 years ago', isLocal: true, subscribed: true, tier: 'bronze' },
-    { id: '7', name: 'Sophia Lee', username: '@sophia', timeAgo: '2 years ago', isHotlist: true, subscribed: false },
-    { id: '8', name: 'John Smith', username: '@john', timeAgo: '3 years ago', subscribed: false },
-    { id: '9', name: 'Emma Wilson', username: '@emma', timeAgo: '3 years ago', subscribed: false },
-    { id: '10', name: 'Michael Brown', username: '@michael', timeAgo: '3 years ago', subscribed: true, tier: 'silver' }
-  ];
   
   // Handle friend request or message
-  const handleFriendAction = (memberId: string, isFriend: boolean) => {
+  const handleFriendAction = async (memberId: string, isFriend: boolean) => {
+    if (!user?.id) {
+      toast({
+        title: "Authentication required",
+        description: "Please login to add friends or send messages.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     if (isFriend) {
       // Navigate to messages with this user
       toast({
@@ -88,40 +188,68 @@ const People = () => {
         description: "Redirecting to your conversation...",
       });
       
-      // In a real app, you would navigate to the messages page with this user
+      // Navigate to the messages page with this user
       navigate(`/messages?user=${memberId}`);
     } else {
       // Send friend request
-      const updatedRequests = new Set(friendRequests);
-      updatedRequests.add(memberId);
-      setFriendRequests(updatedRequests);
-      
-      // Update friends list immediately for demo purposes
-      const updatedFriends = new Set(friendsList);
-      updatedFriends.add(memberId);
-      setFriendsList(updatedFriends);
-      
-      toast({
-        title: "Friend Request Sent",
-        description: "Your friend request has been accepted!",
-      });
+      try {
+        // Check if relationship already exists
+        const { data: existingRel, error: checkError } = await supabase
+          .from('relationships')
+          .select('id')
+          .eq('follower_id', user.id)
+          .eq('followed_id', memberId)
+          .maybeSingle();
+          
+        if (checkError) throw checkError;
+        
+        if (!existingRel) {
+          // Insert new relationship
+          const { error: insertError } = await supabase
+            .from('relationships')
+            .insert({
+              follower_id: user.id,
+              followed_id: memberId,
+              status: 'pending'
+            });
+            
+          if (insertError) throw insertError;
+          
+          // Update UI
+          const updatedRequests = new Set(friendRequests);
+          updatedRequests.add(memberId);
+          setFriendRequests(updatedRequests);
+          
+          toast({
+            title: "Friend Request Sent",
+            description: "Your friend request has been sent!",
+          });
+        } else {
+          toast({
+            title: "Request Already Sent",
+            description: "You've already sent a friend request to this user.",
+          });
+        }
+      } catch (error) {
+        console.error('Error sending friend request:', error);
+        toast({
+          title: "Request Failed",
+          description: "There was a problem sending your friend request. Please try again.",
+          variant: "destructive",
+        });
+      }
     }
   };
   
   // Handle view profile
-  const handleViewProfile = (name: string) => {
-    toast({
-      title: "Profile View",
-      description: `Viewing ${name}'s profile...`,
-    });
-    
-    // Navigate to the profile page
-    navigate(`/profile?name=${name}`);
+  const handleViewProfile = (userId: string) => {
+    // Navigate to the profile page with user ID
+    navigate(`/profile?id=${userId}`);
   };
   
   // Filter members based on search term
   const filteredMembers = members.filter(member => 
-    member.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    member.full_name.toLowerCase().includes(searchTerm.toLowerCase()) || 
     member.username.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -179,7 +307,7 @@ const People = () => {
                             isFriend={friendsList.has(member.id)}
                             onFriendAction={handleFriendAction}
                             onViewProfile={handleViewProfile}
-                            subscriptionTier={member.subscribed ? member.tier : null}
+                            currentUserId={user?.id}
                           />
                         ))}
                       </div>
@@ -194,9 +322,9 @@ const People = () => {
                   </TabsContent>
 
                   <TabsContent value="local">
-                    {filteredMembers.filter(member => member.isLocal).length > 0 ? (
+                    {filteredMembers.filter(member => member.is_local).length > 0 ? (
                       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                        {filteredMembers.filter(member => member.isLocal).map((member) => (
+                        {filteredMembers.filter(member => member.is_local).map((member) => (
                           <MemberCard 
                             key={member.id} 
                             member={member} 
@@ -204,7 +332,7 @@ const People = () => {
                             isFriend={friendsList.has(member.id)}
                             onFriendAction={handleFriendAction}
                             onViewProfile={handleViewProfile}
-                            subscriptionTier={member.subscribed ? member.tier : null}
+                            currentUserId={user?.id}
                           />
                         ))}
                       </div>
@@ -219,9 +347,9 @@ const People = () => {
                   </TabsContent>
 
                   <TabsContent value="hotlist">
-                    {filteredMembers.filter(member => member.isHotlist).length > 0 ? (
+                    {filteredMembers.filter(member => member.is_hotlist).length > 0 ? (
                       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                        {filteredMembers.filter(member => member.isHotlist).map((member) => (
+                        {filteredMembers.filter(member => member.is_hotlist).map((member) => (
                           <MemberCard 
                             key={member.id} 
                             member={member} 
@@ -229,7 +357,7 @@ const People = () => {
                             isFriend={friendsList.has(member.id)}
                             onFriendAction={handleFriendAction}
                             onViewProfile={handleViewProfile}
-                            subscriptionTier={member.subscribed ? member.tier : null}
+                            currentUserId={user?.id}
                           />
                         ))}
                       </div>
@@ -254,7 +382,7 @@ const People = () => {
                             isFriend={true}
                             onFriendAction={handleFriendAction}
                             onViewProfile={handleViewProfile}
-                            subscriptionTier={member.subscribed ? member.tier : null}
+                            currentUserId={user?.id}
                           />
                         ))}
                       </div>
@@ -278,19 +406,22 @@ const People = () => {
 };
 
 interface MemberCardProps {
-  member: any;
+  member: ProfileData;
   isFriendRequested: boolean;
   isFriend: boolean;
   onFriendAction: (id: string, isFriend: boolean) => void;
-  onViewProfile: (name: string) => void;
-  subscriptionTier: string | null;
+  onViewProfile: (id: string) => void;
+  currentUserId?: string;
 }
 
-const MemberCard = ({ member, isFriendRequested, isFriend, onFriendAction, onViewProfile, subscriptionTier }: MemberCardProps) => {
+const MemberCard = ({ member, isFriendRequested, isFriend, onFriendAction, onViewProfile, currentUserId }: MemberCardProps) => {
+  // Check if this member is the current logged-in user
+  const isCurrentUser = currentUserId === member.id;
+  
   const getSubscriptionBadge = () => {
-    if (!subscriptionTier) return null;
+    if (!member.subscription_tier || member.subscription_tier === 'free') return null;
     
-    switch (subscriptionTier) {
+    switch (member.subscription_tier) {
       case 'gold':
         return <span className="px-1 py-0.5 bg-yellow-500 text-white text-xs rounded">Gold</span>;
       case 'silver':
@@ -307,47 +438,53 @@ const MemberCard = ({ member, isFriendRequested, isFriend, onFriendAction, onVie
       <div className="flex flex-col items-center">
         <div 
           className="h-16 w-16 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center overflow-hidden mb-3 cursor-pointer"
-          onClick={() => onViewProfile(member.name)}
+          onClick={() => onViewProfile(member.id)}
         >
-          <User className="h-8 w-8 text-gray-500 dark:text-gray-400" />
+          {member.avatar_url ? (
+            <img src={member.avatar_url} alt={member.full_name} className="h-full w-full object-cover" />
+          ) : (
+            <User className="h-8 w-8 text-gray-500 dark:text-gray-400" />
+          )}
         </div>
         <h3 
           className="font-medium text-center cursor-pointer hover:underline flex items-center gap-1 dark:text-white"
-          onClick={() => onViewProfile(member.name)}
+          onClick={() => onViewProfile(member.id)}
         >
-          {member.name}
+          {member.full_name}
         </h3>
         <div className="flex items-center gap-1 mt-1 flex-wrap justify-center">
           <p className="text-sm text-gray-500 dark:text-gray-300 text-center">{member.username}</p>
           {getSubscriptionBadge()}
         </div>
-        <p className="text-xs text-gray-400 text-center mt-1">Active {member.timeAgo}</p>
+        <p className="text-xs text-gray-400 text-center mt-1">Active {member.last_active}</p>
         
-        {member.isLocal && (
+        {member.location && (
           <div className="flex items-center justify-center mt-1 text-xs text-gray-500 dark:text-gray-400">
-            <MapPin className="h-3 w-3 mr-1" /> Nearby
+            <MapPin className="h-3 w-3 mr-1" /> {member.location}
           </div>
         )}
         
         <div className="mt-4 flex gap-2">
-          <button 
-            className={`${
-              isFriend 
-                ? 'bg-purple-600 text-white'
-                : isFriendRequested 
-                  ? 'bg-gray-400 text-white'
-                  : 'bg-purple-600 text-white'
-            } px-3 py-1 text-xs rounded-md hover:opacity-90 transition`}
-            onClick={() => onFriendAction(member.id, isFriend)}
-            disabled={isFriendRequested}
-            aria-label={isFriend ? `Message ${member.name}` : isFriendRequested ? `Friend request sent to ${member.name}` : `Add ${member.name} as friend`}
-          >
-            {isFriend ? 'Message' : isFriendRequested ? 'Requested' : 'Add Friend'}
-          </button>
+          {!isCurrentUser && (
+            <button 
+              className={`${
+                isFriend 
+                  ? 'bg-purple-600 text-white'
+                  : isFriendRequested 
+                    ? 'bg-gray-400 text-white'
+                    : 'bg-purple-600 text-white'
+              } px-3 py-1 text-xs rounded-md hover:opacity-90 transition`}
+              onClick={() => onFriendAction(member.id, isFriend)}
+              disabled={isFriendRequested}
+              aria-label={isFriend ? `Message ${member.full_name}` : isFriendRequested ? `Friend request sent to ${member.full_name}` : `Add ${member.full_name} as friend`}
+            >
+              {isFriend ? 'Message' : isFriendRequested ? 'Requested' : 'Add Friend'}
+            </button>
+          )}
           <button 
             className="bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-200 px-3 py-1 text-xs rounded-md hover:bg-gray-300 dark:hover:bg-gray-500 transition"
-            onClick={() => onViewProfile(member.name)}
-            aria-label={`View ${member.name}'s profile`}
+            onClick={() => onViewProfile(member.id)}
+            aria-label={`View ${member.full_name}'s profile`}
           >
             Profile
           </button>

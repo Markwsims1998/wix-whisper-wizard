@@ -1,5 +1,9 @@
 
+import { useEffect, useState } from "react";
 import { User } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/auth/AuthProvider";
+import { Link } from "react-router-dom";
 
 type Member = {
   id: string;
@@ -12,58 +16,139 @@ type Member = {
   isFriend?: boolean;
 };
 
-const members: Member[] = [
-  { id: '1', name: 'Admin', username: '@admin', timeAgo: '3 hours ago', isFriend: true },
-  { id: '2', name: 'Sephiroth', username: '@seph', timeAgo: '19 days ago', isFriend: true, isHotlist: true },
-  { id: '3', name: 'Linda Lohan', username: '@linda', timeAgo: 'a year ago', isLocal: true, isFriend: true },
-  { id: '4', name: 'Irina Petrova', username: '@irina', timeAgo: 'a year ago', isLocal: true, isFriend: true },
-  { id: '5', name: 'Jennie Ferguson', username: '@jennie', timeAgo: '2 years ago', isHotlist: true },
-  { id: '6', name: 'Robert Cook', username: '@robert', timeAgo: '2 years ago', isLocal: true },
-  { id: '7', name: 'Sophia Lee', username: '@sophia', timeAgo: '2 years ago', isHotlist: true },
-];
-
 const MembersList = () => {
-  // Show only friends in this component
-  const friendMembers = members.filter(member => member.isFriend);
+  const { user } = useAuth();
+  const [friendMembers, setFriendMembers] = useState<Member[]>([]);
+  const [hashtags, setHashtags] = useState<{name: string, count: number}[]>([]);
+  const [loading, setLoading] = useState(true);
+  
+  // Fetch friends data
+  useEffect(() => {
+    const fetchFriends = async () => {
+      if (!user?.id) return;
+      
+      try {
+        // Get relationships where user is the follower and status is accepted
+        const { data: relationships, error: relationshipsError } = await supabase
+          .from('relationships')
+          .select(`
+            followed_id,
+            profiles!relationships_followed_id_fkey (
+              id, 
+              full_name, 
+              username, 
+              avatar_url,
+              last_sign_in_at,
+              location
+            )
+          `)
+          .eq('follower_id', user.id)
+          .eq('status', 'accepted')
+          .limit(5);
+          
+        if (relationshipsError) throw relationshipsError;
+        
+        // Format friends data
+        const friends: Member[] = relationships?.map(rel => {
+          const profile = rel.profiles;
+          
+          // Calculate time ago string
+          const lastActive = profile.last_sign_in_at ? new Date(profile.last_sign_in_at) : null;
+          const now = new Date();
+          let timeAgo = 'Unknown';
+          
+          if (lastActive) {
+            const diffHours = Math.floor((now.getTime() - lastActive.getTime()) / (1000 * 60 * 60));
+            const diffDays = Math.floor(diffHours / 24);
+            const diffMonths = Math.floor(diffDays / 30);
+            const diffYears = Math.floor(diffDays / 365);
+            
+            if (diffHours < 24) {
+              timeAgo = diffHours === 1 ? '1 hour ago' : `${diffHours} hours ago`;
+            } else if (diffDays < 30) {
+              timeAgo = diffDays === 1 ? '1 day ago' : `${diffDays} days ago`;
+            } else if (diffMonths < 12) {
+              timeAgo = diffMonths === 1 ? '1 month ago' : `${diffMonths} months ago`;
+            } else {
+              timeAgo = diffYears === 1 ? '1 year ago' : `${diffYears} years ago`;
+            }
+          }
+          
+          return {
+            id: profile.id,
+            name: profile.full_name || profile.username,
+            username: `@${profile.username}`,
+            timeAgo,
+            avatar: profile.avatar_url,
+            isLocal: !!profile.location,
+            isHotlist: false, // Implement hotlist logic as needed
+            isFriend: true
+          };
+        }) || [];
+        
+        setFriendMembers(friends);
+      } catch (error) {
+        console.error("Error fetching friends:", error);
+        // Fallback to empty list
+        setFriendMembers([]);
+      }
+    };
+    
+    // Mock hashtags for now - would be replaced with real data
+    const mockHashtags = [
+      { name: "happykinks", count: 4 },
+      { name: "social", count: 4 },
+      { name: "wordpress", count: 1 },
+      { name: "photos", count: 1 },
+      { name: "network", count: 1 },
+      { name: "shop", count: 1 },
+      { name: "videos", count: 1 },
+      { name: "community", count: 1 },
+      { name: "theme", count: 1 },
+      { name: "awesome", count: 1 }
+    ];
+    
+    setHashtags(mockHashtags);
+    fetchFriends().then(() => setLoading(false));
+  }, [user?.id]);
 
   return (
-    <div className="bg-white rounded-lg p-4">
-      <h2 className="text-lg font-semibold mb-2">Friends</h2>
+    <div className="bg-white rounded-lg p-4 dark:bg-gray-800">
+      <h2 className="text-lg font-semibold mb-2 dark:text-white">Friends</h2>
       <div className="border-b-2 border-purple-500 w-12 mb-4"></div>
       
       <div className="space-y-4">
-        {friendMembers.map((member) => (
-          <div key={member.id} className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
-              {member.avatar ? (
-                <img src={member.avatar} alt={member.name} className="h-full w-full object-cover" />
-              ) : (
-                <User className="h-5 w-5 text-gray-500" />
-              )}
-            </div>
-            <div>
-              <h3 className="text-sm font-medium">{member.name}</h3>
-              <p className="text-xs text-gray-500">{member.timeAgo}</p>
-            </div>
-          </div>
-        ))}
+        {loading ? (
+          <div className="text-sm text-gray-500 dark:text-gray-400 py-2">Loading friends...</div>
+        ) : friendMembers.length > 0 ? (
+          friendMembers.map((member) => (
+            <Link to={`/profile?id=${member.id}`} key={member.id} className="flex items-center gap-3 hover:bg-gray-50 p-2 rounded-md transition-colors dark:hover:bg-gray-700">
+              <div className="h-10 w-10 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center overflow-hidden">
+                {member.avatar ? (
+                  <img src={member.avatar} alt={member.name} className="h-full w-full object-cover" />
+                ) : (
+                  <User className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+                )}
+              </div>
+              <div>
+                <h3 className="text-sm font-medium dark:text-white">{member.name}</h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{member.timeAgo}</p>
+              </div>
+            </Link>
+          ))
+        ) : (
+          <div className="text-sm text-gray-500 dark:text-gray-400 py-2">No friends yet. Find people to connect with!</div>
+        )}
       </div>
       
       <div className="mt-8">
-        <h2 className="text-lg font-semibold mb-2">Hashtags</h2>
+        <h2 className="text-lg font-semibold mb-2 dark:text-white">Hashtags</h2>
         <div className="border-b-2 border-purple-500 w-12 mb-4"></div>
         
         <div className="flex flex-wrap gap-2">
-          <HashTag name="happykinks" count={4} />
-          <HashTag name="social" count={4} />
-          <HashTag name="wordpress" count={1} />
-          <HashTag name="photos" count={1} />
-          <HashTag name="network" count={1} />
-          <HashTag name="shop" count={1} />
-          <HashTag name="videos" count={1} />
-          <HashTag name="community" count={1} />
-          <HashTag name="theme" count={1} />
-          <HashTag name="awesome" count={1} />
+          {hashtags.map((tag) => (
+            <HashTag key={tag.name} name={tag.name} count={tag.count} />
+          ))}
         </div>
       </div>
     </div>
@@ -72,8 +157,8 @@ const MembersList = () => {
 
 const HashTag = ({ name, count }: { name: string; count: number }) => (
   <div className="flex items-center gap-1">
-    <span className="text-sm text-purple-600">#{name}</span>
-    <span className="text-xs text-gray-500">{count}</span>
+    <span className="text-sm text-purple-600 dark:text-purple-400">#{name}</span>
+    <span className="text-xs text-gray-500 dark:text-gray-400">{count}</span>
   </div>
 );
 

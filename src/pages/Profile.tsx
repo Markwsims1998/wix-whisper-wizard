@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/auth/AuthProvider';
 import { useToast } from '@/components/ui/use-toast';
@@ -10,56 +11,41 @@ import { ProfileData, Post } from '@/components/profile/types';
 import { supabase } from '@/integrations/supabase/client';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
+import { useSearchParams, useLocation } from 'react-router-dom';
 
 const Profile = () => {
   const { user, updateUserProfile } = useAuth();
   const { toast } = useToast();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const profileId = searchParams.get('id');
+  
   const [loading, setLoading] = useState(true);
   const [newPostText, setNewPostText] = useState('');
   const [editRelationshipOpen, setEditRelationshipOpen] = useState(false);
   const [posts, setPosts] = useState<Post[]>([]);
+  const [profileData, setProfileData] = useState<ProfileData | null>(null);
+  const [isMyProfile, setIsMyProfile] = useState(false);
   
   // Relationship status state
-  const [selectedRelationshipStatus, setSelectedRelationshipStatus] = useState<string | null>(
-    user?.relationshipStatus || null
-  );
-  const [relationshipPartners, setRelationshipPartners] = useState<string[]>(
-    user?.relationshipPartners || []
-  );
+  const [selectedRelationshipStatus, setSelectedRelationshipStatus] = useState<string | null>(null);
+  const [relationshipPartners, setRelationshipPartners] = useState<string[]>([]);
   const [availablePartners, setAvailablePartners] = useState<any[]>([]);
   const [partnerSearchOpen, setPartnerSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [relationshipStatuses, setRelationshipStatuses] = useState<any[]>([]);
   
-  // Prepare profile data from authenticated user
-  const profile: ProfileData = {
-    id: user?.id || '',
-    name: user?.name || '',
-    username: user?.username || '',
-    bio: user?.bio || 'No bio provided',
-    location: user?.location || '',
-    joinDate: user?.joinDate || 'Recently',
-    following: user?.following || 0,
-    followers: user?.followers || 0,
-    relationshipStatus: user?.relationshipStatus || null,
-    relationshipPartners: user?.relationshipPartners || [],
-    subscribed: !!user?.role, // Basic subscription check - will be enhanced later
-    tier: user?.role === 'admin' ? 'gold' : 'free', // Simple mapping - will be enhanced later
-    profilePicture: user?.profilePicture,
-    posts: posts,
-  };
-  
-  // Set appropriate relationship status text
+  // Get appropriate relationship status text
   const getRelationshipStatusText = () => {
-    if (!profile.relationshipStatus) return 'Single';
+    if (!profileData?.relationshipStatus) return 'Single';
     
-    if (profile.relationshipStatus === 'In a relationship' && 
-        profile.relationshipPartners && 
-        profile.relationshipPartners.length > 0) {
-      return `${profile.relationshipStatus} with ${profile.relationshipPartners.join(', ')}`;
+    if (profileData.relationshipStatus === 'In a relationship' && 
+        profileData.relationshipPartners && 
+        profileData.relationshipPartners.length > 0) {
+      return `${profileData.relationshipStatus} with ${profileData.relationshipPartners.join(', ')}`;
     }
     
-    return profile.relationshipStatus;
+    return profileData.relationshipStatus;
   };
   
   // Generate subscription badge based on tier
@@ -75,10 +61,93 @@ const Profile = () => {
     return badges[tier as keyof typeof badges] || null;
   };
   
+  // Fetch profile data
+  const fetchProfileData = async (id: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', id)
+        .single();
+        
+      if (error) throw error;
+      
+      // Check if this is the current user's profile
+      const isCurrentUser = user?.id === id;
+      setIsMyProfile(isCurrentUser);
+      
+      if (data) {
+        // Set up profile data
+        const profile: ProfileData = {
+          id: data.id || '',
+          name: data.full_name || data.username || '',
+          username: data.username || '',
+          bio: data.bio || 'No bio provided',
+          location: data.location || '',
+          joinDate: new Date(data.created_at).toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+          }),
+          following: 0, // Will be fetched separately
+          followers: 0, // Will be fetched separately
+          relationshipStatus: data.relationship_status || null,
+          relationshipPartners: data.relationship_partners || [],
+          subscribed: data.subscription_tier !== 'free',
+          tier: data.subscription_tier || 'free',
+          profilePicture: data.avatar_url,
+          posts: [],
+        };
+        
+        // Fetch follower/following counts
+        const fetchFollowerCount = async () => {
+          const { count, error } = await supabase
+            .from('relationships')
+            .select('id', { count: 'exact', head: false })
+            .eq('followed_id', id)
+            .eq('status', 'accepted');
+            
+          return { count: count || 0, error };
+        };
+        
+        const fetchFollowingCount = async () => {
+          const { count, error } = await supabase
+            .from('relationships')
+            .select('id', { count: 'exact', head: false })
+            .eq('follower_id', id)
+            .eq('status', 'accepted');
+            
+          return { count: count || 0, error };
+        };
+        
+        const [followersResult, followingResult] = await Promise.all([
+          fetchFollowerCount(),
+          fetchFollowingCount()
+        ]);
+        
+        profile.followers = followersResult.count;
+        profile.following = followingResult.count;
+        
+        setProfileData(profile);
+        
+        // Set relationship status and partners if this is the user's profile
+        if (isCurrentUser) {
+          setSelectedRelationshipStatus(data.relationship_status || null);
+          setRelationshipPartners(data.relationship_partners || []);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching profile data:', error);
+      toast({
+        title: "Failed to load profile",
+        description: "There was a problem retrieving the profile information.",
+        variant: "destructive",
+      });
+    }
+  };
+  
   // Fetch user posts
-  const fetchPosts = async () => {
-    if (!user?.id) return;
-    
+  const fetchPosts = async (id: string) => {
     try {
       const { data: postsData, error: postsError } = await supabase
         .from('posts')
@@ -93,15 +162,24 @@ const Profile = () => {
             media_type
           )
         `)
-        .eq('user_id', user.id)
+        .eq('user_id', id)
         .order('created_at', { ascending: false });
         
       if (postsError) throw postsError;
       
+      // Get author information
+      const { data: authorData, error: authorError } = await supabase
+        .from('profiles')
+        .select('id, username, full_name, avatar_url')
+        .eq('id', id)
+        .single();
+        
+      if (authorError) throw authorError;
+      
       // Get likes information for the current user
       let likesInfo: Record<string, boolean> = {};
       
-      if (postsData && postsData.length > 0) {
+      if (postsData && postsData.length > 0 && user?.id) {
         const postIds = postsData.map(post => post.id);
         
         const { data: likesData } = await supabase
@@ -144,10 +222,10 @@ const Profile = () => {
         likes_count: likeCountsMap[post.id] || 0,
         is_liked: likesInfo[post.id] || false,
         author: {
-          id: user.id,
-          full_name: user.name || '',
-          username: user.username || '',
-          avatar_url: user.profilePicture
+          id: authorData.id,
+          full_name: authorData.full_name || authorData.username,
+          username: authorData.username,
+          avatar_url: authorData.avatar_url
         }
       }));
       
@@ -156,30 +234,10 @@ const Profile = () => {
       console.error('Error fetching posts:', error);
       toast({
         title: "Failed to load posts",
-        description: "There was a problem fetching your posts.",
+        description: "There was a problem fetching posts for this profile.",
         variant: "destructive",
       });
-      
-      // Set mock posts for development
-      if (process.env.NODE_ENV === 'development') {
-        setPosts([
-          {
-            id: '1',
-            content: 'Just set up my profile on this platform!',
-            created_at: new Date().toISOString(),
-            user_id: user.id,
-            likes_count: 0,
-            author: {
-              id: user.id,
-              full_name: user.name || '',
-              username: user.username || '',
-              avatar_url: user.profilePicture
-            }
-          }
-        ]);
-      }
-    } finally {
-      setLoading(false);
+      setPosts([]);
     }
   };
   
@@ -199,18 +257,19 @@ const Profile = () => {
       if (error) throw error;
       
       // Add the new post to the list
-      if (data && data[0]) {
+      if (data && data[0] && profileData) {
         const newPost: Post = {
           id: data[0].id,
           content: data[0].content,
           created_at: data[0].created_at,
           user_id: data[0].user_id,
           likes_count: 0,
+          is_liked: false,
           author: {
             id: user.id,
-            full_name: user.name || '',
-            username: user.username || '',
-            avatar_url: user.profilePicture
+            full_name: profileData.name,
+            username: profileData.username,
+            avatar_url: profileData.profilePicture
           }
         };
         
@@ -258,7 +317,12 @@ const Profile = () => {
           
         if (unlikeError) throw unlikeError;
         
-        // UI update is handled by the PostItem component
+        // Update UI
+        setPosts(prev => prev.map(post => 
+          post.id === postId 
+            ? { ...post, is_liked: false, likes_count: post.likes_count - 1 } 
+            : post
+        ));
       } else {
         // Like the post
         const { error: likeError } = await supabase
@@ -267,7 +331,12 @@ const Profile = () => {
           
         if (likeError) throw likeError;
         
-        // UI update is handled by the PostItem component
+        // Update UI
+        setPosts(prev => prev.map(post => 
+          post.id === postId 
+            ? { ...post, is_liked: true, likes_count: post.likes_count + 1 } 
+            : post
+        ));
       }
     } catch (error) {
       console.error('Error liking post:', error);
@@ -305,15 +374,36 @@ const Profile = () => {
   // Fetch available partners (friends)
   const fetchAvailablePartners = async () => {
     try {
-      // In a real app, this would fetch the user's friends from the database
-      // For now, we'll use mock data
-      setAvailablePartners([
-        { id: 'user1', full_name: 'Jane Smith', avatar_url: null },
-        { id: 'user2', full_name: 'John Doe', avatar_url: null },
-        { id: 'user3', full_name: 'Sam Wilson', avatar_url: null }
-      ]);
+      if (!user?.id) return;
+      
+      // Get user's friends (accepted relationships)
+      const { data, error } = await supabase
+        .from('relationships')
+        .select(`
+          followed_id,
+          profiles!relationships_followed_id_fkey (
+            id,
+            username,
+            full_name,
+            avatar_url
+          )
+        `)
+        .eq('follower_id', user.id)
+        .eq('status', 'accepted');
+        
+      if (error) throw error;
+      
+      // Format data for partners dropdown
+      const partners = data?.map(rel => ({
+        id: rel.followed_id,
+        full_name: rel.profiles?.full_name || rel.profiles?.username,
+        avatar_url: rel.profiles?.avatar_url
+      })) || [];
+      
+      setAvailablePartners(partners);
     } catch (error) {
       console.error('Error fetching available partners:', error);
+      setAvailablePartners([]);
     }
   };
   
@@ -355,6 +445,15 @@ const Profile = () => {
         });
       }
       
+      // Update profile data state
+      if (profileData) {
+        setProfileData({
+          ...profileData,
+          relationshipStatus: selectedRelationshipStatus,
+          relationshipPartners: relationshipPartners
+        });
+      }
+      
       toast({
         title: "Relationship status updated",
         description: "Your relationship status has been updated successfully.",
@@ -370,36 +469,140 @@ const Profile = () => {
   };
   
   // Mock functions for social actions - to be implemented with real functionality later
-  const handleAddFriend = () => {
-    toast({
-      title: "Friend request sent",
-      description: "Your friend request has been sent.",
-    });
+  const handleAddFriend = async () => {
+    if (!user?.id || !profileData?.id) {
+      toast({
+        title: "Authentication required",
+        description: "Please login to add friends.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    try {
+      // Check if relationship already exists
+      const { data: existingRel, error: checkError } = await supabase
+        .from('relationships')
+        .select('id, status')
+        .eq('follower_id', user.id)
+        .eq('followed_id', profileData.id)
+        .maybeSingle();
+        
+      if (checkError && checkError.code !== 'PGRST116') throw checkError;
+      
+      if (existingRel) {
+        if (existingRel.status === 'pending') {
+          toast({
+            title: "Request already sent",
+            description: "Your friend request is still pending.",
+          });
+        } else if (existingRel.status === 'accepted') {
+          toast({
+            title: "Already friends",
+            description: "You are already friends with this user.",
+          });
+        }
+      } else {
+        // Insert new relationship
+        const { error: insertError } = await supabase
+          .from('relationships')
+          .insert({
+            follower_id: user.id,
+            followed_id: profileData.id,
+            status: 'pending'
+          });
+          
+        if (insertError) throw insertError;
+        
+        toast({
+          title: "Friend request sent",
+          description: "Your friend request has been sent.",
+        });
+      }
+    } catch (error) {
+      console.error('Error sending friend request:', error);
+      toast({
+        title: "Request Failed",
+        description: "There was a problem sending your friend request. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
   
   const handleMessage = () => {
-    toast({
-      title: "Coming soon",
-      description: "This feature will be available soon.",
-    });
+    if (profileData?.id) {
+      toast({
+        title: "Opening messages",
+        description: "Redirecting to your conversation.",
+      });
+      window.location.href = `/messages?user=${profileData.id}`;
+    }
   };
   
-  // Load data on component mount
+  // Determine which profile to load based on URL or current user
   useEffect(() => {
-    if (user?.id) {
-      fetchPosts();
-      fetchRelationshipStatuses();
-      fetchAvailablePartners();
+    const loadProfileData = async () => {
+      setLoading(true);
       
-      // Set initial values from user data
-      setSelectedRelationshipStatus(user.relationshipStatus || null);
-      setRelationshipPartners(user.relationshipPartners || []);
-    } else {
-      setLoading(false);
-    }
-  }, [user?.id]);
+      try {
+        // Determine which profile to load
+        const targetProfileId = profileId || user?.id;
+        
+        if (!targetProfileId) {
+          setLoading(false);
+          return;
+        }
+        
+        // Fetch profile and posts
+        await Promise.all([
+          fetchProfileData(targetProfileId),
+          fetchPosts(targetProfileId)
+        ]);
+        
+        if (!profileId || profileId === user?.id) {
+          // Additional data only needed for user's own profile
+          await Promise.all([
+            fetchRelationshipStatuses(),
+            fetchAvailablePartners()
+          ]);
+        }
+        
+        setLoading(false);
+      } catch (error) {
+        console.error('Error loading profile:', error);
+        setLoading(false);
+      }
+    };
+    
+    loadProfileData();
+  }, [user?.id, profileId, location.search]);
   
-  if (loading) return <LoadingProfile />;
+  if (loading) return (
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex flex-col">
+      <Sidebar />
+      <Header />
+      <main className="flex-1 ml-[var(--sidebar-width,280px)] pt-16 px-4 pb-10 transition-all duration-300">
+        <LoadingProfile />
+      </main>
+    </div>
+  );
+
+  if (!profileData) return (
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex flex-col">
+      <Sidebar />
+      <Header />
+      <main className="flex-1 ml-[var(--sidebar-width,280px)] pt-16 px-4 pb-10 transition-all duration-300">
+        <div className="container max-w-4xl mx-auto px-4 pb-10 pt-5">
+          <div className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow text-center">
+            <h2 className="text-2xl font-semibold mb-4">Profile Not Found</h2>
+            <p className="text-gray-600 dark:text-gray-300">
+              The profile you're looking for doesn't exist or you don't have permission to view it.
+            </p>
+          </div>
+        </div>
+      </main>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex flex-col">
@@ -417,8 +620,8 @@ const Profile = () => {
         >
           <div className="container max-w-4xl mx-auto px-4 pb-10 pt-5">
             <ProfileHeader 
-              profile={profile}
-              isMyProfile={true}
+              profile={profileData}
+              isMyProfile={isMyProfile}
               relationshipStatusText={getRelationshipStatusText()}
               handleAddFriend={handleAddFriend}
               handleMessage={handleMessage}
@@ -426,36 +629,40 @@ const Profile = () => {
               getSubscriptionBadge={getSubscriptionBadge}
             />
             
-            <CreatePost 
-              profile={profile}
-              newPostText={newPostText}
-              setNewPostText={setNewPostText}
-              handleCreatePost={handleCreatePost}
-            />
+            {isMyProfile && (
+              <CreatePost 
+                profile={profileData}
+                newPostText={newPostText}
+                setNewPostText={setNewPostText}
+                handleCreatePost={handleCreatePost}
+              />
+            )}
             
             <PostsList 
               posts={posts}
-              isMyProfile={true}
-              profile={profile}
+              isMyProfile={isMyProfile}
+              profile={profileData}
               handleLikePost={handleLikePost}
             />
             
-            <RelationshipDialog 
-              open={editRelationshipOpen} 
-              setOpen={setEditRelationshipOpen}
-              selectedRelationshipStatus={selectedRelationshipStatus}
-              setSelectedRelationshipStatus={setSelectedRelationshipStatus}
-              relationshipPartners={relationshipPartners}
-              handleRemovePartner={handleRemovePartner}
-              availablePartners={availablePartners}
-              partnerSearchOpen={partnerSearchOpen}
-              setPartnerSearchOpen={setPartnerSearchOpen}
-              searchQuery={searchQuery}
-              setSearchQuery={setSearchQuery}
-              handleAddPartner={handleAddPartner}
-              relationshipStatuses={relationshipStatuses}
-              handleSaveRelationship={handleSaveRelationship}
-            />
+            {isMyProfile && (
+              <RelationshipDialog 
+                open={editRelationshipOpen} 
+                setOpen={setEditRelationshipOpen}
+                selectedRelationshipStatus={selectedRelationshipStatus}
+                setSelectedRelationshipStatus={setSelectedRelationshipStatus}
+                relationshipPartners={relationshipPartners}
+                handleRemovePartner={handleRemovePartner}
+                availablePartners={availablePartners}
+                partnerSearchOpen={partnerSearchOpen}
+                setPartnerSearchOpen={setPartnerSearchOpen}
+                searchQuery={searchQuery}
+                setSearchQuery={setSearchQuery}
+                handleAddPartner={handleAddPartner}
+                relationshipStatuses={relationshipStatuses}
+                handleSaveRelationship={handleSaveRelationship}
+              />
+            )}
           </div>
         </div>
       </main>

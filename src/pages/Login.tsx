@@ -199,15 +199,7 @@ const Login = () => {
                   {isLoading ? "Logging in..." : "Login"}
                 </Button>
                 
-                {/* Skip login button for testing */}
-                <Button 
-                  type="button"
-                  variant="outline"
-                  className="w-full mt-2"
-                  onClick={() => navigate('/home')}
-                >
-                  Skip Login (Testing)
-                </Button>
+                {/* Removed the Skip Login button here */}
               </form>
             </TabsContent>
             

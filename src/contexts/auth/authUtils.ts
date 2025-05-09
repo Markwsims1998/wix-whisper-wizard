@@ -60,7 +60,7 @@ export const transformUser = async (supabaseUser: User | null): Promise<AuthUser
     // Check if the role from the database is one of our valid roles
     let userRole: 'admin' | 'moderator' | 'user' = 'user';
     if (profile?.role === 'admin' || profile?.role === 'moderator' || profile?.role === 'user') {
-      userRole = profile.role;
+      userRole = profile.role as 'admin' | 'moderator' | 'user';
     } else if (isAdminEmail) {
       userRole = 'admin';
     }

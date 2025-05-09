@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -10,6 +9,7 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Footer from "./components/Footer";
 import { AuthProvider } from "./contexts/auth/AuthProvider";
+import { useAuth } from "./contexts/auth/AuthProvider";
 
 // Import pages
 import Index from "./pages/Index";
@@ -44,26 +44,9 @@ const Layout = ({ children }) => {
 
 // Route guard component to protect routes
 const ProtectedRoute = ({ children }) => {
-  const [isChecking, setIsChecking] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const { isAuthenticated, loading } = useAuth();
   
-  useEffect(() => {
-    // Check for auth status from localStorage for quick UI decision
-    const checkAuth = async () => {
-      try {
-        const session = localStorage.getItem('supabase.auth.token');
-        setIsAuthenticated(!!session);
-      } catch (error) {
-        console.error("Error checking auth:", error);
-      } finally {
-        setIsChecking(false);
-      }
-    };
-    
-    checkAuth();
-  }, []);
-  
-  if (isChecking) {
+  if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
         <LoadingSpinner />
@@ -216,18 +199,25 @@ const AppRoutes = () => {
   );
 };
 
+// Wrapper component to properly initialize auth and provide it to components
+const AuthenticatedApp = () => {
+  return (
+    <AuthProvider>
+      <SubscriptionProvider>
+        <AppRoutes />
+      </SubscriptionProvider>
+    </AuthProvider>
+  );
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <BrowserRouter>
       <TooltipProvider>
         <ThemeProvider>
-          <AuthProvider>
-            <SubscriptionProvider>
-              <Toaster />
-              <Sonner />
-              <AppRoutes />
-            </SubscriptionProvider>
-          </AuthProvider>
+          <Toaster />
+          <Sonner />
+          <AuthenticatedApp />
         </ThemeProvider>
       </TooltipProvider>
     </BrowserRouter>

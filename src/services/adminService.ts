@@ -49,7 +49,7 @@ export const fetchAllUsers = async (): Promise<UserProfile[]> => {
     }
     
     // Combine the data
-    const users = authUsers.users.map(authUser => {
+    const users: UserProfile[] = authUsers.users.map(authUser => {
       // Find the matching profile or provide default empty values with proper typing
       const profile = profiles?.find(p => p.id === authUser.id) || {
         username: '',
@@ -94,7 +94,7 @@ export const fetchAllUsers = async (): Promise<UserProfile[]> => {
       };
     });
     
-    return users as UserProfile[];
+    return users;
   } catch (error) {
     console.error("Error in fetchAllUsers:", error);
     

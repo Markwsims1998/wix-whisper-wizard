@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/auth/AuthProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,18 +18,22 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState("login");
-  const { login, signup, isAuthenticated, loading } = useAuth();
+  const { login, signup, isAuthenticated, loading, refreshUserProfile } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
+
+  // Get the intended destination from location state or default to /home
+  const from = location.state?.from?.pathname || "/home";
 
   // Use useEffect to handle redirect after authentication
   useEffect(() => {
     // Only redirect if we know the user is authenticated and we're not still loading
     if (isAuthenticated && !loading) {
-      console.log("User is authenticated, redirecting to home");
-      navigate("/home");
+      console.log("User is authenticated, redirecting to:", from);
+      navigate(from, { replace: true });
     }
-  }, [isAuthenticated, loading, navigate]);
+  }, [isAuthenticated, loading, navigate, from]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,6 +49,9 @@ const Login = () => {
     try {
       const success = await login(email, password);
       if (success) {
+        // Force refresh user profile to ensure we have the latest data
+        await refreshUserProfile();
+        
         toast({
           title: "Login successful",
           description: "Welcome back!",
@@ -304,7 +311,7 @@ const Login = () => {
         
         <div className="text-center text-sm text-gray-600 dark:text-gray-400 mt-4 flex items-center justify-center gap-1">
           <ShieldCheck className="w-4 h-4" />
-          <span>Create an account with admin@example.com to get admin privileges</span>
+          <span>Admin email recognized: markwsims1998@gmail.com</span>
         </div>
       </div>
     </div>

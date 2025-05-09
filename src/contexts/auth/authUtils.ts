@@ -40,14 +40,17 @@ export const transformUser = async (supabaseUser: User | null): Promise<AuthUser
       if (error.code === 'PGRST116') {
         console.log('Profile not found for user, might be a new signup');
         
-        // For development/testing
+        // Check if email is in admin list before returning minimal user
+        const adminEmails = ['markwsims1998@gmail.com', 'admin@example.com'];
+        const isAdmin = adminEmails.includes(supabaseUser.email || '');
+
         // Create a minimal user object to allow login to proceed
         return {
           id: supabaseUser.id,
           username: supabaseUser.email?.split('@')[0] || '',
           name: supabaseUser.user_metadata?.full_name || 'New User',
           email: supabaseUser.email || '',
-          role: supabaseUser.email === 'admin@example.com' ? 'admin' : 'user'
+          role: isAdmin ? 'admin' : 'user'
         };
       }
       
@@ -71,10 +74,20 @@ export const transformUser = async (supabaseUser: User | null): Promise<AuthUser
       console.log('Admin email detected, setting role to admin for:', supabaseUser.email);
       
       // Force update the role in the database to ensure consistency
-      await supabase
-        .from('profiles')
-        .update({ role: 'admin' })
-        .eq('id', supabaseUser.id);
+      try {
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({ role: 'admin' })
+          .eq('id', supabaseUser.id);
+        
+        if (updateError) {
+          console.error('Failed to update admin role in database:', updateError);
+        } else {
+          console.log('Successfully updated admin role in database for:', supabaseUser.email);
+        }
+      } catch (err) {
+        console.error('Exception when updating admin role:', err);
+      }
     }
     
     // Cast the status to the correct type or use a default value

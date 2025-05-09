@@ -4,7 +4,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, User, Settings, Database, Activity, AlertTriangle, Ban, Shield, CreditCard, Megaphone } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/auth/AuthProvider";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import AdminHeader from "@/components/admin/AdminHeader";
@@ -45,7 +45,7 @@ const initAdminStyles = () => {
 };
 
 const Admin = () => {
-  const { user } = useAuth();
+  const { user, isAuthenticated, refreshUserProfile } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -58,17 +58,27 @@ const Admin = () => {
     return cleanup;
   }, []);
 
-  // Check if user is an admin - improved check
+  // Refresh user profile when component mounts to ensure we have latest data
+  useEffect(() => {
+    const refreshProfile = async () => {
+      if (isAuthenticated) {
+        await refreshUserProfile();
+      }
+    };
+    
+    refreshProfile();
+  }, [isAuthenticated, refreshUserProfile]);
+
+  // Check if user is an admin with improved session handling
   useEffect(() => {
     const checkAdminStatus = async () => {
       try {
         setIsLoading(true);
         
-        // First check if the user exists
-        if (!user) {
-          console.log("User not found, redirecting from Admin page");
+        // First check if the user exists and is authenticated
+        if (!isAuthenticated || !user) {
+          console.log("User not authenticated, redirecting from Admin page");
           setIsAdmin(false);
-          setIsLoading(false);
           
           toast({
             title: "Authentication Required",
@@ -82,7 +92,7 @@ const Admin = () => {
         
         console.log("Checking admin status for user:", user.id, "Role:", user.role);
         
-        // Check if user role is admin - NOTE: Fixed to properly check the role
+        // Check if user role is admin
         if (user.role === 'admin') {
           console.log("User is confirmed as admin");
           setIsAdmin(true);
@@ -109,7 +119,7 @@ const Admin = () => {
     };
 
     checkAdminStatus();
-  }, [navigate, toast, user]);
+  }, [navigate, toast, user, isAuthenticated]);
 
   const handleTabChange = (value: string) => {
     setActiveTab(value);

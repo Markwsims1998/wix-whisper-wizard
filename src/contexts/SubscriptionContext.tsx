@@ -1,8 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { useAuth } from './auth/AuthProvider';
+import { useAuth } from './auth/AuthContext';
 import { Badge } from "@/components/ui/badge";
 import { Award, Diamond, Badge as BadgeIcon } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
 
 export type SubscriptionTier = "gold" | "silver" | "bronze" | "free";

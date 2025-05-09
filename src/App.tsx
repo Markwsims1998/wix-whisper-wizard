@@ -1,5 +1,4 @@
 
-import { useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -9,8 +8,7 @@ import { SubscriptionProvider } from "./contexts/SubscriptionContext";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Footer from "./components/Footer";
-import { AuthProvider } from "./contexts/auth/AuthProvider";
-import { useAuth } from "./contexts/auth/AuthProvider";
+import { useAuth } from "./contexts/auth/AuthContext";
 
 // Import pages
 import Index from "./pages/Index";
@@ -70,25 +68,25 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return children;
 };
 
+// Use a separate component for routes to access auth context
 const AppRoutes = () => {
-  const [isLoading, setIsLoading] = useState(true);
-  const { user, loading: authLoading } = useAuth();
-
+  const { user, loading } = useAuth();
+  const [isAppLoading, setIsAppLoading] = useState(true);
+  
   useEffect(() => {
-    // Only start app loading once auth is determined
-    if (!authLoading) {
-      console.log("User activity: Application loaded", { user });
-      
-      // Shorter loading time once auth is determined
+    // Wait until auth loading is completed
+    if (!loading) {
+      // Add a small delay for smoother transition
       const timer = setTimeout(() => {
-        setIsLoading(false);
+        setIsAppLoading(false);
       }, 500);
       
       return () => clearTimeout(timer);
     }
-  }, [user, authLoading]);
+  }, [loading]);
 
-  if (isLoading || authLoading) {
+  // Show global loading spinner until both auth and app are ready
+  if (isAppLoading || loading) {
     return (
       <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center">
         <div className="flex flex-col items-center">
@@ -211,23 +209,26 @@ const AppRoutes = () => {
   );
 };
 
-// Updated APP structure to improve authentication flow
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <BrowserRouter>
-      <TooltipProvider>
-        <ThemeProvider>
-          <Toaster />
-          <Sonner />
-          <AuthProvider>
+// Main App component
+const App = () => {
+  // Import useState at the component level to avoid issues
+  const { useState, useEffect } = React;
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <TooltipProvider>
+          <ThemeProvider>
+            <Toaster />
+            <Sonner />
             <SubscriptionProvider>
               <AppRoutes />
             </SubscriptionProvider>
-          </AuthProvider>
-        </ThemeProvider>
-      </TooltipProvider>
-    </BrowserRouter>
-  </QueryClientProvider>
-);
+          </ThemeProvider>
+        </TooltipProvider>
+      </BrowserRouter>
+    </QueryClientProvider>
+  );
+};
 
 export default App;

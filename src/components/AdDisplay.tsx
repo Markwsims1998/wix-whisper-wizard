@@ -4,8 +4,8 @@ import { X } from "lucide-react";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
-import { useAuth } from "@/contexts/auth/AuthProvider";
-import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/auth/AuthContext";
+import { supabase } from "@/lib/supabaseClient";
 
 interface AdDisplayProps {
   className?: string;

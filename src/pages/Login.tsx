@@ -1,7 +1,6 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { useAuth } from "@/contexts/auth/AuthProvider";
+import { useAuth } from "@/contexts/auth/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Eye, EyeOff, ShieldCheck } from "lucide-react";
@@ -18,7 +17,7 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState("login");
-  const { login, signup, isAuthenticated, loading, refreshUserProfile } = useAuth();
+  const { login, signup, isAuthenticated, loading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
@@ -49,14 +48,7 @@ const Login = () => {
     try {
       const success = await login(email, password);
       if (success) {
-        // Force refresh user profile to ensure we have the latest data
-        await refreshUserProfile();
-        
-        toast({
-          title: "Login successful",
-          description: "Welcome back!",
-        });
-        // The auth context will handle the redirect
+        // Auth context will handle the redirect
       } else {
         setError("Invalid email or password");
       }
@@ -91,15 +83,10 @@ const Login = () => {
     
     try {
       const success = await signup(email, password, fullName);
-      if (success) {
-        toast({
-          title: "Signup successful",
-          description: "Your account has been created!",
-        });
-        // The auth context will handle the redirect
-      } else {
+      if (!success) {
         setError("Failed to create account. Please try again.");
       }
+      // Auth context will handle the redirect if successful
     } catch (error) {
       console.error("Signup error:", error);
       setError("An error occurred during signup. Please try again.");
@@ -205,8 +192,6 @@ const Login = () => {
                 >
                   {isLoading ? "Logging in..." : "Login"}
                 </Button>
-                
-                {/* Removed the Skip Login button here */}
               </form>
             </TabsContent>
             

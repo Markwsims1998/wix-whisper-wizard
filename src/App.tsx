@@ -25,9 +25,13 @@ function App() {
   return (
     <AuthProvider>
       <Routes>
+        {/* Public routes */}
         <Route path="/" element={<Index />} />
-        <Route path="/home" element={<HomePage />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/feedback" element={<Feedback />} />
+        
+        {/* Protected routes */}
+        <Route path="/home" element={<HomePage />} />
         <Route path="/messages" element={<Messages />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/activity" element={<Activity />} />
@@ -40,7 +44,8 @@ function App() {
         <Route path="/basket" element={<Basket />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/admin" element={<Admin />} />
-        <Route path="/feedback" element={<Feedback />} />
+        
+        {/* Catch all route */}
         <Route path="*" element={<NotFound />} />
       </Routes>
       <Toaster />

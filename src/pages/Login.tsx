@@ -1,6 +1,5 @@
-
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +9,9 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const Login = () => {
+  const location = useLocation();
+  const tabParam = new URLSearchParams(location.search).get('tab');
+  
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -17,16 +19,35 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
-  const [activeTab, setActiveTab] = useState("login");
+  const [activeTab, setActiveTab] = useState(tabParam === "signup" ? "signup" : "login");
   const { login, signup, isAuthenticated, loading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  // Update the tab when the URL parameter changes
+  useEffect(() => {
+    if (tabParam === "signup") {
+      setActiveTab("signup");
+    } else if (tabParam === "login") {
+      setActiveTab("login");
+    }
+  }, [tabParam]);
+
   // If already authenticated and not loading, redirect to home
-  if (isAuthenticated && !loading) {
-    console.log("User is authenticated, redirecting to home");
-    navigate("/home");
-    return null;
+  useEffect(() => {
+    if (isAuthenticated && !loading) {
+      console.log("User is authenticated, redirecting to home");
+      navigate("/home");
+    }
+  }, [isAuthenticated, loading, navigate]);
+
+  // Show loading indicator if we're checking authentication status
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+      </div>
+    );
   }
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -102,15 +123,6 @@ const Login = () => {
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
   };
-
-  // Show loading indicator if we're checking authentication status
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900 p-4">

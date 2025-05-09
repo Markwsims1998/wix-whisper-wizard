@@ -263,7 +263,9 @@ const Profile = () => {
           created_at: data[0].created_at,
           user_id: data[0].user_id,
           likes_count: 0,
+          comments_count: 0,
           is_liked: false,
+          media: [],
           author: {
             id: user.id,
             full_name: profileData.name,

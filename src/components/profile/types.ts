@@ -1,3 +1,4 @@
+
 import { User, Session } from '@supabase/supabase-js';
 
 // Default notification preferences
@@ -86,8 +87,9 @@ export interface Post {
   content: string;
   created_at: string;
   user_id: string;
-  media: any;
+  media?: any[];
   likes_count: number;
+  comments_count?: number;
   is_liked: boolean;
   author: {
     id: string;

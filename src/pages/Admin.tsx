@@ -3,10 +3,7 @@ import React, { useState, useEffect } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft, User, Settings, Database, Activity, AlertTriangle, Ban, Shield, CreditCard } from "lucide-react";
-import { Separator } from "@/components/ui/separator";
+import { ArrowLeft, User, Settings, Database, Activity, AlertTriangle, Ban, Shield, CreditCard, Image, Megaphone } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import AdminHeader from "@/components/admin/AdminHeader";
@@ -17,6 +14,7 @@ import AdminContent from "@/components/admin/AdminContent";
 import AdminReports from "@/components/admin/AdminReports";
 import AdminSettings from "@/components/admin/AdminSettings";
 import AdminSubscriptions from "@/components/admin/AdminSubscriptions";
+import AdminMarketingSettings from "@/components/admin/AdminMarketingSettings";
 
 // Add CSS variables for the admin sidebar
 const initAdminStyles = () => {
@@ -153,7 +151,7 @@ const Admin = () => {
           
           <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
             <ScrollArea className="w-full mb-6 border rounded-lg bg-white dark:bg-gray-800 p-1">
-              <TabsList className="grid grid-cols-3 md:grid-cols-6 w-full">
+              <TabsList className="grid grid-cols-3 md:grid-cols-7 w-full">
                 <TabsTrigger value="dashboard" className="flex items-center gap-1">
                   <Activity className="w-4 h-4" />
                   <span className="hidden sm:inline">Dashboard</span>
@@ -165,6 +163,10 @@ const Admin = () => {
                 <TabsTrigger value="content" className="flex items-center gap-1">
                   <Database className="w-4 h-4" />
                   <span className="hidden sm:inline">Content</span>
+                </TabsTrigger>
+                <TabsTrigger value="marketing" className="flex items-center gap-1">
+                  <Megaphone className="w-4 h-4" />
+                  <span className="hidden sm:inline">Marketing</span>
                 </TabsTrigger>
                 <TabsTrigger value="reports" className="flex items-center gap-1">
                   <AlertTriangle className="w-4 h-4" />
@@ -191,6 +193,10 @@ const Admin = () => {
             
             <TabsContent value="content">
               <AdminContent />
+            </TabsContent>
+
+            <TabsContent value="marketing">
+              <AdminMarketingSettings />
             </TabsContent>
             
             <TabsContent value="reports">

@@ -23,22 +23,24 @@ const AdDisplay = ({ className = "" }: AdDisplayProps) => {
         </button>
       </div>
       
-      <div className="bg-gradient-to-r from-purple-100 to-indigo-100 rounded-md p-4 text-center">
-        <h3 className="text-purple-800 font-semibold mb-2">Upgrade to Silver or Gold</h3>
-        <p className="text-sm text-gray-700 mb-3">
-          Remove ads and get access to exclusive content with our premium plans.
-        </p>
-        <img 
-          src="https://via.placeholder.com/300x150?text=Premium+Features" 
-          alt="Premium features" 
-          className="rounded-md w-full h-32 object-cover mb-3"
-        />
-        <Link to="/shop">
-          <Button variant="default" className="bg-purple-600 hover:bg-purple-700">
-            View Subscription Plans
-          </Button>
-        </Link>
-      </div>
+      <Link to="/shop" className="block">
+        <div className="relative rounded-md overflow-hidden">
+          <img 
+            src="https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?auto=format&fit=crop&w=800&h=400"
+            alt="Premium subscription" 
+            className="w-full h-auto rounded-md object-cover"
+          />
+          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-purple-900/80 to-transparent p-4">
+            <h3 className="text-white font-semibold mb-2">Upgrade to Silver or Gold</h3>
+            <p className="text-white/90 text-sm mb-3">
+              Remove ads and get access to exclusive content with our premium plans.
+            </p>
+            <Button variant="default" className="bg-purple-600 hover:bg-purple-700">
+              View Subscription Plans
+            </Button>
+          </div>
+        </div>
+      </Link>
     </div>
   );
 };

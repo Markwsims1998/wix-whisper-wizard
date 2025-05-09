@@ -120,7 +120,8 @@ const Index = () => {
       <Sidebar />
       <Header />
       
-      <div className="pl-[280px] pt-16 pr-4 pb-36 md:pb-10 transition-all duration-300 flex-grow" style={{ paddingLeft: 'var(--sidebar-width, 280px)' }}>
+      <div className="pl-[280px] pt-16 pr-4 pb-36 md:pb-10 transition-all duration-300 flex-grow" 
+         style={{ paddingLeft: 'var(--sidebar-width, 280px)', marginTop: '40px' }}>
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 max-w-screen-xl mx-auto w-full">
           <div className="lg:col-span-8 w-full">
             {/* Create Post Area */}
@@ -287,21 +288,7 @@ const Index = () => {
               {/* Advertisement Section */}
               <AdDisplay />
               
-              {subscriptionDetails.tier === 'free' && (
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 text-center">
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
-                    Want to remove ads?
-                  </p>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    className="text-purple-600 border-purple-600 hover:bg-purple-50 dark:text-purple-400 dark:border-purple-400 dark:hover:bg-purple-900/30"
-                    onClick={handleRemoveAds}
-                  >
-                    Upgrade Your Account
-                  </Button>
-                </div>
-              )}
+              {/* Removed the separate subscription upsell section since it's now integrated in the ad display */}
             </div>
           </div>
         </div>

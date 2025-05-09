@@ -1,4 +1,3 @@
-
 import { Bell, MessageSquare, Search, ShoppingCart, Megaphone, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -32,10 +31,10 @@ const Header = () => {
   };
 
   return (
-    <>
-      {/* Beta Feedback Banner - now positioned as part of the flow, not fixed */}
+    <div className="fixed z-20 w-full top-0 flex flex-col">
+      {/* Beta Feedback Banner - now fixed with the header */}
       {showBanner && (
-        <div className={`relative z-20 bg-purple-700 dark:bg-purple-900 text-white py-2 px-4 flex items-center justify-center shadow-md`}
+        <div className="bg-purple-700 dark:bg-purple-900 text-white py-2 px-4 flex items-center justify-center shadow-md"
              style={{ marginLeft: 'var(--sidebar-width, 280px)' }}>
           <Megaphone className="w-4 h-4 mr-2" />
           <span className="text-sm">We're in beta! Help us improve by providing <Link to="/feedback" className="underline font-medium">feedback</Link>.</span>
@@ -50,11 +49,10 @@ const Header = () => {
       )}
 
       <header 
-        className={`bg-white shadow-sm py-3 px-6 flex items-center justify-between fixed right-0 z-10 transition-all duration-300 dark:bg-gray-800 dark:text-white`} 
+        className="bg-white shadow-sm py-3 px-6 flex items-center justify-between right-0 dark:bg-gray-800 dark:text-white" 
         style={{ 
           left: 'var(--sidebar-width, 280px)', 
-          width: 'calc(100% - var(--sidebar-width, 280px))',
-          top: showBanner ? '40px' : '0'
+          width: 'calc(100% - var(--sidebar-width, 280px))'
         }}
       >
         <div className="flex-1 max-w-md">
@@ -108,7 +106,7 @@ const Header = () => {
           </button>
         </div>
       </header>
-    </>
+    </div>
   );
 };
 

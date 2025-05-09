@@ -65,7 +65,7 @@ const Notifications = () => {
       setIsLoading(true);
       
       try {
-        // Modified query to use specific field hints for the actor relationship
+        // Modified query with explicit field hints for the actor_id relationship
         const { data, error } = await supabase
           .from('activities')
           .select(`
@@ -74,7 +74,7 @@ const Notifications = () => {
             content,
             created_at,
             read,
-            actor:actor_id (
+            actor:profiles!actor_id(
               id,
               full_name,
               avatar_url

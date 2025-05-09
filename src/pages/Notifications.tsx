@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatDistanceToNow } from "date-fns";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import AdDisplay from "@/components/AdDisplay";
 
 type NotificationType = 'like' | 'comment' | 'friend' | 'system';
 
@@ -69,6 +70,7 @@ const Notifications = () => {
           .select(`
             *,
             actor:actor_id (
+              id,
               full_name,
               avatar_url
             )
@@ -200,74 +202,81 @@ const Notifications = () => {
       
       <div className="pl-[280px] pt-16 pr-4 pb-10 transition-all duration-300" style={{ paddingLeft: 'var(--sidebar-width, 280px)' }}>
         <div className="max-w-screen-xl mx-auto">
-          <div className="bg-white rounded-lg p-6 mb-6">
-            <div className="flex justify-between items-center mb-6">
-              <div>
-                <h1 className="text-2xl font-semibold">Notifications</h1>
-                <div className="border-b-2 border-purple-500 w-16 mt-1"></div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 bg-white rounded-lg p-6">
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h1 className="text-2xl font-semibold">Notifications</h1>
+                  <div className="border-b-2 border-purple-500 w-16 mt-1"></div>
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={handleMarkAllAsRead}
+                  disabled={unreadCount === 0}
+                >
+                  Mark All as Read
+                </Button>
               </div>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={handleMarkAllAsRead}
-                disabled={unreadCount === 0}
-              >
-                Mark All as Read
-              </Button>
+              
+              {isLoading ? (
+                <div className="flex justify-center py-12">
+                  <LoadingSpinner />
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {notifications.length === 0 ? (
+                    <div className="text-center py-8">
+                      <Bell className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                      <p className="text-gray-500">No notifications to display</p>
+                    </div>
+                  ) : (
+                    notifications.map((notification, index) => (
+                      <div key={notification.id}>
+                        <div 
+                          className={`p-3 rounded-lg ${!notification.read ? 'bg-purple-50' : ''} hover:bg-gray-50 transition-colors cursor-pointer`}
+                          onClick={() => handleMarkAsRead(notification.id)}
+                        >
+                          <div className="flex items-center gap-3">
+                            {notification.type !== 'system' ? (
+                              <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
+                                {notification.user?.avatar ? (
+                                  <img src={notification.user.avatar} alt={notification.user.name} className="h-full w-full object-cover" />
+                                ) : (
+                                  <User className="h-5 w-5 text-gray-500" />
+                                )}
+                              </div>
+                            ) : (
+                              <div className="h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center">
+                                <Bell className="h-5 w-5 text-purple-600" />
+                              </div>
+                            )}
+                            <div className="flex-1">
+                              <div className="flex flex-wrap gap-1">
+                                {notification.user && (
+                                  <span className="font-medium">{notification.user.name}</span>
+                                )}
+                                <span>{notification.content}</span>
+                              </div>
+                              <p className="text-xs text-gray-500 mt-1">{notification.timestamp}</p>
+                            </div>
+                            {!notification.read && (
+                              <div className="h-2 w-2 rounded-full bg-purple-600"></div>
+                            )}
+                          </div>
+                        </div>
+                        {index < notifications.length - 1 && <Separator className="my-2" />}
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
             </div>
             
-            {isLoading ? (
-              <div className="flex justify-center py-12">
-                <LoadingSpinner />
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {notifications.length === 0 ? (
-                  <div className="text-center py-8">
-                    <Bell className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                    <p className="text-gray-500">No notifications to display</p>
-                  </div>
-                ) : (
-                  notifications.map((notification, index) => (
-                    <div key={notification.id}>
-                      <div 
-                        className={`p-3 rounded-lg ${!notification.read ? 'bg-purple-50' : ''} hover:bg-gray-50 transition-colors cursor-pointer`}
-                        onClick={() => handleMarkAsRead(notification.id)}
-                      >
-                        <div className="flex items-center gap-3">
-                          {notification.type !== 'system' ? (
-                            <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
-                              {notification.user?.avatar ? (
-                                <img src={notification.user.avatar} alt={notification.user.name} className="h-full w-full object-cover" />
-                              ) : (
-                                <User className="h-5 w-5 text-gray-500" />
-                              )}
-                            </div>
-                          ) : (
-                            <div className="h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center">
-                              <Bell className="h-5 w-5 text-purple-600" />
-                            </div>
-                          )}
-                          <div className="flex-1">
-                            <div className="flex flex-wrap gap-1">
-                              {notification.user && (
-                                <span className="font-medium">{notification.user.name}</span>
-                              )}
-                              <span>{notification.content}</span>
-                            </div>
-                            <p className="text-xs text-gray-500 mt-1">{notification.timestamp}</p>
-                          </div>
-                          {!notification.read && (
-                            <div className="h-2 w-2 rounded-full bg-purple-600"></div>
-                          )}
-                        </div>
-                      </div>
-                      {index < notifications.length - 1 && <Separator className="my-2" />}
-                    </div>
-                  ))
-                )}
-              </div>
-            )}
+            <div className="space-y-6">
+              <AdDisplay className="h-auto" />
+              {/* Additional sidebar content can be added here */}
+            </div>
           </div>
         </div>
       </div>

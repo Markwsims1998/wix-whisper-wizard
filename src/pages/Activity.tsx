@@ -13,6 +13,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { format, formatDistanceToNow } from "date-fns";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import AdDisplay from "@/components/AdDisplay";
 
 type ActivityType = 'like' | 'comment' | 'follow' | 'message' | 'tag' | 'system';
 
@@ -74,6 +75,7 @@ const Activity = () => {
           .select(`
             *,
             actor:actor_id (
+              id,
               full_name,
               avatar_url
             )
@@ -233,152 +235,159 @@ const Activity = () => {
       
       <div className="pl-[280px] pt-16 pr-4 pb-10 transition-all duration-300" style={{ paddingLeft: 'var(--sidebar-width, 280px)' }}>
         <div className="max-w-screen-xl mx-auto">
-          <div className="bg-white rounded-lg p-6 mb-6">
-            <div className="flex justify-between items-center mb-6">
-              <div>
-                <h1 className="text-2xl font-semibold">Activity</h1>
-                <div className="border-b-2 border-purple-500 w-16 mt-1"></div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 bg-white rounded-lg p-6">
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h1 className="text-2xl font-semibold">Activity</h1>
+                  <div className="border-b-2 border-purple-500 w-16 mt-1"></div>
+                </div>
+                
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={handleMarkAllAsRead}
+                    disabled={!activities.some(a => !a.read)}
+                  >
+                    Mark All as Read
+                  </Button>
+                  
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button 
+                        variant={activeFilters.length > 0 ? "default" : "outline"}
+                        size="sm"
+                        className="flex items-center gap-1"
+                      >
+                        <Filter className="w-4 h-4" />
+                        <span>Filter {activeFilters.length > 0 ? `(${activeFilters.length})` : ''}</span>
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-80">
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <h3 className="font-medium text-sm">Filter Activities</h3>
+                          {activeFilters.length > 0 && (
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              onClick={clearFilters}
+                              className="h-8 text-xs text-gray-500 flex items-center"
+                            >
+                              <X className="h-3 w-3 mr-1" />
+                              Clear all
+                            </Button>
+                          )}
+                        </div>
+                        
+                        <Separator />
+                        
+                        <div className="space-y-2">
+                          <div className="flex items-center space-x-2">
+                            <Checkbox 
+                              id="filter-likes" 
+                              checked={activeFilters.includes('like')} 
+                              onCheckedChange={() => handleFilterChange('like')}
+                            />
+                            <Label htmlFor="filter-likes">Likes</Label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Checkbox 
+                              id="filter-comments" 
+                              checked={activeFilters.includes('comment')} 
+                              onCheckedChange={() => handleFilterChange('comment')}
+                            />
+                            <Label htmlFor="filter-comments">Comments</Label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Checkbox 
+                              id="filter-follows" 
+                              checked={activeFilters.includes('follow')} 
+                              onCheckedChange={() => handleFilterChange('follow')}
+                            />
+                            <Label htmlFor="filter-follows">Follows</Label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Checkbox 
+                              id="filter-messages" 
+                              checked={activeFilters.includes('message')} 
+                              onCheckedChange={() => handleFilterChange('message')}
+                            />
+                            <Label htmlFor="filter-messages">Messages</Label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Checkbox 
+                              id="filter-system" 
+                              checked={activeFilters.includes('system')} 
+                              onCheckedChange={() => handleFilterChange('system')}
+                            />
+                            <Label htmlFor="filter-system">System</Label>
+                          </div>
+                        </div>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                </div>
               </div>
               
-              <div className="flex gap-2">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={handleMarkAllAsRead}
-                  disabled={!activities.some(a => !a.read)}
-                >
-                  Mark All as Read
-                </Button>
-                
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button 
-                      variant={activeFilters.length > 0 ? "default" : "outline"}
-                      size="sm"
-                      className="flex items-center gap-1"
-                    >
-                      <Filter className="w-4 h-4" />
-                      <span>Filter {activeFilters.length > 0 ? `(${activeFilters.length})` : ''}</span>
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-80">
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <h3 className="font-medium text-sm">Filter Activities</h3>
-                        {activeFilters.length > 0 && (
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            onClick={clearFilters}
-                            className="h-8 text-xs text-gray-500 flex items-center"
-                          >
-                            <X className="h-3 w-3 mr-1" />
-                            Clear all
-                          </Button>
-                        )}
-                      </div>
-                      
-                      <Separator />
-                      
-                      <div className="space-y-2">
-                        <div className="flex items-center space-x-2">
-                          <Checkbox 
-                            id="filter-likes" 
-                            checked={activeFilters.includes('like')} 
-                            onCheckedChange={() => handleFilterChange('like')}
-                          />
-                          <Label htmlFor="filter-likes">Likes</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Checkbox 
-                            id="filter-comments" 
-                            checked={activeFilters.includes('comment')} 
-                            onCheckedChange={() => handleFilterChange('comment')}
-                          />
-                          <Label htmlFor="filter-comments">Comments</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Checkbox 
-                            id="filter-follows" 
-                            checked={activeFilters.includes('follow')} 
-                            onCheckedChange={() => handleFilterChange('follow')}
-                          />
-                          <Label htmlFor="filter-follows">Follows</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Checkbox 
-                            id="filter-messages" 
-                            checked={activeFilters.includes('message')} 
-                            onCheckedChange={() => handleFilterChange('message')}
-                          />
-                          <Label htmlFor="filter-messages">Messages</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Checkbox 
-                            id="filter-system" 
-                            checked={activeFilters.includes('system')} 
-                            onCheckedChange={() => handleFilterChange('system')}
-                          />
-                          <Label htmlFor="filter-system">System</Label>
-                        </div>
-                      </div>
-                    </div>
-                  </PopoverContent>
-                </Popover>
-              </div>
-            </div>
-            
-            {isLoading ? (
-              <div className="flex justify-center py-12">
-                <LoadingSpinner />
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {filteredActivities.length === 0 ? (
-                  <div className="text-center py-12">
-                    <ActivityIcon className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                    <p className="text-gray-500">No activities to display</p>
-                    {activeFilters.length > 0 && (
-                      <Button 
-                        variant="link" 
-                        onClick={clearFilters}
-                        className="mt-2"
-                      >
-                        Clear filters
-                      </Button>
-                    )}
-                  </div>
-                ) : (
-                  filteredActivities.map(activity => (
-                    <div 
-                      key={activity.id} 
-                      className={`flex items-start gap-3 p-3 ${!activity.read ? 'bg-purple-50' : ''} hover:bg-gray-50 rounded-lg transition cursor-pointer`}
-                      onClick={() => handleMarkAsRead(activity.id)}
-                    >
-                      <div className="h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center overflow-hidden">
-                        {activity.user?.avatar ? (
-                          <img src={activity.user.avatar} alt={activity.user.name} className="w-full h-full object-cover" />
-                        ) : (
-                          getActivityIcon(activity.type)
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-1 flex-wrap">
-                          {activity.user && (
-                            <span className="font-medium">{activity.user.name}</span>
-                          )}
-                          <span>{activity.content}</span>
-                        </div>
-                        <p className="text-xs text-gray-500 mt-1">{activity.timestamp}</p>
-                      </div>
-                      {!activity.read && (
-                        <div className="h-2 w-2 rounded-full bg-purple-600 mt-2"></div>
+              {isLoading ? (
+                <div className="flex justify-center py-12">
+                  <LoadingSpinner />
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {filteredActivities.length === 0 ? (
+                    <div className="text-center py-12">
+                      <ActivityIcon className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                      <p className="text-gray-500">No activities to display</p>
+                      {activeFilters.length > 0 && (
+                        <Button 
+                          variant="link" 
+                          onClick={clearFilters}
+                          className="mt-2"
+                        >
+                          Clear filters
+                        </Button>
                       )}
                     </div>
-                  ))
-                )}
-              </div>
-            )}
+                  ) : (
+                    filteredActivities.map(activity => (
+                      <div 
+                        key={activity.id} 
+                        className={`flex items-start gap-3 p-3 ${!activity.read ? 'bg-purple-50' : ''} hover:bg-gray-50 rounded-lg transition cursor-pointer`}
+                        onClick={() => handleMarkAsRead(activity.id)}
+                      >
+                        <div className="h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center overflow-hidden">
+                          {activity.user?.avatar ? (
+                            <img src={activity.user.avatar} alt={activity.user.name} className="w-full h-full object-cover" />
+                          ) : (
+                            getActivityIcon(activity.type)
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-1 flex-wrap">
+                            {activity.user && (
+                              <span className="font-medium">{activity.user.name}</span>
+                            )}
+                            <span>{activity.content}</span>
+                          </div>
+                          <p className="text-xs text-gray-500 mt-1">{activity.timestamp}</p>
+                        </div>
+                        {!activity.read && (
+                          <div className="h-2 w-2 rounded-full bg-purple-600 mt-2"></div>
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-6">
+              <AdDisplay className="h-auto" />
+              {/* Additional sidebar content can be added here */}
+            </div>
           </div>
         </div>
       </div>

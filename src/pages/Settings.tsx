@@ -28,19 +28,21 @@ import {
   Database
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
+import AppearanceSettings from "@/components/settings/AppearanceSettings";
+import FeaturedContentSettings from "@/components/settings/FeaturedContentSettings";
+import BottomNavSettings from "@/components/settings/BottomNavSettings";
 
 const Settings = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
-  const { subscriptionTier } = useSubscription();
+  const { subscriptionTier, subscriptionDetails, upgradeSubscription } = useSubscription();
   const [activeTab, setActiveTab] = useState("account");
 
   // Check URL for tab parameter
@@ -73,8 +75,20 @@ const Settings = () => {
     console.log(`User activity: Updated ${section} settings`);
   };
 
+  const cancelSubscription = () => {
+    // Update the subscription to free tier
+    upgradeSubscription('free');
+    
+    // Show toast notification
+    toast({
+      title: "Subscription Cancelled",
+      description: "Your subscription has been cancelled successfully.",
+      variant: "default",
+    });
+  };
+
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
       <Sidebar />
       <Header />
       
@@ -83,7 +97,7 @@ const Settings = () => {
           <div className="flex items-center gap-2 py-4">
             <button 
               onClick={() => navigate(-1)} 
-              className="flex items-center gap-2 text-gray-600"
+              className="flex items-center gap-2 text-gray-600 dark:text-gray-300"
             >
               <ArrowLeft className="w-5 h-5" />
               <h1 className="text-xl font-semibold">Settings</h1>
@@ -91,7 +105,7 @@ const Settings = () => {
           </div>
           
           <Tabs defaultValue={activeTab} value={activeTab} onValueChange={handleTabChange} className="w-full">
-            <ScrollArea className="w-full mb-4 border rounded-lg bg-white p-1">
+            <ScrollArea className="w-full mb-4 border rounded-lg bg-white dark:bg-gray-800 p-1">
               <TabsList className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 w-full">
                 <TabsTrigger value="account" className="flex items-center gap-1">
                   <User className="w-4 h-4" />
@@ -237,6 +251,8 @@ const Settings = () => {
                   <Button onClick={() => saveSettings("privacy")}>Save Privacy Settings</Button>
                 </CardFooter>
               </Card>
+              
+              <FeaturedContentSettings />
             </TabsContent>
             
             {/* Other tabs with similar structures */}
@@ -314,19 +330,23 @@ const Settings = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    <div className="bg-gray-50 p-4 rounded-lg">
+                    <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
                       <div className="font-medium">Current Plan: {subscriptionTier === "free" ? "Free" : subscriptionTier?.charAt(0).toUpperCase() + subscriptionTier?.slice(1)}</div>
                       {subscriptionTier !== "free" ? (
                         <>
-                          <p className="text-sm text-muted-foreground mt-1">Your subscription renews on November 1, 2025</p>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {subscriptionDetails.messageResetTime ? 
+                              `Next reset: ${new Date(subscriptionDetails.messageResetTime).toLocaleDateString()}` : 
+                              'Unlimited messages'}
+                          </p>
                           <div className="mt-4 flex items-center gap-2">
-                            <Button variant="outline" size="sm">Change Plan</Button>
-                            <Button variant="destructive" size="sm">Cancel Subscription</Button>
+                            <Button variant="outline" size="sm" onClick={() => navigate('/shop')}>Change Plan</Button>
+                            <Button variant="destructive" size="sm" onClick={cancelSubscription}>Cancel Subscription</Button>
                           </div>
                         </>
                       ) : (
                         <div className="mt-4">
-                          <Button>Upgrade Now</Button>
+                          <Button onClick={() => navigate('/shop')}>Upgrade Now</Button>
                         </div>
                       )}
                     </div>
@@ -351,32 +371,10 @@ const Settings = () => {
               </Card>
             </TabsContent>
             
-            {/* Add similar structures for other tabs */}
+            {/* Appearance tab */}
             <TabsContent value="appearance" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Appearance Settings</CardTitle>
-                  <CardDescription>
-                    Customize how the application looks.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Dark Mode</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Toggle dark mode on or off
-                      </p>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Switch id="dark-mode" />
-                    </div>
-                  </div>
-                </CardContent>
-                <CardFooter>
-                  <Button onClick={() => saveSettings("appearance")}>Save Appearance Settings</Button>
-                </CardFooter>
-              </Card>
+              <AppearanceSettings />
+              <BottomNavSettings />
             </TabsContent>
             
             <TabsContent value="security" className="space-y-4">

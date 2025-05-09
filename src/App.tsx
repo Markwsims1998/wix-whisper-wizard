@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -22,6 +23,7 @@ import Messages from "./pages/Messages";
 import Login from "./pages/Login";
 import Feedback from "./pages/Feedback"; // New feedback page
 import HomePage from "./pages/HomePage"; // New homepage
+import Admin from "./pages/Admin"; // Admin portal
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Footer from "./components/Footer";
 
@@ -39,6 +41,24 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
+  
+  return <>{children}</>;
+};
+
+// Admin route component
+const AdminRoute = ({ children }: { children: React.ReactNode }) => {
+  const { isAuthenticated, loading, user } = useAuth();
+  
+  if (loading) {
+    return <LoadingSpinner fullScreen />;
+  }
+  
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  // In a real app, you would check admin status from user object or backend
+  // For demo purposes, we assume authentication is sufficient
   
   return <>{children}</>;
 };
@@ -142,6 +162,10 @@ const AppRoutes = () => {
         <Layout>
           <ProtectedRoute><Messages /></ProtectedRoute>
         </Layout>
+      } />
+      {/* Admin Portal Route */}
+      <Route path="/admin/*" element={
+        <AdminRoute><Admin /></AdminRoute>
       } />
       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
       <Route path="*" element={

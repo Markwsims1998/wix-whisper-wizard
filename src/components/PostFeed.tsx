@@ -201,7 +201,7 @@ const posts: Post[] = [
 const PostFeed = () => {
   const [activeTab, setActiveTab] = useState("all");
   const [selectedMedia, setSelectedMedia] = useState<any | null>(null);
-  const { subscriptionDetails, upgradeSubscription } = useSubscription();
+  const { subscriptionDetails } = useSubscription();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -242,18 +242,6 @@ const PostFeed = () => {
     }
   };
 
-  const cancelSubscription = () => {
-    // Update the subscription to free tier
-    upgradeSubscription('free');
-    
-    // Show toast notification
-    toast({
-      title: "Subscription Cancelled",
-      description: "Your subscription has been cancelled successfully.",
-      variant: "default",
-    });
-  };
-
   const getSubscriptionBadge = (post: Post) => {
     if (post.authorSubscription?.subscribed && post.authorSubscription.tier) {
       switch (post.authorSubscription.tier) {
@@ -272,7 +260,7 @@ const PostFeed = () => {
 
   return (
     <div className="max-w-2xl mx-auto">
-      <div className="bg-white rounded-lg p-4 mb-4">
+      <div className="bg-white dark:bg-gray-800 rounded-lg p-4 mb-4">
         <h1 className="text-lg font-semibold mb-1">All Members</h1>
         <div className="border-b-2 border-purple-500 w-16 mb-4"></div>
         
@@ -301,9 +289,9 @@ const PostFeed = () => {
                   variant="outline" 
                   size="sm" 
                   className="text-blue-700 border-blue-700 hover:bg-blue-50 dark:text-blue-300 dark:border-blue-400 dark:hover:bg-blue-800/30"
-                  onClick={cancelSubscription}
+                  onClick={() => navigate('/settings?tab=subscription')}
                 >
-                  Cancel Subscription
+                  Manage Subscription
                 </Button>
               </div>
             )}

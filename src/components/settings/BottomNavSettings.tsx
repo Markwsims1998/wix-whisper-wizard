@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Activity, Image, Play, User, Users, ShoppingBag, Bell, Home, Settings, MessageSquare } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/auth/AuthProvider";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 // Interface for navigation items

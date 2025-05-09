@@ -17,7 +17,7 @@ import Admin from './pages/Admin';
 import NotFound from './pages/NotFound';
 import HomePage from './pages/HomePage';
 import Feedback from './pages/Feedback';
-import { Toaster } from "@/components/ui/toaster"
+import { Toaster } from "@/components/ui/toaster";
 import Profile from './pages/profile';
 import { AuthProvider } from '@/contexts/auth/AuthProvider';
 import { ThemeProvider } from '@/contexts/ThemeContext';

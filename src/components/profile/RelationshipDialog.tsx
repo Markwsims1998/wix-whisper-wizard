@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Avatar } from "@/components/ui/avatar";
 import { AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { RelationshipStatus } from "@/components/profile/types";
 
 export interface RelationshipDialogProps {
   open: boolean;
@@ -31,7 +32,7 @@ export interface RelationshipDialogProps {
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   handleAddPartner: (partnerId: string) => void;
-  relationshipStatuses: any[];
+  relationshipStatuses: RelationshipStatus[];
   handleSaveRelationship: () => void;
 }
 

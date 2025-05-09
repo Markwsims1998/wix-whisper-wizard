@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/auth/AuthProvider';
 import { useToast } from '@/components/ui/use-toast';
@@ -701,4 +700,3 @@ const Profile = () => {
 };
 
 export default Profile;
-

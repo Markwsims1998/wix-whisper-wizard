@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -37,7 +38,7 @@ export const fetchAllUsers = async (): Promise<UserProfile[]> => {
         full_name: profile.full_name || '',
         role: (profile.role as 'admin' | 'moderator' | 'user') || 'user',
         avatar_url: profile.avatar_url,
-        status: profile.status as 'active' | 'banned' || 'active', // Using status from profile
+        status: profile.status as 'active' | 'banned' || 'active',
         subscription_tier: profile.subscription_tier as 'free' | 'bronze' | 'silver' | 'gold' || 'free',
         created_at: profile.created_at,
         last_sign_in_at: profile.last_sign_in_at

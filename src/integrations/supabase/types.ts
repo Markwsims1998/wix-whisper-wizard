@@ -306,6 +306,7 @@ export type Database = {
           dark_mode: boolean | null
           full_name: string | null
           id: string
+          last_sign_in_at: string | null
           location: string | null
           notification_preferences: Json | null
           privacy_settings: Json | null
@@ -313,6 +314,7 @@ export type Database = {
           relationship_status: string | null
           role: string | null
           show_featured_content: boolean | null
+          status: string
           subscription_tier: string | null
           updated_at: string
           use_system_theme: boolean | null
@@ -327,6 +329,7 @@ export type Database = {
           dark_mode?: boolean | null
           full_name?: string | null
           id: string
+          last_sign_in_at?: string | null
           location?: string | null
           notification_preferences?: Json | null
           privacy_settings?: Json | null
@@ -334,6 +337,7 @@ export type Database = {
           relationship_status?: string | null
           role?: string | null
           show_featured_content?: boolean | null
+          status?: string
           subscription_tier?: string | null
           updated_at?: string
           use_system_theme?: boolean | null
@@ -348,6 +352,7 @@ export type Database = {
           dark_mode?: boolean | null
           full_name?: string | null
           id?: string
+          last_sign_in_at?: string | null
           location?: string | null
           notification_preferences?: Json | null
           privacy_settings?: Json | null
@@ -355,6 +360,7 @@ export type Database = {
           relationship_status?: string | null
           role?: string | null
           show_featured_content?: boolean | null
+          status?: string
           subscription_tier?: string | null
           updated_at?: string
           use_system_theme?: boolean | null

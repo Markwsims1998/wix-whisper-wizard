@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 import { Badge } from "@/components/ui/badge";
@@ -74,8 +73,9 @@ export const useSubscription = () => {
   return context;
 };
 
+// Only modifying the upgradeSubscription function to be more robust with authentication
 export const SubscriptionProvider: React.FC<{children: React.ReactNode}> = ({ children }) => {
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const [subscriptionTier, setSubscriptionTier] = useState<SubscriptionTier>("free");
   const [subscriptionDetails, setSubscriptionDetails] = useState<SubscriptionDetails>(subscriptionPlans.free);
   const [isLoading, setIsLoading] = useState(true);
@@ -86,7 +86,8 @@ export const SubscriptionProvider: React.FC<{children: React.ReactNode}> = ({ ch
     const loadSubscription = async () => {
       setIsLoading(true);
       
-      if (!user) {
+      if (!user || !isAuthenticated) {
+        console.log("SubscriptionContext: No authenticated user, setting free tier");
         setSubscriptionTier("free");
         setSubscriptionDetails(subscriptionPlans.free);
         setIsLoading(false);
@@ -94,7 +95,7 @@ export const SubscriptionProvider: React.FC<{children: React.ReactNode}> = ({ ch
       }
       
       try {
-        console.log("Loading subscription for user:", user.id);
+        console.log("SubscriptionContext: Loading subscription for user:", user.id);
         
         // Get subscription from Supabase profiles table
         const { data, error } = await supabase
@@ -111,46 +112,42 @@ export const SubscriptionProvider: React.FC<{children: React.ReactNode}> = ({ ch
         
         if (data) {
           const storedTier = data.subscription_tier as SubscriptionTier || "free";
-          console.log("Loaded subscription tier from database:", storedTier);
+          console.log("SubscriptionContext: Loaded subscription tier from database:", storedTier);
           
-          if (subscriptionPlans[storedTier]) {
-            setSubscriptionTier(storedTier);
+          // Get stored messages remaining and reset time
+          const messagesRemaining = Number(localStorage.getItem(`messages_remaining_${user.id}`)) || 
+            subscriptionPlans[storedTier].maxMessages;
+          
+          const messageResetTimeStr = localStorage.getItem(`message_reset_time_${user.id}`);
+          let messageResetTime: Date | undefined;
+          
+          if (messageResetTimeStr) {
+            messageResetTime = new Date(messageResetTimeStr);
             
-            // Get stored messages remaining and reset time
-            const messagesRemaining = Number(localStorage.getItem(`messages_remaining_${user.id}`)) || 
-              subscriptionPlans[storedTier].maxMessages;
-            
-            const messageResetTimeStr = localStorage.getItem(`message_reset_time_${user.id}`);
-            let messageResetTime: Date | undefined;
-            
-            if (messageResetTimeStr) {
-              messageResetTime = new Date(messageResetTimeStr);
-              
-              // Check if reset time has passed for free tier
-              if (storedTier === "free" && new Date() > messageResetTime) {
-                // Reset messages if 24 hours have passed
-                const newResetTime = new Date(Date.now() + 24 * 60 * 60 * 1000);
-                localStorage.setItem(`messages_remaining_${user.id}`, String(subscriptionPlans.free.maxMessages));
-                localStorage.setItem(`message_reset_time_${user.id}`, newResetTime.toISOString());
-                messageResetTime = newResetTime;
-                setSubscriptionDetails({
-                  ...subscriptionPlans[storedTier],
-                  messagesRemaining: subscriptionPlans.free.maxMessages,
-                  messageResetTime: newResetTime
-                });
-                setIsLoading(false);
-                return;
-              }
+            // Check if reset time has passed for free tier
+            if (storedTier === "free" && new Date() > messageResetTime) {
+              // Reset messages if 24 hours have passed
+              const newResetTime = new Date(Date.now() + 24 * 60 * 60 * 1000);
+              localStorage.setItem(`messages_remaining_${user.id}`, String(subscriptionPlans.free.maxMessages));
+              localStorage.setItem(`message_reset_time_${user.id}`, newResetTime.toISOString());
+              messageResetTime = newResetTime;
+              setSubscriptionDetails({
+                ...subscriptionPlans[storedTier],
+                messagesRemaining: subscriptionPlans.free.maxMessages,
+                messageResetTime: newResetTime
+              });
+              setIsLoading(false);
+              return;
             }
-            
-            setSubscriptionDetails({
-              ...subscriptionPlans[storedTier],
-              messagesRemaining,
-              messageResetTime
-            });
           }
+          
+          setSubscriptionDetails({
+            ...subscriptionPlans[storedTier],
+            messagesRemaining,
+            messageResetTime
+          });
         } else {
-          console.log("No subscription data found, defaulting to free tier");
+          console.log("SubscriptionContext: No subscription data found, defaulting to free tier");
           setSubscriptionTier("free");
           setSubscriptionDetails(subscriptionPlans.free);
         }
@@ -162,10 +159,16 @@ export const SubscriptionProvider: React.FC<{children: React.ReactNode}> = ({ ch
     };
     
     loadSubscription();
-  }, [user]);
+  }, [user, isAuthenticated]);
 
   const upgradeSubscription = async (tier: SubscriptionTier): Promise<boolean> => {
-    if (!user) {
+    console.log("SubscriptionContext: Attempting to upgrade subscription", {
+      userId: user?.id,
+      isAuthenticated,
+      requestedTier: tier
+    });
+    
+    if (!isAuthenticated || !user) {
       console.error("Cannot upgrade subscription: No authenticated user");
       toast({
         title: "Authentication Required",

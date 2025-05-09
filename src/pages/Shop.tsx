@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Award, Diamond, Badge as BadgeIcon, Check, ChevronDown, ChevronUp, ShoppingCart, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -13,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 
 const Shop = () => {
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const { subscriptionTier, upgradeSubscription, getTierBadge } = useSubscription();
   const { toast } = useToast();
   const [processing, setProcessing] = useState(false);
@@ -23,12 +24,12 @@ const Shop = () => {
 
   // Add debug logging for authentication state
   useEffect(() => {
-    console.log("Current authentication state:", { user, isAuthenticated: !!user });
+    console.log("Current authentication state:", { user, isAuthenticated, userId: user?.id });
     setErrorMessage(null);
-  }, [user]);
+  }, [user, isAuthenticated]);
   
   const handleSubscribe = async (tier: SubscriptionTier) => {
-    if (!user) {
+    if (!isAuthenticated || !user) {
       toast({
         title: "Authentication Required",
         description: "Please sign in to subscribe to a plan.",
@@ -192,7 +193,7 @@ const Shop = () => {
           )}
           
           {/* Authentication Warning - Only show when not authenticated */}
-          {!user && (
+          {!isAuthenticated && !user && (
             <Alert className="mb-4 bg-yellow-50 border-yellow-200">
               <AlertCircle className="h-4 w-4 text-yellow-600" />
               <AlertTitle>Authentication Required</AlertTitle>

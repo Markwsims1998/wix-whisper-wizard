@@ -25,6 +25,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const { toast } = useToast();
 
   // Initialize session and user from Supabase on component mount
@@ -32,6 +33,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Get the initial session
     const initializeAuth = async () => {
       try {
+        console.log("AuthContext: Initializing authentication");
+        
         // Get current session
         const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
         
@@ -39,12 +42,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           throw sessionError;
         }
         
+        console.log("AuthContext: Session exists:", !!currentSession);
         setSession(currentSession);
         
         // If there's a session, get and transform the user
         if (currentSession) {
           const transformedUser = await transformUser(currentSession.user);
           setUser(transformedUser);
+          setIsAuthenticated(true);
+          console.log("AuthContext: User authenticated:", transformedUser?.id);
+        } else {
+          setIsAuthenticated(false);
+          console.log("AuthContext: No authenticated user");
         }
       } catch (error) {
         console.error("Error initializing auth:", error);
@@ -63,13 +72,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Set up auth state change listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, currentSession) => {
+        console.log("AuthContext: Auth state changed, session exists:", !!currentSession);
         setSession(currentSession);
         
         if (currentSession) {
           const transformedUser = await transformUser(currentSession.user);
           setUser(transformedUser);
+          setIsAuthenticated(true);
+          console.log("AuthContext: User authenticated after state change:", transformedUser?.id);
         } else {
           setUser(null);
+          setIsAuthenticated(false);
+          console.log("AuthContext: No authenticated user after state change");
         }
         
         setLoading(false);
@@ -296,7 +310,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     login,
     signup,
     logout,
-    isAuthenticated: !!user,
+    isAuthenticated,
     loading,
     updateUserProfile,
     refreshUserProfile,

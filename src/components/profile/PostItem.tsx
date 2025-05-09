@@ -23,12 +23,24 @@ const PostItem = ({ post, handleLikePost }: PostItemProps) => {
     setIsLiked(!isLiked);
     setLikesCount(prev => isLiked ? Math.max(0, prev - 1) : prev + 1);
   };
+
+  // Generate the correct profile URL using username if available, otherwise ID
+  const getProfileUrl = () => {
+    if (post.author) {
+      if (post.author.username) {
+        return `/profile?name=${post.author.username}`;
+      } else if (post.author.id) {
+        return `/profile?id=${post.author.id}`;
+      }
+    }
+    return "#";
+  };
   
   return (
     <div className="mb-6 pb-6 border-b border-gray-100 last:border-0 last:mb-0 last:pb-0 dark:border-gray-700 transition-all hover:bg-gray-50 dark:hover:bg-gray-800/50 p-4 rounded-lg -mx-4">
       <div className="flex items-center gap-3 mb-3">
         <Link 
-          to={post.author ? `/profile/${post.author.id}` : "#"} 
+          to={getProfileUrl()} 
           className="h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center overflow-hidden dark:bg-purple-900 transition-transform hover:scale-105"
         >
           {post.author?.avatar_url ? (
@@ -43,7 +55,7 @@ const PostItem = ({ post, handleLikePost }: PostItemProps) => {
         </Link>
         <div>
           <Link 
-            to={post.author ? `/profile/${post.author.id}` : "#"} 
+            to={getProfileUrl()} 
             className="font-medium hover:text-purple-600 transition-colors"
           >
             {post.author?.full_name}

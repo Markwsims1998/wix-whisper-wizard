@@ -64,8 +64,12 @@ const PostFeed = () => {
 
   // Handle profile click to navigate to the user's profile
   const handleProfileClick = (author: any) => {
-    if (author && author.username) {
-      navigate(`/profile?name=${author.username}`);
+    if (author) {
+      if (author.username) {
+        navigate(`/profile?name=${author.username}`);
+      } else if (author.id) {
+        navigate(`/profile?id=${author.id}`);
+      }
     }
   };
 

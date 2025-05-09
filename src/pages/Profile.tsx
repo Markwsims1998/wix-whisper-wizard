@@ -18,6 +18,7 @@ const Profile = () => {
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const profileId = searchParams.get('id');
+  const profileName = searchParams.get('name');
   
   const [loading, setLoading] = useState(true);
   const [newPostText, setNewPostText] = useState('');
@@ -60,19 +61,23 @@ const Profile = () => {
     return badges[tier as keyof typeof badges] || null;
   };
   
-  // Fetch profile data
-  const fetchProfileData = async (id: string) => {
+  // Update fetchProfileData to handle both ID and username
+  const fetchProfileData = async (identifier: string, isUsername: boolean = false) => {
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', id)
-        .single();
+      let query = supabase.from('profiles').select('*');
+      
+      if (isUsername) {
+        query = query.eq('username', identifier);
+      } else {
+        query = query.eq('id', identifier);
+      }
+      
+      const { data, error } = await query.single();
         
       if (error) throw error;
       
       // Check if this is the current user's profile
-      const isCurrentUser = user?.id === id;
+      const isCurrentUser = user?.id === data.id;
       setIsMyProfile(isCurrentUser);
       
       if (data) {
@@ -103,7 +108,7 @@ const Profile = () => {
           const { count, error } = await supabase
             .from('relationships')
             .select('id', { count: 'exact', head: false })
-            .eq('followed_id', id)
+            .eq('followed_id', data.id)
             .eq('status', 'accepted');
             
           return { count: count || 0, error };
@@ -113,7 +118,7 @@ const Profile = () => {
           const { count, error } = await supabase
             .from('relationships')
             .select('id', { count: 'exact', head: false })
-            .eq('follower_id', id)
+            .eq('follower_id', data.id)
             .eq('status', 'accepted');
             
           return { count: count || 0, error };
@@ -128,6 +133,9 @@ const Profile = () => {
         profile.following = followingResult.count;
         
         setProfileData(profile);
+        
+        // Also fetch this user's posts
+        await fetchPosts(data.id);
         
         // Set relationship status and partners if this is the user's profile
         if (isCurrentUser) {
@@ -602,25 +610,24 @@ const Profile = () => {
       
       try {
         // Determine which profile to load
-        const targetProfileId = profileId || user?.id;
-        
-        if (!targetProfileId) {
-          setLoading(false);
-          return;
-        }
-        
-        // Fetch profile and posts
-        await Promise.all([
-          fetchProfileData(targetProfileId),
-          fetchPosts(targetProfileId)
-        ]);
-        
-        if (!profileId || profileId === user?.id) {
+        if (profileName) {
+          // If name parameter exists, fetch by username
+          await fetchProfileData(profileName, true);
+        } else if (profileId) {
+          // If id parameter exists, fetch by ID
+          await fetchProfileData(profileId);
+        } else if (user?.id) {
+          // Default to current user's profile
+          await fetchProfileData(user.id);
+          
           // Additional data only needed for user's own profile
           await Promise.all([
             fetchRelationshipStatuses(),
             fetchAvailablePartners()
           ]);
+        } else {
+          setLoading(false);
+          return;
         }
         
         setLoading(false);
@@ -631,7 +638,7 @@ const Profile = () => {
     };
     
     loadProfileData();
-  }, [user?.id, profileId, location.search]);
+  }, [user?.id, profileId, profileName, location.search]);
   
   if (loading) {
     return (

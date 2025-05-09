@@ -19,6 +19,13 @@ const MediaViewer = ({ type, media, onClose, onLike, onPrev, onNext, postId }: M
   const { subscriptionTier } = useSubscription();
   const isGoldMember = subscriptionTier === 'gold';
   
+  // Determine author information
+  const authorName = media.author || 
+                    (media.user && (media.user.full_name || media.user.username)) || 
+                    'Unknown';
+  
+  const authorUsername = media.user?.username;
+  
   // Determine the URL to display based on media type
   const displayUrl = type === 'image' 
     ? media.image || media.file_url 
@@ -111,21 +118,24 @@ const MediaViewer = ({ type, media, onClose, onLike, onPrev, onNext, postId }: M
                 {media.authorPic || (media.user && media.user.avatar_url) ? (
                   <img 
                     src={media.authorPic || media.user.avatar_url} 
-                    alt={media.author || media.user?.username || 'User'} 
+                    alt={authorName} 
                     className="h-full w-full object-cover" 
                   />
                 ) : (
                   <div className="h-full w-full bg-purple-100 flex items-center justify-center">
                     <span className="font-medium text-purple-600">
-                      {(media.author || media.user?.username || 'U')?.charAt(0)}
+                      {authorName.charAt(0)}
                     </span>
                   </div>
                 )}
               </div>
               <div>
-                <h3 className="text-white font-medium">
-                  {media.title || `By ${media.author || media.user?.username || 'Unknown'}`}
-                </h3>
+                <Link 
+                  to={authorUsername ? `/profile?name=${authorUsername}` : '#'}
+                  className="text-white font-medium hover:underline"
+                >
+                  {media.title || `By ${authorName}`}
+                </Link>
               </div>
             </div>
             

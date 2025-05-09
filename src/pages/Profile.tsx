@@ -1,5 +1,7 @@
+
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { Label } from "@/components/ui/label";
 import { ArrowLeft, Calendar, Edit, MapPin, User, Image, Video, Heart, MessageCircle, Share2, UserPlus } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import Header from "@/components/Header";

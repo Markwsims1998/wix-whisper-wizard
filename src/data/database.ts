@@ -9,6 +9,8 @@ export interface User {
   coverPhoto?: string;
   friends: string[];
   joinedDate: string;
+  relationshipStatus?: string;
+  relationshipPartners?: string[]; // IDs of users tagged in relationship
 }
 
 export interface Post {
@@ -83,23 +85,7 @@ export interface RelationshipStatus {
   createdAt: string;
 }
 
-// Update User interface to include relationship status
-export interface User {
-  id: string;
-  username: string;
-  name: string;
-  email: string;
-  bio: string;
-  role: string;
-  profilePic?: string;
-  coverPhoto?: string;
-  friends: string[];
-  joinedDate: string;
-  relationshipStatus?: string;
-  relationshipPartners?: string[]; // IDs of users tagged in relationship
-}
-
-// Mock users data
+// Mock users data with relationship status info
 export const users: User[] = [
   {
     id: '1',
@@ -109,7 +95,9 @@ export const users: User[] = [
     bio: 'Member of HappyKinks community since 2023. I enjoy participating in various community events and discussions.',
     role: 'admin',
     friends: ['2', '3', '4', '5'],
-    joinedDate: '2023-01-15'
+    joinedDate: '2023-01-15',
+    relationshipStatus: '5', // Polyamorous
+    relationshipPartners: ['2', '3'] // In relationship with Sephiroth and Linda
   },
   {
     id: '2',
@@ -119,7 +107,9 @@ export const users: User[] = [
     bio: 'One-Winged Angel. Seeking the Promised Land.',
     role: 'user',
     friends: ['1', '3'],
-    joinedDate: '2023-02-10'
+    joinedDate: '2023-02-10',
+    relationshipStatus: '5', // Polyamorous
+    relationshipPartners: ['1'] // In relationship with Alex
   },
   {
     id: '3',
@@ -129,7 +119,9 @@ export const users: User[] = [
     bio: 'Yoga enthusiast and spiritual seeker.',
     role: 'user',
     friends: ['1', '2', '5'],
-    joinedDate: '2023-03-22'
+    joinedDate: '2023-03-22',
+    relationshipStatus: '5', // Polyamorous
+    relationshipPartners: ['1'] // In relationship with Alex
   },
   {
     id: '4',
@@ -139,7 +131,8 @@ export const users: User[] = [
     bio: 'Professional dancer and choreographer.',
     role: 'user',
     friends: ['1'],
-    joinedDate: '2023-04-05'
+    joinedDate: '2023-04-05',
+    relationshipStatus: '1' // Single
   },
   {
     id: '5',
@@ -149,7 +142,9 @@ export const users: User[] = [
     bio: 'Digital artist and content creator.',
     role: 'user',
     friends: ['1', '3'],
-    joinedDate: '2023-05-18'
+    joinedDate: '2023-05-18',
+    relationshipStatus: '2', // In a relationship
+    relationshipPartners: [] // Not tagged anyone yet
   }
 ];
 
@@ -575,69 +570,6 @@ export const relationshipStatuses: RelationshipStatus[] = [
     name: 'Casual partners',
     isActive: true,
     createdAt: '2023-01-15T10:00:00Z'
-  }
-];
-
-// Update mock users data to include relationship status
-export const users: User[] = [
-  {
-    id: '1',
-    username: 'alexjohnson',
-    name: 'Alex Johnson',
-    email: 'alex@example.com',
-    bio: 'Member of HappyKinks community since 2023. I enjoy participating in various community events and discussions.',
-    role: 'admin',
-    friends: ['2', '3', '4', '5'],
-    joinedDate: '2023-01-15',
-    relationshipStatus: '5', // Polyamorous
-    relationshipPartners: ['2', '3'] // In relationship with Sephiroth and Linda
-  },
-  {
-    id: '2',
-    username: 'sephiroth',
-    name: 'Sephiroth',
-    email: 'sephiroth@example.com',
-    bio: 'One-Winged Angel. Seeking the Promised Land.',
-    role: 'user',
-    friends: ['1', '3'],
-    joinedDate: '2023-02-10',
-    relationshipStatus: '5', // Polyamorous
-    relationshipPartners: ['1'] // In relationship with Alex
-  },
-  {
-    id: '3',
-    username: 'lindalohan',
-    name: 'Linda Lohan',
-    email: 'linda@example.com',
-    bio: 'Yoga enthusiast and spiritual seeker.',
-    role: 'user',
-    friends: ['1', '2', '5'],
-    joinedDate: '2023-03-22',
-    relationshipStatus: '5', // Polyamorous
-    relationshipPartners: ['1'] // In relationship with Alex
-  },
-  {
-    id: '4',
-    username: 'irinapetrova',
-    name: 'Irina Petrova',
-    email: 'irina@example.com',
-    bio: 'Professional dancer and choreographer.',
-    role: 'user',
-    friends: ['1'],
-    joinedDate: '2023-04-05',
-    relationshipStatus: '1' // Single
-  },
-  {
-    id: '5',
-    username: 'jennieferguson',
-    name: 'Jennie Ferguson',
-    email: 'jennie@example.com',
-    bio: 'Digital artist and content creator.',
-    role: 'user',
-    friends: ['1', '3'],
-    joinedDate: '2023-05-18',
-    relationshipStatus: '2', // In a relationship
-    relationshipPartners: [] // Not tagged anyone yet
   }
 ];
 

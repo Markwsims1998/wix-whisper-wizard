@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { useAuth } from './AuthContext';
+import { useAuth } from './auth/AuthProvider';
 import { Badge } from "@/components/ui/badge";
 import { Award, Diamond, Badge as BadgeIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";

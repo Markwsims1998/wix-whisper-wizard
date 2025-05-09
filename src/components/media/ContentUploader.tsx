@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -239,7 +240,7 @@ const ContentUploader = ({ open, onOpenChange, type = 'photo' }: ContentUploader
                 <Image className="w-12 h-12 mx-auto mb-4 text-gray-400" />
               )}
               <p className="mb-2 text-sm font-medium">{filePreview ? "Click to change photo" : "Drag and drop your photo here"}</p>
-              <p className="text-xs text-gray-500 mb-4">{filePreview ? "PNG, JPG or WEBP up to 10MB"}</p>
+              <p className="text-xs text-gray-500 mb-4">{filePreview ? "PNG, JPG or WEBP up to 10MB" : "PNG, JPG or WEBP up to 10MB"}</p>
               <Button type="button" variant="outline" size="sm">Browse Files</Button>
               <input 
                 id="photo-upload" 
@@ -287,7 +288,7 @@ const ContentUploader = ({ open, onOpenChange, type = 'photo' }: ContentUploader
                 <Video className="w-12 h-12 mx-auto mb-4 text-gray-400" />
               )}
               <p className="mb-2 text-sm font-medium">{filePreview ? "Click to change video" : "Drag and drop your video here"}</p>
-              <p className="text-xs text-gray-500 mb-4">{filePreview ? "MP4, MOV or WebM up to 100MB"}</p>
+              <p className="text-xs text-gray-500 mb-4">{filePreview ? "MP4, MOV or WebM up to 100MB" : "MP4, MOV or WebM up to 100MB"}</p>
               <Button type="button" variant="outline" size="sm">Browse Files</Button>
               <input 
                 id="video-upload" 

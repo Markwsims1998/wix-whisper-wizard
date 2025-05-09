@@ -1,5 +1,6 @@
+
 import React from 'react';
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { Route, Routes } from 'react-router-dom';
 import Index from './pages/Index';
 import Login from './pages/Login';
 import Messages from './pages/Messages';
@@ -18,10 +19,11 @@ import HomePage from './pages/HomePage';
 import Feedback from './pages/Feedback';
 import { Toaster } from "@/components/ui/toaster"
 import Profile from './pages/profile';
+import { AuthProvider } from './contexts/auth/AuthProvider';
 
 function App() {
   return (
-    <Router>
+    <AuthProvider>
       <Routes>
         <Route path="/" element={<Index />} />
         <Route path="/home" element={<HomePage />} />
@@ -42,9 +44,8 @@ function App() {
         <Route path="*" element={<NotFound />} />
       </Routes>
       <Toaster />
-    </Router>
+    </AuthProvider>
   );
 }
 
 export default App;
-

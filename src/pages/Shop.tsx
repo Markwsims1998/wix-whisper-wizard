@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Award, Diamond, Badge as BadgeIcon, Check, ChevronDown, ChevronUp, ShoppingCart, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -16,21 +15,26 @@ import { supabase } from "@/integrations/supabase/client";
 
 const Shop = () => {
   const { user, isAuthenticated } = useAuth();
-  const { subscriptionTier, upgradeSubscription, getTierBadge } = useSubscription();
+  const { subscriptionTier, upgradeSubscription, getTierBadge, refreshSubscription } = useSubscription();
   const { toast } = useToast();
   const [processing, setProcessing] = useState(false);
-  const [showSubscriptions, setShowSubscriptions] = useState(subscriptionTier === "free");
+  const [showSubscriptions, setShowSubscriptions] = useState(true);
   const [cartItems, setCartItems] = useState<number>(3);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [authCheckDone, setAuthCheckDone] = useState(false);
   const [hasSession, setHasSession] = useState(false);
 
-  // Enhanced debugging logs and auth check
+  // Enhanced debugging logs and auth check - also refresh subscription data
   useEffect(() => {
     const checkAuth = async () => {
-      // Get session directly from Supabase
+      // Get session directly from Supabase and refresh subscription
       const { data: sessionData } = await supabase.auth.getSession();
       const session = sessionData?.session;
+      
+      // Always refresh subscription data when component mounts
+      if (session?.user?.id) {
+        await refreshSubscription();
+      }
       
       console.log("Shop - Auth state detailed check:", { 
         isAuthenticated, 
@@ -41,7 +45,6 @@ const Shop = () => {
         authObjectPresent: !!user,
         hasValidSession: !!session,
         sessionUserId: session?.user?.id,
-        contextUserMatches: session?.user?.id === user?.id
       });
       
       setAuthCheckDone(true);
@@ -50,7 +53,7 @@ const Shop = () => {
     };
     
     checkAuth();
-  }, [user, isAuthenticated, subscriptionTier]);
+  }, [user, isAuthenticated]);
 
   // Set showSubscriptions based on subscription tier - collapse for premium tiers
   useEffect(() => {
@@ -59,22 +62,10 @@ const Shop = () => {
   
   const handleSubscribe = async (tier: SubscriptionTier) => {
     console.log("Subscribe button clicked for tier:", tier);
-    console.log("Current auth state detailed:", { 
-      isAuthenticated, 
-      user: user ? {
-        id: user.id,
-        email: user.email,
-        name: user.name
-      } : null 
-    });
     
     // Direct database check for debugging
     const { data: sessionData } = await supabase.auth.getSession();
     const session = sessionData?.session;
-    console.log("Direct Supabase session check:", {
-      hasSession: !!session,
-      sessionUserId: session?.user?.id
-    });
     
     // Clear previous error
     setErrorMessage(null);
@@ -293,7 +284,7 @@ const Shop = () => {
             </Alert>
           )}
           
-          {/* Subscription Status Alert - Only show for premium tiers */}
+          {/* Subscription Status Alert - Always show for premium tiers */}
           {authCheckDone && hasSession && subscriptionTier !== "free" && (
             <Alert className="mb-4 bg-green-50 border-green-200">
               <Check className="h-4 w-4 text-green-600" />

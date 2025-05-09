@@ -20,9 +20,9 @@ export const useTheme = () => {
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [theme, setThemeState] = useState<Theme>(() => {
-    // Check localStorage or default to system preference
+    // Check localStorage or default to light mode
     const savedTheme = localStorage.getItem('theme') as Theme;
-    return savedTheme || 'system';
+    return savedTheme || 'light';
   });
 
   const setTheme = (newTheme: Theme) => {
@@ -34,7 +34,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   useEffect(() => {
     const root = document.documentElement;
     
-    // Function to apply dark mode
+    // Function to apply theme
     const applyTheme = () => {
       if (theme === 'dark') {
         root.classList.add('dark');

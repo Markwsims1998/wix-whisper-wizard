@@ -24,12 +24,19 @@ const Shop = () => {
 
   // Add debug logging for authentication state
   useEffect(() => {
-    console.log("Current authentication state:", { user, isAuthenticated, userId: user?.id });
+    console.log("Shop - Current authentication state:", { 
+      isAuthenticated, 
+      userId: user?.id, 
+      userEmail: user?.email 
+    });
     setErrorMessage(null);
   }, [user, isAuthenticated]);
   
   const handleSubscribe = async (tier: SubscriptionTier) => {
-    if (!isAuthenticated || !user) {
+    console.log("Subscribe button clicked for tier:", tier);
+    console.log("Current auth state:", { isAuthenticated, user: !!user });
+    
+    if (!isAuthenticated) {
       toast({
         title: "Authentication Required",
         description: "Please sign in to subscribe to a plan.",
@@ -193,7 +200,7 @@ const Shop = () => {
           )}
           
           {/* Authentication Warning - Only show when not authenticated */}
-          {!isAuthenticated && !user && (
+          {!isAuthenticated && (
             <Alert className="mb-4 bg-yellow-50 border-yellow-200">
               <AlertCircle className="h-4 w-4 text-yellow-600" />
               <AlertTitle>Authentication Required</AlertTitle>
@@ -209,7 +216,7 @@ const Shop = () => {
           )}
           
           {/* Subscription Status Alert */}
-          {user && subscriptionTier !== "free" && (
+          {isAuthenticated && subscriptionTier !== "free" && (
             <Alert className="mb-4 bg-green-50 border-green-200">
               <Check className="h-4 w-4 text-green-600" />
               <AlertTitle className="flex items-center">

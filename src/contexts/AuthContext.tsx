@@ -48,6 +48,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // If there's a session, get and transform the user
         if (currentSession) {
           const transformedUser = await transformUser(currentSession.user);
+          console.log("AuthContext: Transformed user:", transformedUser);
           setUser(transformedUser);
           setIsAuthenticated(true);
           console.log("AuthContext: User authenticated:", transformedUser?.id);
@@ -77,9 +78,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         
         if (currentSession) {
           const transformedUser = await transformUser(currentSession.user);
+          console.log("AuthContext: User authenticated after state change:", transformedUser?.id);
           setUser(transformedUser);
           setIsAuthenticated(true);
-          console.log("AuthContext: User authenticated after state change:", transformedUser?.id);
         } else {
           setUser(null);
           setIsAuthenticated(false);

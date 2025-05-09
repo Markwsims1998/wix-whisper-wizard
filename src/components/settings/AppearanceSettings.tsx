@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -5,7 +6,7 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "@/contexts/ThemeContext";
-import { useAuth } from "@/contexts/auth/AuthProvider";
+import { useAuth } from "@/contexts/AuthContext";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 const AppearanceSettings = () => {
@@ -19,6 +20,7 @@ const AppearanceSettings = () => {
   // Load user preferences
   useEffect(() => {
     if (user) {
+      // Set dark mode state based on user preference or current theme
       setIsDarkMode(user.darkMode || theme === 'dark');
       setIsSystemPreference(user.useSystemTheme || theme === 'system');
     }

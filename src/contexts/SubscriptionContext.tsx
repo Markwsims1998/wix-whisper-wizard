@@ -86,7 +86,7 @@ export const SubscriptionProvider: React.FC<{children: React.ReactNode}> = ({ ch
     const loadSubscription = async () => {
       setIsLoading(true);
       
-      if (!user || !isAuthenticated) {
+      if (!isAuthenticated || !user) {
         console.log("SubscriptionContext: No authenticated user, setting free tier");
         setSubscriptionTier("free");
         setSubscriptionDetails(subscriptionPlans.free);
@@ -146,6 +146,7 @@ export const SubscriptionProvider: React.FC<{children: React.ReactNode}> = ({ ch
             messagesRemaining,
             messageResetTime
           });
+          setSubscriptionTier(storedTier);
         } else {
           console.log("SubscriptionContext: No subscription data found, defaulting to free tier");
           setSubscriptionTier("free");
@@ -182,24 +183,11 @@ export const SubscriptionProvider: React.FC<{children: React.ReactNode}> = ({ ch
       // Add more detailed logging for debugging
       console.log(`Attempting to update subscription to ${tier} for user ${user.id}`);
       
-      // Verify user is authenticated before attempting update
-      const session = await supabase.auth.getSession();
-      if (!session.data.session) {
-        console.error("No valid session found for user");
-        toast({
-          title: "Authentication Error",
-          description: "Please sign in again to update your subscription.",
-          variant: "destructive",
-        });
-        return false;
-      }
-      
       // Update subscription in Supabase
-      const { error, data } = await supabase
+      const { error } = await supabase
         .from('profiles')
         .update({ subscription_tier: tier })
-        .eq('id', user.id)
-        .select();
+        .eq('id', user.id);
         
       if (error) {
         console.error("Error updating subscription in database:", error);
@@ -210,8 +198,6 @@ export const SubscriptionProvider: React.FC<{children: React.ReactNode}> = ({ ch
         });
         return false;
       }
-      
-      console.log("Database update successful:", data);
       
       // Update local state
       setSubscriptionTier(tier);

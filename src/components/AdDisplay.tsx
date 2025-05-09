@@ -11,7 +11,7 @@ interface AdDisplayProps {
 }
 
 const AdDisplay = ({ className = "" }: AdDisplayProps) => {
-  const { user } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const { subscriptionTier } = useSubscription();
   const [showAd, setShowAd] = useState(true);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -20,8 +20,8 @@ const AdDisplay = ({ className = "" }: AdDisplayProps) => {
     // Set loaded state once subscription data has been loaded
     setIsLoaded(true);
     console.log("AdDisplay: Current subscription tier:", subscriptionTier);
-    console.log("AdDisplay: User authenticated:", !!user);
-  }, [subscriptionTier, user]);
+    console.log("AdDisplay: User authenticated:", isAuthenticated);
+  }, [subscriptionTier, isAuthenticated]);
   
   // Determine whether to show ads based on subscription tier
   const showAds = subscriptionTier === "free" || subscriptionTier === "bronze";

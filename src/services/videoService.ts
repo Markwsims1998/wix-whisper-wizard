@@ -1,3 +1,4 @@
+
 import { supabase } from '@/lib/supabaseClient';
 
 export interface Video {
@@ -19,44 +20,16 @@ export interface Video {
 
 export const fetchVideos = async (category: string = 'all'): Promise<Video[]> => {
   try {
-    let query = supabase.from('videos');
+    // For now, we'll use placeholder data since the videos table doesn't exist yet
+    // in our Supabase database schema
+    const placeholderVideos = getPlaceholderVideos();
     
-    // Add category filter if needed
+    // Filter by category if needed
     if (category !== 'all') {
-      query = query.eq('category', category);
+      return placeholderVideos.filter(video => video.category === category);
     }
     
-    // Execute the query
-    const { data, error } = await query.select('*');
-    
-    if (error) {
-      console.error('Error fetching videos:', error);
-      return getPlaceholderVideos();
-    }
-
-    // If no data returned, return hardcoded placeholder data
-    if (!data || data.length === 0) {
-      return getPlaceholderVideos();
-    }
-
-    // Since we don't have direct user data from the query,
-    // we'll use the placeholder user data for now
-    return data.map((item: any): Video => ({
-      id: item.id,
-      title: item.title || 'Untitled Video',
-      thumbnail_url: item.thumbnail_url || 'https://via.placeholder.com/600x340',
-      video_url: item.video_url,
-      category: item.category || 'uncategorized',
-      views: item.views || 0,
-      likes_count: item.likes_count || 0,
-      created_at: item.created_at,
-      user: {
-        id: item.user_id || '101',
-        username: 'user',
-        full_name: 'Demo User',
-        avatar_url: null
-      }
-    }));
+    return placeholderVideos;
   } catch (err) {
     console.error('Error in fetchVideos:', err);
     return getPlaceholderVideos();

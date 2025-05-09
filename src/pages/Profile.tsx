@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Label } from "@/components/ui/label";
@@ -12,7 +13,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Avatar } from "@/components/ui/avatar";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
@@ -768,9 +769,11 @@ const Profile = () => {
                 ) : (
                   <div className="flex gap-2">
                     <Button variant="outline" onClick={handleAddFriend}>
+                      <UserPlus className="w-4 h-4 mr-2" />
                       Add Friend
                     </Button>
                     <Button onClick={handleMessage}>
+                      <MessageCircle className="w-4 h-4 mr-2" />
                       Message
                     </Button>
                   </div>
@@ -903,4 +906,163 @@ const Profile = () => {
                         <div>
                           <p className="font-medium">{post.author?.full_name}</p>
                           <p className="text-xs text-gray-500">
-                            {post.created_at && format(new Date(post.created_at), 'MMM
+                            {post.created_at && format(new Date(post.created_at), 'MMM d, yyyy')}
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <p className="mb-3 text-gray-700">{post.content}</p>
+                      
+                      {post.media && post.media.length > 0 && (
+                        <div className="mb-4 rounded-md overflow-hidden">
+                          {post.media[0].media_type.startsWith('image/') ? (
+                            <img 
+                              src={post.media[0].file_url} 
+                              alt="Post attachment" 
+                              className="w-full h-auto"
+                            />
+                          ) : post.media[0].media_type.startsWith('video/') ? (
+                            <video 
+                              src={post.media[0].file_url} 
+                              controls 
+                              className="w-full"
+                            />
+                          ) : null}
+                        </div>
+                      )}
+                      
+                      <div className="flex gap-4 text-gray-500">
+                        <button 
+                          className="flex items-center gap-1 hover:text-red-500"
+                          onClick={() => handleLikePost(post.id)}
+                        >
+                          <Heart className="w-4 h-4" />
+                          <span>{post.likes_count || 0}</span>
+                        </button>
+                        <button className="flex items-center gap-1 hover:text-blue-500">
+                          <MessageCircle className="w-4 h-4" />
+                          <span>{post.comments_count || 0}</span>
+                        </button>
+                        <button className="flex items-center gap-1 hover:text-green-500 ml-auto">
+                          <Share2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </ScrollArea>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      {/* Relationship Status Dialog */}
+      <Dialog open={editRelationshipOpen} onOpenChange={setEditRelationshipOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Relationship Status</DialogTitle>
+            <DialogDescription>
+              Update your relationship status and partners.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid gap-4 py-4">
+            <div>
+              <Label htmlFor="status">Relationship Status</Label>
+              <Select 
+                value={selectedRelationshipStatus || ''} 
+                onValueChange={setSelectedRelationshipStatus}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Not specified</SelectItem>
+                  {relationshipStatuses.map(status => (
+                    <SelectItem key={status.id} value={status.id}>
+                      {status.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <Label>Relationship Partners</Label>
+              <div className="flex flex-wrap gap-2 mt-2">
+                {relationshipPartners.map(partnerId => {
+                  const partner = availablePartners.find(p => p.id === partnerId);
+                  return partner ? (
+                    <Badge key={partnerId} variant="secondary" className="flex items-center gap-1">
+                      {partner.full_name}
+                      <button 
+                        onClick={() => handleRemovePartner(partnerId)}
+                        className="ml-1 text-gray-400 hover:text-gray-600"
+                      >
+                        ×
+                      </button>
+                    </Badge>
+                  ) : null;
+                })}
+                
+                <Popover open={partnerSearchOpen} onOpenChange={setPartnerSearchOpen}>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm" className="h-7">
+                      Add Partner
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="p-0" side="right">
+                    <Command>
+                      <CommandInput 
+                        placeholder="Search friends..." 
+                        value={searchQuery}
+                        onValueChange={setSearchQuery}
+                      />
+                      <CommandList>
+                        <CommandEmpty>No results found</CommandEmpty>
+                        <CommandGroup heading="Available Friends">
+                          {availablePartners
+                            .filter(partner => !relationshipPartners.includes(partner.id))
+                            .filter(partner => 
+                              partner.full_name.toLowerCase().includes(searchQuery.toLowerCase())
+                            )
+                            .map(partner => (
+                              <CommandItem 
+                                key={partner.id}
+                                onSelect={() => handleAddPartner(partner.id)}
+                              >
+                                <Avatar className="h-6 w-6 mr-2">
+                                  {partner.avatar_url ? (
+                                    <AvatarImage src={partner.avatar_url} />
+                                  ) : (
+                                    <AvatarFallback>{partner.full_name.charAt(0)}</AvatarFallback>
+                                  )}
+                                </Avatar>
+                                {partner.full_name}
+                              </CommandItem>
+                            ))
+                          }
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditRelationshipOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveRelationship}>
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+export default Profile;

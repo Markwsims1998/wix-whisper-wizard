@@ -18,12 +18,13 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState("login");
-  const { login, signup, isAuthenticated } = useAuth();
+  const { login, signup, isAuthenticated, loading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // If already authenticated, redirect to home
-  if (isAuthenticated) {
+  // If already authenticated and not loading, redirect to home
+  if (isAuthenticated && !loading) {
+    console.log("User is authenticated, redirecting to home");
     navigate("/home");
     return null;
   }
@@ -101,6 +102,15 @@ const Login = () => {
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
   };
+
+  // Show loading indicator if we're checking authentication status
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900 p-4">

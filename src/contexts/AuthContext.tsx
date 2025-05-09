@@ -1,8 +1,9 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { User } from '@supabase/supabase-js';
+import { User, Session } from '@supabase/supabase-js';
 
 interface AuthUser {
   id: string;
@@ -37,6 +38,7 @@ export const useAuth = () => {
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [session, setSession] = useState<Session | null>(null); // Track the full session
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
   const navigate = useNavigate();
@@ -91,26 +93,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Listen for authentication state changes
   useEffect(() => {
+    console.log('Setting up authentication listeners...');
+    setLoading(true);
+
     // First, set up the auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('Auth state changed:', event, !!session);
-        setLoading(true);
+      (event, newSession) => {
+        console.log('Auth state changed:', event, !!newSession);
         
-        if (session?.user) {
-          const appUser = await transformUser(session.user);
-          setUser(appUser);
-          setIsAuthenticated(true);
-          
-          // If user just signed in, redirect to home
-          if (event === 'SIGNED_IN') {
-            navigate('/home');
-          }
+        if (newSession?.user) {
+          // Use setTimeout to prevent potential deadlocks
+          setTimeout(async () => {
+            const appUser = await transformUser(newSession.user);
+            if (appUser) {
+              setUser(appUser);
+              setSession(newSession);
+              setIsAuthenticated(true);
+              
+              // If user just signed in, redirect to home
+              if (event === 'SIGNED_IN') {
+                navigate('/home');
+              }
+            }
+          }, 0);
         } else {
           setUser(null);
+          setSession(null);
           setIsAuthenticated(false);
           
-          // Don't redirect if already on login page
+          // Don't redirect if already on login page or public pages
           if (window.location.pathname !== '/login' && 
               window.location.pathname !== '/' && 
               window.location.pathname !== '/feedback') {
@@ -125,28 +136,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Then check for existing session
     const initializeAuth = async () => {
       console.log('Initializing auth...');
-      setLoading(true);
       
-      const { data: { session } } = await supabase.auth.getSession();
-      console.log('Session exists:', !!session);
-      
-      if (session?.user) {
-        const appUser = await transformUser(session.user);
-        setUser(appUser);
-        setIsAuthenticated(true);
-      } else {
-        setUser(null);
-        setIsAuthenticated(false);
+      try {
+        const { data: { session: existingSession }, error } = await supabase.auth.getSession();
         
-        // Don't redirect if already on login page
-        if (window.location.pathname !== '/login' && 
-            window.location.pathname !== '/' && 
-            window.location.pathname !== '/feedback') {
-          navigate('/login');
+        if (error) {
+          console.error('Error getting session:', error);
+          setLoading(false);
+          return;
         }
+        
+        console.log('Session exists:', !!existingSession);
+        
+        if (existingSession?.user) {
+          const appUser = await transformUser(existingSession.user);
+          if (appUser) {
+            setUser(appUser);
+            setSession(existingSession);
+            setIsAuthenticated(true);
+          }
+        } else {
+          setUser(null);
+          setSession(null);
+          setIsAuthenticated(false);
+          
+          // Don't redirect if already on login page or public pages
+          if (window.location.pathname !== '/login' && 
+              window.location.pathname !== '/' && 
+              window.location.pathname !== '/feedback') {
+            navigate('/login');
+          }
+        }
+      } catch (err) {
+        console.error('Unexpected error during auth initialization:', err);
+      } finally {
+        setLoading(false);
       }
-      
-      setLoading(false);
     };
 
     initializeAuth();
@@ -218,13 +243,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (data.user) {
         const appUser = await transformUser(data.user);
-        setUser(appUser);
-        setIsAuthenticated(true);
-        
-        toast({
-          title: "Login successful",
-          description: `Welcome back${appUser?.name ? ', ' + appUser.name : ''}!`,
-        });
+        if (appUser) {
+          setUser(appUser);
+          setSession(data.session);
+          setIsAuthenticated(true);
+          
+          toast({
+            title: "Login successful",
+            description: `Welcome back${appUser?.name ? ', ' + appUser.name : ''}!`,
+          });
+        }
         
         return true;
       }
@@ -309,6 +337,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       
       setUser(null);
+      setSession(null);
       setIsAuthenticated(false);
       navigate('/login');
       

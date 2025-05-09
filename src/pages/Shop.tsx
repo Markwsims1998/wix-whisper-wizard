@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Award, Diamond, Badge as BadgeIcon, Check, ChevronDown, ChevronUp, ShoppingCart, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,7 @@ import { Separator } from "@/components/ui/separator";
 import ProductItem from "@/components/shop/ProductItem";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 const Shop = () => {
   const { user, isAuthenticated } = useAuth();
@@ -20,18 +22,31 @@ const Shop = () => {
   const [showSubscriptions, setShowSubscriptions] = useState(subscriptionTier === "free");
   const [cartItems, setCartItems] = useState<number>(3);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [authCheckDone, setAuthCheckDone] = useState(false);
 
-  // Enhanced debugging logs
+  // Enhanced debugging logs and auth check
   useEffect(() => {
-    console.log("Shop - Auth state detailed check:", { 
-      isAuthenticated, 
-      userId: user?.id, 
-      userEmail: user?.email,
-      userName: user?.name,
-      subscriptionTier,
-      authObjectPresent: !!user
-    });
-    setErrorMessage(null);
+    const checkAuth = async () => {
+      // Get session directly from Supabase
+      const { data: sessionData } = await supabase.auth.getSession();
+      const session = sessionData?.session;
+      
+      console.log("Shop - Auth state detailed check:", { 
+        isAuthenticated, 
+        userId: user?.id, 
+        userEmail: user?.email,
+        userName: user?.name,
+        subscriptionTier,
+        authObjectPresent: !!user,
+        hasValidSession: !!session,
+        sessionUserId: session?.user?.id
+      });
+      
+      setAuthCheckDone(true);
+      setErrorMessage(null);
+    };
+    
+    checkAuth();
   }, [user, isAuthenticated, subscriptionTier]);
   
   const handleSubscribe = async (tier: SubscriptionTier) => {
@@ -45,7 +60,19 @@ const Shop = () => {
       } : null 
     });
     
-    if (!isAuthenticated || !user?.id) {
+    // Direct database check for debugging
+    const { data: sessionData } = await supabase.auth.getSession();
+    const session = sessionData?.session;
+    console.log("Direct Supabase session check:", {
+      hasSession: !!session,
+      sessionUserId: session?.user?.id
+    });
+    
+    // Clear previous error
+    setErrorMessage(null);
+    
+    // Double-check authentication
+    if (!session?.user?.id) {
       toast({
         title: "Authentication Required",
         description: "Please sign in to subscribe to a plan.",
@@ -54,11 +81,41 @@ const Shop = () => {
       return;
     }
     
-    setErrorMessage(null);
     setProcessing(true);
     
     try {
-      // Update subscription in database via context
+      // Direct database update as a fallback if context method fails
+      if (session?.user?.id) {
+        try {
+          console.log("Attempting direct database update with user ID:", session.user.id);
+          
+          const { data, error } = await supabase
+            .from('profiles')
+            .update({ subscription_tier: tier })
+            .eq('id', session.user.id);
+            
+          if (error) {
+            console.error("Direct database update error:", error);
+            throw new Error("Database update failed: " + error.message);
+          } else {
+            console.log("Direct database update successful:", data);
+            
+            // Still try the context method for state updates
+            const contextSuccess = await upgradeSubscription(tier);
+            
+            toast({
+              title: "Subscription Updated",
+              description: `Your subscription has been successfully updated to ${tier} tier.`,
+            });
+            
+            return;
+          }
+        } catch (dbError) {
+          console.error("Error in direct database update:", dbError);
+        }
+      }
+      
+      // Fall back to the context method if direct update fails
       const success = await upgradeSubscription(tier);
       
       if (success) {
@@ -212,8 +269,8 @@ const Shop = () => {
             </Alert>
           )}
           
-          {/* Authentication Warning - Only show when not authenticated */}
-          {!user?.id && (
+          {/* Authentication Warning - Only show when truly not authenticated */}
+          {authCheckDone && !user?.id && (
             <Alert className="mb-4 bg-yellow-50 border-yellow-200">
               <AlertCircle className="h-4 w-4 text-yellow-600" />
               <AlertTitle>Authentication Required</AlertTitle>

@@ -100,11 +100,22 @@ export const SubscriptionProvider: React.FC<{children: React.ReactNode}> = ({ ch
       try {
         console.log("SubscriptionContext: Loading subscription for user:", user.id);
         
+        // Double-check authentication with direct Supabase call
+        const { data: sessionData } = await supabase.auth.getSession();
+        const session = sessionData?.session;
+        
+        console.log("SubscriptionContext: Direct auth check:", {
+          hasSession: !!session,
+          sessionUserId: session?.user?.id,
+          contextUserId: user.id,
+          authMatches: session?.user?.id === user.id
+        });
+        
         // Get subscription from Supabase profiles table
         const { data, error } = await supabase
           .from('profiles')
           .select('subscription_tier, bottom_nav_preferences')
-          .eq('id', user.id)
+          .eq('id', session?.user?.id || user.id)
           .single();
         
         if (error) {
@@ -176,8 +187,12 @@ export const SubscriptionProvider: React.FC<{children: React.ReactNode}> = ({ ch
       requestedTier: tier
     });
     
-    if (!isAuthenticated || !user?.id) {
-      console.error("Cannot upgrade subscription: No authenticated user");
+    // Double-check authentication with direct Supabase call
+    const { data: sessionData } = await supabase.auth.getSession();
+    const session = sessionData?.session;
+    
+    if (!session?.user?.id) {
+      console.error("Cannot upgrade subscription: No authenticated user session");
       toast({
         title: "Authentication Required",
         description: "Please sign in to update your subscription.",
@@ -186,15 +201,18 @@ export const SubscriptionProvider: React.FC<{children: React.ReactNode}> = ({ ch
       return false;
     }
     
+    const userId = session.user.id;
+    console.log(`Verified authenticated user ID: ${userId}`);
+    
     try {
       // Add more detailed logging for debugging
-      console.log(`Attempting to update subscription to ${tier} for user ${user.id}`);
+      console.log(`Attempting to update subscription to ${tier} for user ${userId}`);
       
       // Update subscription in Supabase
       const { error } = await supabase
         .from('profiles')
         .update({ subscription_tier: tier })
-        .eq('id', user.id);
+        .eq('id', userId);
         
       if (error) {
         console.error("Error updating subscription in database:", error);
@@ -216,13 +234,13 @@ export const SubscriptionProvider: React.FC<{children: React.ReactNode}> = ({ ch
       // For free tier, set message reset time
       if (tier === "free") {
         newDetails.messageResetTime = new Date(Date.now() + 24 * 60 * 60 * 1000);
-        localStorage.setItem(`message_reset_time_${user.id}`, newDetails.messageResetTime.toISOString());
+        localStorage.setItem(`message_reset_time_${userId}`, newDetails.messageResetTime.toISOString());
       } else {
-        localStorage.removeItem(`message_reset_time_${user.id}`);
+        localStorage.removeItem(`message_reset_time_${userId}`);
       }
       
       setSubscriptionDetails(newDetails);
-      localStorage.setItem(`messages_remaining_${user.id}`, String(newDetails.messagesRemaining));
+      localStorage.setItem(`messages_remaining_${userId}`, String(newDetails.messagesRemaining));
 
       toast({
         title: "Subscription Updated",

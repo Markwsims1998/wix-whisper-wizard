@@ -5,6 +5,7 @@ import { useSubscription } from "@/contexts/SubscriptionContext";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 interface AdDisplayProps {
   className?: string;
@@ -15,16 +16,34 @@ const AdDisplay = ({ className = "" }: AdDisplayProps) => {
   const { subscriptionTier } = useSubscription();
   const [showAd, setShowAd] = useState(true);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [authVerified, setAuthVerified] = useState(false);
   
   useEffect(() => {
-    // Set loaded state once subscription data has been loaded
-    setIsLoaded(true);
-    console.log("AdDisplay: Current subscription tier:", subscriptionTier);
-    console.log("AdDisplay: Authentication check:", { 
-      isAuthenticated, 
-      userId: user?.id, 
-      hasUser: !!user
-    });
+    const verifyAuth = async () => {
+      // Set loaded state once subscription data has been loaded
+      setIsLoaded(true);
+      
+      console.log("AdDisplay: Current subscription tier:", subscriptionTier);
+      console.log("AdDisplay: Authentication check from context:", { 
+        isAuthenticated, 
+        userId: user?.id, 
+        hasUser: !!user
+      });
+      
+      // Double-check authentication with direct Supabase call
+      const { data: sessionData } = await supabase.auth.getSession();
+      const session = sessionData?.session;
+      
+      console.log("AdDisplay: Direct Supabase auth check:", {
+        hasSession: !!session,
+        sessionUserId: session?.user?.id,
+        contextUserMatches: session?.user?.id === user?.id
+      });
+      
+      setAuthVerified(!!session?.user?.id);
+    };
+    
+    verifyAuth();
   }, [subscriptionTier, isAuthenticated, user]);
   
   // Determine whether to show ads based on subscription tier

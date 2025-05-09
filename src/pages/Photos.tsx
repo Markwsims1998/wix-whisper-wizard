@@ -1,19 +1,22 @@
+
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
 import { useEffect, useState } from "react";
-import { Image as ImageIcon, User, Heart, Lock, Filter } from "lucide-react";
+import { Image as ImageIcon, User, Heart, Filter } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { Button } from "@/components/ui/button";
 import MediaViewer from "@/components/media/MediaViewer";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import ContentUploader from "@/components/media/ContentUploader";
 
 const Photos = () => {
   const { subscriptionDetails } = useSubscription();
   const canViewPhotos = true; // All users can view photos
   const [selectedPhoto, setSelectedPhoto] = useState<any | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [uploaderOpen, setUploaderOpen] = useState(false);
 
   // Categories for filtering
   const categories = [
@@ -77,23 +80,23 @@ const Photos = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
       <Sidebar />
       <Header />
       
       <div className="pl-[280px] pt-16 pr-4 pb-36 md:pb-10 transition-all duration-300" style={{ paddingLeft: 'var(--sidebar-width, 280px)' }}>
         <div className="max-w-screen-xl mx-auto">
-          <div className="bg-white rounded-lg p-6 mb-6">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 mb-6">
             <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
               <div>
-                <h1 className="text-2xl font-semibold">Photos</h1>
+                <h1 className="text-2xl font-semibold dark:text-white">Photos</h1>
                 <div className="border-b-2 border-purple-500 w-16 mt-1"></div>
               </div>
 
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2">
-                  <Filter className="w-5 h-5 text-gray-500" />
-                  <span className="text-sm font-medium text-gray-700">Filter:</span>
+                  <Filter className="w-5 h-5 text-gray-500 dark:text-gray-300" />
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-200">Filter:</span>
                 </div>
                 <div className="overflow-x-auto no-scrollbar">
                   <Tabs 
@@ -101,7 +104,7 @@ const Photos = () => {
                     onValueChange={setSelectedCategory} 
                     className="w-full"
                   >
-                    <TabsList className="bg-gray-100 p-1 rounded-lg flex flex-nowrap overflow-x-auto">
+                    <TabsList className="bg-gray-100 dark:bg-gray-700 p-1 rounded-lg flex flex-nowrap overflow-x-auto">
                       {categories.map(category => (
                         <TabsTrigger 
                           key={category.id} 
@@ -115,7 +118,10 @@ const Photos = () => {
                   </Tabs>
                 </div>
 
-                <Button className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition ml-auto">
+                <Button 
+                  onClick={() => setUploaderOpen(true)} 
+                  className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition ml-auto"
+                >
                   <ImageIcon className="w-5 h-5" />
                   <span>Upload Photo</span>
                 </Button>
@@ -126,7 +132,7 @@ const Photos = () => {
               {filteredPhotos.map(photo => (
                 <div 
                   key={photo.id} 
-                  className="bg-gray-50 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition cursor-pointer group"
+                  className="bg-gray-50 dark:bg-gray-700 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition cursor-pointer group"
                   onClick={() => handlePhotoClick(photo)}
                 >
                   <div className="relative aspect-square">
@@ -142,18 +148,18 @@ const Photos = () => {
                       <div className="text-white font-medium">View Photo</div>
                     </div>
                   </div>
-                  <div className="p-3">
+                  <div className="p-3 dark:text-gray-100">
                     <div className="flex items-center gap-2">
-                      <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
-                        <User className="h-4 w-4 text-gray-500" />
+                      <div className="h-10 w-10 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center overflow-hidden">
+                        <User className="h-4 w-4 text-gray-500 dark:text-gray-300" />
                       </div>
                       <div className="flex-1">
                         <h3 className="font-medium text-sm line-clamp-1">{photo.title}</h3>
-                        <p className="text-xs text-gray-500">{photo.author}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-300">{photo.author}</p>
                       </div>
                     </div>
                     <div className="flex items-center justify-end mt-2">
-                      <div className="flex items-center text-gray-500 text-xs bg-gray-100 px-2 py-1 rounded-full">
+                      <div className="flex items-center text-gray-500 dark:text-gray-300 text-xs bg-gray-100 dark:bg-gray-600 px-2 py-1 rounded-full">
                         <Heart className="h-3 w-3 mr-1 text-red-400" /> {photo.likes}
                       </div>
                     </div>
@@ -174,6 +180,13 @@ const Photos = () => {
           postId={selectedPhoto.postId}
         />
       )}
+
+      {/* Content uploader dialog */}
+      <ContentUploader 
+        open={uploaderOpen} 
+        onOpenChange={setUploaderOpen}
+        type="photo"
+      />
     </div>
   );
 };

@@ -13,7 +13,7 @@ import NotFound from "./pages/NotFound";
 import Profile from "./pages/Profile";
 import Photos from "./pages/Photos";
 import Activity from "./pages/Activity";
-import Watch from "./pages/Watch";
+import Videos from "./pages/Videos"; // Renamed from Watch
 import People from "./pages/People";
 import Notifications from "./pages/Notifications";
 import Shop from "./pages/Shop";
@@ -21,6 +21,8 @@ import Basket from "./pages/Basket";
 import Settings from "./pages/Settings";
 import Messages from "./pages/Messages";
 import Login from "./pages/Login";
+import Feedback from "./pages/Feedback"; // New feedback page
+import HomePage from "./pages/HomePage"; // New homepage
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Footer from "./components/Footer";
 
@@ -83,8 +85,10 @@ const AppRoutes = () => {
 
   return (
     <Routes>
+      <Route path="/" element={<HomePage />} />
       <Route path="/login" element={<Login />} />
-      <Route path="/" element={
+      <Route path="/feedback" element={<Feedback />} />
+      <Route path="/home" element={
         <Layout>
           <ProtectedRoute><Index /></ProtectedRoute>
         </Layout>
@@ -104,9 +108,9 @@ const AppRoutes = () => {
           <ProtectedRoute><Activity /></ProtectedRoute>
         </Layout>
       } />
-      <Route path="/watch" element={
+      <Route path="/videos" element={
         <Layout>
-          <ProtectedRoute><Watch /></ProtectedRoute>
+          <ProtectedRoute><Videos /></ProtectedRoute>
         </Layout>
       } />
       <Route path="/people" element={

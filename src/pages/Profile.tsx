@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Label } from "@/components/ui/label";
@@ -24,6 +23,8 @@ import { format } from 'date-fns';
 type RelationshipStatus = {
   id: string;
   name: string;
+  isActive?: boolean;
+  createdAt?: string;
 };
 
 // Define user type for friends/partners
@@ -50,7 +51,12 @@ type Post = {
     file_url: string;
     media_type: string;
   }[];
-  author?: UserProfile;
+  author?: {
+    id: string;
+    full_name: string;
+    username: string;
+    avatar_url?: string;
+  };
 };
 
 const Profile = () => {
@@ -81,8 +87,7 @@ const Profile = () => {
       try {
         const { data, error } = await supabase
           .from('relationship_statuses')
-          .select('id, name')
-          .eq('active', true);
+          .select('id, name, isactive');
           
         if (error) {
           console.error('Error fetching relationship statuses:', error);
@@ -90,7 +95,11 @@ const Profile = () => {
         }
         
         if (data) {
-          setRelationshipStatuses(data);
+          setRelationshipStatuses(data.map(item => ({
+            id: item.id,
+            name: item.name,
+            isActive: item.isactive
+          })));
         }
       } catch (error) {
         console.error('Unexpected error:', error);
@@ -170,7 +179,13 @@ const Profile = () => {
             return {
               ...post,
               likes_count: likesCount || 0,
-              comments_count: commentsCount || 0
+              comments_count: commentsCount || 0,
+              author: {
+                id: profileData.id,
+                full_name: profileData.full_name || "",
+                username: profileData.username || "",
+                avatar_url: profileData.avatar_url
+              }
             };
           }));
           
@@ -265,7 +280,13 @@ const Profile = () => {
             return {
               ...post,
               likes_count: likesCount || 0,
-              comments_count: commentsCount || 0
+              comments_count: commentsCount || 0,
+              author: {
+                id: user.id,
+                full_name: user.name,
+                username: user.username,
+                avatar_url: user.profilePicture
+              }
             };
           }));
           
@@ -579,11 +600,12 @@ const Profile = () => {
       }
       
       // Add the new post to the list with user info
-      const newPostWithUser = {
+      const newPostWithUser: Post = {
         ...newPost,
         likes_count: 0,
         comments_count: 0,
         author: {
+          id: user.id,
           full_name: user.name,
           username: user.username,
           avatar_url: user.profilePicture
@@ -672,7 +694,7 @@ const Profile = () => {
       console.error('Error handling like:', error);
     }
   };
-
+  
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-100">
@@ -868,10 +890,10 @@ const Profile = () => {
                     <div key={post.id} className="mb-6 pb-6 border-b border-gray-100 last:border-0 last:mb-0 last:pb-0">
                       <div className="flex items-center gap-3 mb-3">
                         <div className="h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center overflow-hidden">
-                          {profile?.profilePicture ? (
+                          {post.author?.avatar_url ? (
                             <img 
-                              src={profile.profilePicture} 
-                              alt={profile.name} 
+                              src={post.author.avatar_url} 
+                              alt={post.author.full_name} 
                               className="w-full h-full object-cover"
                             />
                           ) : (
@@ -879,211 +901,6 @@ const Profile = () => {
                           )}
                         </div>
                         <div>
-                          <p className="font-medium">{profile?.name}</p>
+                          <p className="font-medium">{post.author?.full_name}</p>
                           <p className="text-xs text-gray-500">
-                            {post.created_at && format(new Date(post.created_at), 'MMM d, yyyy • h:mm a')}
-                          </p>
-                        </div>
-                      </div>
-                      
-                      <p className="mb-4">{post.content}</p>
-                      
-                      {post.media && post.media.length > 0 && (
-                        <div className="mb-4 rounded-lg overflow-hidden">
-                          {post.media[0].media_type === 'image' && (
-                            <img 
-                              src={post.media[0].file_url} 
-                              alt="Post media" 
-                              className="w-full rounded-lg" 
-                            />
-                          )}
-                          {post.media[0].media_type === 'video' && (
-                            <video 
-                              src={post.media[0].file_url} 
-                              controls 
-                              className="w-full rounded-lg"
-                            >
-                              Your browser does not support the video tag.
-                            </video>
-                          )}
-                          {post.media[0].media_type === 'gif' && (
-                            <img 
-                              src={post.media[0].file_url} 
-                              alt="GIF" 
-                              className="w-full rounded-lg" 
-                            />
-                          )}
-                        </div>
-                      )}
-                      
-                      <div className="flex items-center gap-6">
-                        <button 
-                          className="flex items-center gap-1 text-gray-500 text-sm hover:text-purple-600"
-                          onClick={() => handleLikePost(post.id)}
-                        >
-                          <Heart className="h-4 w-4" /> {post.likes_count || 0}
-                        </button>
-                        <button className="flex items-center gap-1 text-gray-500 text-sm hover:text-purple-600">
-                          <MessageCircle className="h-4 w-4" /> {post.comments_count || 0}
-                        </button>
-                        <button className="flex items-center gap-1 text-gray-500 text-sm hover:text-purple-600">
-                          <Share2 className="h-4 w-4" /> Share
-                        </button>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </ScrollArea>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Edit Relationship Status Dialog */}
-      <Dialog open={editRelationshipOpen} onOpenChange={setEditRelationshipOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Edit Relationship Status</DialogTitle>
-            <DialogDescription>
-              Update your relationship status and tag your partners
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="relationshipStatus">Relationship Status</Label>
-              <Select
-                value={selectedRelationshipStatus || "not_specified"}
-                onValueChange={(value) => setSelectedRelationshipStatus(value)}
-              >
-                <SelectTrigger id="relationshipStatus">
-                  <SelectValue placeholder="Select your relationship status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="not_specified">Not specified</SelectItem>
-                  {relationshipStatuses.map((status) => (
-                    <SelectItem key={status.id} value={status.id}>
-                      {status.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            
-            {selectedRelationshipStatus && selectedRelationshipStatus !== "not_specified" && (
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <Label>Tagged Partners</Label>
-                  <Popover open={partnerSearchOpen} onOpenChange={setPartnerSearchOpen}>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" size="sm" className="gap-1">
-                        <UserPlus className="h-3.5 w-3.5" />
-                        <span>Add Partner</span>
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-80 p-0" align="end">
-                      <Command>
-                        <CommandInput 
-                          placeholder="Search friends..." 
-                          value={searchQuery}
-                          onValueChange={setSearchQuery}
-                        />
-                        <CommandList>
-                          <CommandEmpty>No friends found.</CommandEmpty>
-                          <CommandGroup heading="Friends">
-                            {availablePartners
-                              .filter(partner => 
-                                partner.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                                partner.username?.toLowerCase().includes(searchQuery.toLowerCase())
-                              )
-                              .map((partner) => (
-                                <CommandItem
-                                  key={partner.id}
-                                  onSelect={() => handleAddPartner(partner.id)}
-                                  className="cursor-pointer"
-                                >
-                                  <div className="flex items-center gap-2">
-                                    <div className="h-8 w-8 rounded-full bg-purple-100 flex items-center justify-center overflow-hidden">
-                                      {partner.avatar_url ? (
-                                        <img 
-                                          src={partner.avatar_url} 
-                                          alt={partner.full_name} 
-                                          className="h-full w-full object-cover" 
-                                        />
-                                      ) : (
-                                        <User className="h-4 w-4 text-purple-600" />
-                                      )}
-                                    </div>
-                                    <div>
-                                      <p className="text-sm font-medium">{partner.full_name}</p>
-                                      <p className="text-xs text-muted-foreground">{partner.username}</p>
-                                    </div>
-                                  </div>
-                                </CommandItem>
-                              ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                </div>
-                
-                <div className="flex flex-wrap gap-2 mt-1">
-                  {relationshipPartners.length === 0 ? (
-                    <p className="text-sm text-muted-foreground italic">
-                      No partners tagged
-                    </p>
-                  ) : (
-                    relationshipPartners.map((partnerId) => {
-                      const partner = availablePartners.find(p => p.id === partnerId);
-                      return partner ? (
-                        <Badge key={partnerId} variant="secondary" className="flex items-center gap-1">
-                          <span>{partner.full_name}</span>
-                          <button
-                            className="ml-1 hover:bg-gray-200 rounded-full p-0.5"
-                            onClick={() => handleRemovePartner(partnerId)}
-                          >
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              width="14"
-                              height="14"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            >
-                              <path d="M18 6 6 18" />
-                              <path d="m6 6 12 12" />
-                            </svg>
-                            <span className="sr-only">Remove</span>
-                          </button>
-                        </Badge>
-                      ) : null;
-                    })
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-          
-          <DialogFooter className="sm:justify-between">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => setEditRelationshipOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button type="button" onClick={handleSaveRelationship}>
-              Save Changes
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
-};
-
-export default Profile;
+                            {post.created_at && format(new Date(post.created_at), 'MMM

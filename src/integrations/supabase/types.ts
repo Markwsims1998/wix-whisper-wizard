@@ -305,6 +305,8 @@ export type Database = {
           full_name: string | null
           id: string
           location: string | null
+          relationship_partners: string[] | null
+          relationship_status: string | null
           subscription_tier: string | null
           updated_at: string
           username: string
@@ -317,6 +319,8 @@ export type Database = {
           full_name?: string | null
           id: string
           location?: string | null
+          relationship_partners?: string[] | null
+          relationship_status?: string | null
           subscription_tier?: string | null
           updated_at?: string
           username: string
@@ -329,10 +333,30 @@ export type Database = {
           full_name?: string | null
           id?: string
           location?: string | null
+          relationship_partners?: string[] | null
+          relationship_status?: string | null
           subscription_tier?: string | null
           updated_at?: string
           username?: string
           website?: string | null
+        }
+        Relationships: []
+      }
+      relationship_statuses: {
+        Row: {
+          id: string
+          isactive: boolean | null
+          name: string
+        }
+        Insert: {
+          id?: string
+          isactive?: boolean | null
+          name: string
+        }
+        Update: {
+          id?: string
+          isactive?: boolean | null
+          name?: string
         }
         Relationships: []
       }

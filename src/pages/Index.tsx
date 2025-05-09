@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import Header from "@/components/Header";
 import MembersList from "@/components/MembersList";
@@ -27,7 +28,7 @@ const Index = () => {
   const [showEmojis, setShowEmojis] = useState(false);
   const [showGifs, setShowGifs] = useState(false);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
-  const [uploadType, setUploadType<'photo' | 'video'>('photo');
+  const [uploadType, setUploadType] = useState<'photo' | 'video'>('photo');
   const [tagSuggestions, setTagSuggestions] = useState<boolean>(false);
   const [selectedGif, setSelectedGif] = useState<string | null>(null);
   const [showBanner, setShowBanner] = useState(true);

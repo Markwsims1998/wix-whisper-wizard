@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Post } from "./types";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 type PostItemProps = {
   post: Post;
@@ -24,11 +25,11 @@ const PostItem = ({ post, handleLikePost }: PostItemProps) => {
   };
   
   return (
-    <div className="mb-6 pb-6 border-b border-gray-100 last:border-0 last:mb-0 last:pb-0 dark:border-gray-700">
+    <div className="mb-6 pb-6 border-b border-gray-100 last:border-0 last:mb-0 last:pb-0 dark:border-gray-700 transition-all hover:bg-gray-50 dark:hover:bg-gray-800/50 p-4 rounded-lg -mx-4">
       <div className="flex items-center gap-3 mb-3">
         <Link 
           to={post.author ? `/profile/${post.author.id}` : "#"} 
-          className="h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center overflow-hidden dark:bg-purple-900"
+          className="h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center overflow-hidden dark:bg-purple-900 transition-transform hover:scale-105"
         >
           {post.author?.avatar_url ? (
             <img 
@@ -41,7 +42,10 @@ const PostItem = ({ post, handleLikePost }: PostItemProps) => {
           )}
         </Link>
         <div>
-          <Link to={post.author ? `/profile/${post.author.id}` : "#"} className="font-medium hover:text-purple-600 transition-colors">
+          <Link 
+            to={post.author ? `/profile/${post.author.id}` : "#"} 
+            className="font-medium hover:text-purple-600 transition-colors"
+          >
             {post.author?.full_name}
           </Link>
           <p className="text-xs text-gray-500 dark:text-gray-400">
@@ -58,7 +62,7 @@ const PostItem = ({ post, handleLikePost }: PostItemProps) => {
             <img 
               src={post.media[0].file_url} 
               alt="Post attachment" 
-              className="w-full h-auto rounded-md"
+              className="w-full h-auto rounded-md hover:opacity-95 transition-opacity cursor-pointer"
             />
           ) : post.media[0].media_type.startsWith('video/') ? (
             <video 
@@ -71,30 +75,59 @@ const PostItem = ({ post, handleLikePost }: PostItemProps) => {
       )}
       
       <div className="flex gap-4 text-gray-500 dark:text-gray-400">
-        <Button 
-          variant="ghost" 
-          size="sm"
-          className={`flex items-center gap-1 px-2 ${isLiked ? 'text-red-500' : 'hover:text-red-500'}`}
-          onClick={onLikeClick}
-        >
-          <Heart className={`w-4 h-4 ${isLiked ? 'fill-current' : ''}`} />
-          <span>{likesCount}</span>
-        </Button>
-        <Button 
-          variant="ghost" 
-          size="sm"
-          className="flex items-center gap-1 hover:text-blue-500 px-2"
-        >
-          <MessageCircle className="w-4 h-4" />
-          <span>{post.comments_count || 0}</span>
-        </Button>
-        <Button 
-          variant="ghost" 
-          size="sm"
-          className="flex items-center gap-1 hover:text-green-500 ml-auto px-2"
-        >
-          <Share2 className="w-4 h-4" />
-        </Button>
+        <TooltipProvider delayDuration={300}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="sm"
+                className={`flex items-center gap-1 px-2 ${isLiked ? 'text-red-500' : 'hover:text-red-500'}`}
+                onClick={onLikeClick}
+              >
+                <Heart className={`w-4 h-4 ${isLiked ? 'fill-current' : ''} transition-transform ${isLiked ? 'scale-110' : ''}`} />
+                <span>{likesCount}</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">
+              {isLiked ? 'Unlike this post' : 'Like this post'}
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+        
+        <TooltipProvider delayDuration={300}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="sm"
+                className="flex items-center gap-1 hover:text-blue-500 px-2"
+              >
+                <MessageCircle className="w-4 h-4" />
+                <span>{post.comments_count || 0}</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">
+              Comment on this post
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+        
+        <TooltipProvider delayDuration={300}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="sm"
+                className="flex items-center gap-1 hover:text-green-500 ml-auto px-2"
+              >
+                <Share2 className="w-4 h-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">
+              Share this post
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
     </div>
   );

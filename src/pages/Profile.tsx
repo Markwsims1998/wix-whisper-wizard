@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/auth/AuthProvider';
 import { useToast } from '@/components/ui/use-toast';
@@ -10,6 +11,7 @@ import { ProfileData, Post } from '@/components/profile/types';
 import { supabase } from '@/integrations/supabase/client';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
+import Footer from '@/components/Footer';
 import { useSearchParams, useLocation } from 'react-router-dom';
 
 const Profile = () => {
@@ -576,38 +578,45 @@ const Profile = () => {
     loadProfileData();
   }, [user?.id, profileId, location.search]);
   
-  if (loading) return (
-    <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
-      <Sidebar />
-      <div className="flex-1 flex flex-col">
-        <Header />
-        <main className="flex-1 p-4 pt-16 overflow-auto">
-          <div className="container max-w-4xl mx-auto">
-            <LoadingProfile />
-          </div>
-        </main>
-      </div>
-    </div>
-  );
-
-  if (!profileData) return (
-    <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
-      <Sidebar />
-      <div className="flex-1 flex flex-col">
-        <Header />
-        <main className="flex-1 p-4 pt-16 overflow-auto">
-          <div className="container max-w-4xl mx-auto">
-            <div className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow text-center">
-              <h2 className="text-2xl font-semibold mb-4">Profile Not Found</h2>
-              <p className="text-gray-600 dark:text-gray-300">
-                The profile you're looking for doesn't exist or you don't have permission to view it.
-              </p>
+  // Common layout structure that will properly respond to sidebar collapse
+  if (loading) {
+    return (
+      <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
+        <Sidebar />
+        <div className="flex-1 flex flex-col">
+          <Header />
+          <main className="flex-1 p-4 pt-16 overflow-auto">
+            <div className="container max-w-4xl mx-auto">
+              <LoadingProfile />
             </div>
-          </div>
-        </main>
+          </main>
+          <Footer />
+        </div>
       </div>
-    </div>
-  );
+    );
+  }
+
+  if (!profileData) {
+    return (
+      <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
+        <Sidebar />
+        <div className="flex-1 flex flex-col">
+          <Header />
+          <main className="flex-1 p-4 pt-16 overflow-auto">
+            <div className="container max-w-4xl mx-auto">
+              <div className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow text-center">
+                <h2 className="text-2xl font-semibold mb-4">Profile Not Found</h2>
+                <p className="text-gray-600 dark:text-gray-300">
+                  The profile you're looking for doesn't exist or you don't have permission to view it.
+                </p>
+              </div>
+            </div>
+          </main>
+          <Footer />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
@@ -662,6 +671,7 @@ const Profile = () => {
             )}
           </div>
         </main>
+        <Footer />
       </div>
     </div>
   );

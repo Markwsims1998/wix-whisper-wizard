@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Label } from "@/components/ui/label";
@@ -502,7 +501,8 @@ const Profile = () => {
                   <SelectValue placeholder="Select your relationship status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Not specified</SelectItem>
+                  {/* Fixed: Using "not_specified" instead of an empty string */}
+                  <SelectItem value="not_specified">Not specified</SelectItem>
                   {getActiveRelationshipStatuses().map((status) => (
                     <SelectItem key={status.id} value={status.id}>
                       {status.name}
@@ -512,7 +512,7 @@ const Profile = () => {
               </Select>
             </div>
             
-            {selectedRelationshipStatus && (
+            {selectedRelationshipStatus && selectedRelationshipStatus !== "not_specified" && (
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
                   <Label>Tagged Partners</Label>

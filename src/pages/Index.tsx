@@ -4,7 +4,7 @@ import PostFeed from "@/components/PostFeed";
 import Sidebar from "@/components/Sidebar";
 import AdDisplay from "@/components/AdDisplay";
 import { Image, MessageSquare, Video, X, Tag, Smile, Gift } from "lucide-react";
-import { useAuth } from "@/contexts/auth/AuthContext"; // Updated import path
+import { useAuth } from "@/contexts/auth/AuthProvider"; // Updated import path
 import { useNavigate, Link } from "react-router-dom";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
@@ -37,9 +37,11 @@ const Index = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isPostLoading, setIsPostLoading] = useState(false);
   
-  // Use ref to track initialization state
+  // Use refs to track initialization state
   const initializedRef = useRef(false);
   const activityLoggedRef = useRef(false);
+  // Add a ref to track whether friends have been loaded
+  const friendsLoadedRef = useRef(false);
 
   // Check authentication only once
   useEffect(() => {
@@ -101,6 +103,8 @@ const Index = () => {
       const friends = await getActiveFriends(user.id);
       console.log(`Loaded ${friends.length} active friends`);
       setActiveFriends(friends);
+      // Mark that friends have been loaded
+      friendsLoadedRef.current = true;
     } catch (error) {
       console.error("Error loading active friends:", error);
     } finally {
@@ -110,12 +114,14 @@ const Index = () => {
 
   // Fetch active friends once when user is available
   useEffect(() => {
-    if (user && !activeFriends.length && !isLoading) {
+    // Only load friends once when the user becomes available
+    // and only if they haven't been loaded yet
+    if (user && !friendsLoadedRef.current && !isLoading) {
       loadActiveFriends();
     }
-  }, [user, activeFriends.length, isLoading, loadActiveFriends]);
+  }, [user, isLoading, loadActiveFriends]);
 
-  // Rest of your component remains the same
+  
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setPostText(e.target.value);
     // Check for @ symbol to trigger tag suggestions
@@ -209,6 +215,7 @@ const Index = () => {
     );
   }
 
+  
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex flex-col">
       <Sidebar />
@@ -226,7 +233,7 @@ const Index = () => {
           <div className="lg:col-span-8 w-full">
             {/* Create Post Area */}
             <div className="bg-white dark:bg-gray-800 rounded-lg p-4 mb-4 shadow-sm w-full">
-              {/* ... keep existing code (post creation UI) */}
+              
               <div className="flex items-center gap-3 mb-3">
                 <div className="h-10 w-10 rounded-full bg-purple-100 dark:bg-purple-900 flex items-center justify-center overflow-hidden cursor-pointer" onClick={() => navigate("/profile")}>
                   {user?.profilePicture ? (

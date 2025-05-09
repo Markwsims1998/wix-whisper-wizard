@@ -1,5 +1,6 @@
 
 import { supabase } from '@/lib/supabaseClient';
+import { fetchMedia, convertToVideoFormat } from './mediaService';
 
 export interface Video {
   id: string;
@@ -20,8 +21,15 @@ export interface Video {
 
 export const fetchVideos = async (category: string = 'all'): Promise<Video[]> => {
   try {
-    // For now, we'll use placeholder data since the videos table doesn't exist yet
-    // in our Supabase database schema
+    // Try to fetch from the database
+    const mediaItems = await fetchMedia('video', category);
+    
+    if (mediaItems.length > 0) {
+      return convertToVideoFormat(mediaItems);
+    }
+    
+    // Fall back to placeholder data if no results
+    console.log('No videos found in database, using placeholder data');
     const placeholderVideos = getPlaceholderVideos();
     
     // Filter by category if needed

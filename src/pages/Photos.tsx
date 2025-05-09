@@ -1,9 +1,7 @@
-
 import { useEffect, useState } from "react";
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
 import { Image as ImageIcon, User, Heart, Filter, Info } from "lucide-react";
-import { Link } from "react-router-dom";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { Button } from "@/components/ui/button";
 import MediaViewer from "@/components/media/MediaViewer";
@@ -12,13 +10,15 @@ import { Badge } from "@/components/ui/badge";
 import ContentUploader from "@/components/media/ContentUploader";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { fetchPhotos, Photo } from "@/services/photoService";
 
 const Photos = () => {
   const { subscriptionDetails } = useSubscription();
-  const [selectedPhoto, setSelectedPhoto] = useState<any | null>(null);
+  const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [uploaderOpen, setUploaderOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [photos, setPhotos] = useState<Photo[]>([]);
   const { toast } = useToast();
 
   // Categories for filtering
@@ -56,16 +56,16 @@ const Photos = () => {
     };
   }, []);
 
-  // Log user activity and load photos
+  // Load photos from API
   useEffect(() => {
     console.log("User activity: Viewed Photos page");
     
-    // Simulate loading photos from API
+    // Fetch photos from API based on selected category
     const loadPhotos = async () => {
       try {
         setIsLoading(true);
-        // In a real app, fetch photos from API
-        await new Promise(resolve => setTimeout(resolve, 800));
+        const data = await fetchPhotos(selectedCategory);
+        setPhotos(data);
         setIsLoading(false);
       } catch (error) {
         console.error("Failed to load photos:", error);
@@ -79,26 +79,12 @@ const Photos = () => {
     };
     
     loadPhotos();
-  }, [toast]);
-
-  // Sample photos data - this would come from an API in a real app
-  const photos = [
-    { id: 1, image: 'https://via.placeholder.com/400x400', title: 'Community Event', author: 'Admin', views: '1.2k', likes: 45, postId: '101', category: 'events' },
-    { id: 2, thumbnail: 'https://via.placeholder.com/400x400', title: 'Fashion Showcase', author: 'Sephiroth', views: '856', likes: 32, postId: '102', category: 'fashion' },
-    { id: 3, thumbnail: 'https://via.placeholder.com/400x400', title: 'Travel Adventures', author: 'Linda Lohan', views: '2.4k', likes: 76, postId: '103', category: 'travel' },
-    { id: 4, thumbnail: 'https://via.placeholder.com/400x400', title: 'Lifestyle Photography', author: 'Irina Petrova', views: '987', likes: 28, postId: '104', category: 'lifestyle' },
-    { id: 5, thumbnail: 'https://via.placeholder.com/400x400', title: 'Portrait Session', author: 'Mike Johnson', views: '1.5k', likes: 52, postId: '105', category: 'portraits' },
-    { id: 6, thumbnail: 'https://via.placeholder.com/400x400', title: 'Event Highlights', author: 'Sarah Lee', views: '732', likes: 41, postId: '106', category: 'events' },
-    { id: 7, thumbnail: 'https://via.placeholder.com/400x400', title: 'Fashion Week', author: 'James Wilson', views: '1.1k', likes: 38, postId: '107', category: 'fashion' },
-    { id: 8, thumbnail: 'https://via.placeholder.com/400x400', title: 'Vacation Memories', author: 'Emily Chen', views: '923', likes: 29, postId: '108', category: 'travel' }
-  ];
+  }, [selectedCategory, toast]);
 
   // Filter photos based on selected category
-  const filteredPhotos = selectedCategory === 'all' 
-    ? photos 
-    : photos.filter(photo => photo.category === selectedCategory);
+  const filteredPhotos = photos;
 
-  const handlePhotoClick = (photo: any) => {
+  const handlePhotoClick = (photo: Photo) => {
     setSelectedPhoto(photo);
   };
 
@@ -112,6 +98,8 @@ const Photos = () => {
       title: "Upload successful",
       description: "Your photo has been uploaded successfully.",
     });
+    // Refresh photos list after successful upload
+    fetchPhotos(selectedCategory).then(data => setPhotos(data));
   };
 
   return (

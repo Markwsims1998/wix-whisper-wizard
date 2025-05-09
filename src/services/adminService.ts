@@ -36,17 +36,27 @@ export const fetchAllUsers = async (): Promise<UserProfile[]> => {
     
     // Combine auth data and profile data
     const users = authUsers.users.map(authUser => {
+      // Find matching profile or use an empty object with defined types
       const profile = profiles?.find(p => p.id === authUser.id) || {};
+      
+      // Use type assertion to ensure TypeScript recognizes the expected properties
+      const typedProfile = profile as {
+        username?: string;
+        full_name?: string;
+        role?: string;
+        avatar_url?: string;
+        subscription_tier?: 'free' | 'bronze' | 'silver' | 'gold';
+      };
       
       return {
         id: authUser.id,
         email: authUser.email || '',
-        username: profile.username || authUser.email?.split('@')[0] || '',
-        full_name: profile.full_name || '',
-        role: (profile.role as 'admin' | 'moderator' | 'user') || 'user',
-        avatar_url: profile.avatar_url,
+        username: typedProfile.username || authUser.email?.split('@')[0] || '',
+        full_name: typedProfile.full_name || '',
+        role: (typedProfile.role as 'admin' | 'moderator' | 'user') || 'user',
+        avatar_url: typedProfile.avatar_url,
         status: authUser.banned ? 'banned' as const : 'active' as const,
-        subscription_tier: profile.subscription_tier || 'free',
+        subscription_tier: typedProfile.subscription_tier || 'free',
         last_sign_in_at: authUser.last_sign_in_at,
         created_at: authUser.created_at
       };

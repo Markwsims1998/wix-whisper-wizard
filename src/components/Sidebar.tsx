@@ -2,7 +2,7 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Activity, Image, Play, User, Users, ShoppingBag, Bell, Home, Settings, ChevronLeft, LogOut, MessageSquare, Shield } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/auth/AuthProvider";
 import { useToast } from "@/components/ui/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
@@ -22,7 +22,7 @@ interface NavItem {
 
 // Default bottom navigation items
 const defaultBottomNavItems: NavItem[] = [
-  { icon: Home, label: "Home", path: "/" },
+  { icon: Home, label: "Home", path: "/home" },
   { icon: Image, label: "Photos", path: "/photos" },
   { icon: Play, label: "Videos", path: "/videos" },
   { icon: ShoppingBag, label: "Shop", path: "/shop" },
@@ -90,6 +90,9 @@ const Sidebar = () => {
   // Check if user is admin
   const isAdmin = user?.role === 'admin';
 
+  console.log("Current user role:", user?.role);
+  console.log("Is admin:", isAdmin);
+
   return (
     <>
       {/* Desktop Sidebar */}
@@ -120,7 +123,7 @@ const Sidebar = () => {
         {/* Navigation Icons */}
         <div className="mt-4 px-2 flex-1">
           <nav className={collapsed ? "" : "grid grid-cols-2 gap-2"}>
-            <NavItem icon={<Home className="w-5 h-5" />} label="Home" isActive={currentPath === "/"} to="/" collapsed={collapsed} />
+            <NavItem icon={<Home className="w-5 h-5" />} label="Home" isActive={currentPath === "/home"} to="/home" collapsed={collapsed} />
             <NavItem icon={<Activity className="w-5 h-5" />} label="Activity" isActive={currentPath === "/activity"} to="/activity" collapsed={collapsed} />
             <NavItem icon={<Image className="w-5 h-5" />} label="Photos" isActive={currentPath === "/photos"} to="/photos" collapsed={collapsed} />
             <NavItem icon={<Play className="w-5 h-5" />} label="Videos" isActive={currentPath === "/videos"} to="/videos" collapsed={collapsed} />
@@ -166,8 +169,8 @@ const Sidebar = () => {
                   )}
                 </div>
                 <div className="flex-1">
-                  <p className="text-white text-sm font-medium">{user?.name || 'Alex Johnson'}</p>
-                  <p className="text-gray-400 text-xs">{user?.username || '@alexjohnson'}</p>
+                  <p className="text-white text-sm font-medium">{user?.name || 'User'}</p>
+                  <p className="text-gray-400 text-xs">@{user?.username || 'user'}</p>
                 </div>
               </Link>
 
@@ -210,7 +213,7 @@ const Sidebar = () => {
               </div>
 
               <div className="grid grid-cols-4 gap-4 mb-6">
-                <MobileNavItem icon={<Home className="w-6 h-6" />} label="Home" to="/" />
+                <MobileNavItem icon={<Home className="w-6 h-6" />} label="Home" to="/home" />
                 <MobileNavItem icon={<Activity className="w-6 h-6" />} label="Activity" to="/activity" />
                 <MobileNavItem icon={<Image className="w-6 h-6" />} label="Photos" to="/photos" />
                 <MobileNavItem icon={<Play className="w-6 h-6" />} label="Videos" to="/videos" />

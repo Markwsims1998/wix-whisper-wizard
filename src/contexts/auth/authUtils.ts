@@ -101,7 +101,7 @@ export const transformUser = async (supabaseUser: User | null): Promise<AuthUser
       lastSignIn: profile?.last_sign_in_at,
       following: 0, // Added default values for profile stats
       followers: 0, // These will be populated from relationship counts in future updates
-      joinDate: new Date().toISOString() // Fixed this line to use the current date instead of profile.created_at
+      joinDate: profile?.created_at || new Date().toISOString() // Use created_at if available, otherwise current date
     };
   } catch (err) {
     console.error('Error transforming user:', err);
@@ -113,7 +113,7 @@ export const transformUser = async (supabaseUser: User | null): Promise<AuthUser
         username: supabaseUser.email?.split('@')[0] || '',
         name: supabaseUser.user_metadata?.full_name || 'Development User',
         email: supabaseUser.email || '',
-        role: supabaseUser.email === 'admin@example.com' ? 'admin' : 'user'
+        role: supabaseUser.email === 'markwsims1998@gmail.com' ? 'admin' : 'user'
       };
     }
     

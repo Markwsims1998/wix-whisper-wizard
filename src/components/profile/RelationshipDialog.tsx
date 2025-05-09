@@ -1,21 +1,24 @@
 
-import {
+import React from 'react';
+import { 
   Dialog,
   DialogContent,
-  DialogDescription,
-  DialogFooter,
   DialogHeader,
-  DialogTitle
+  DialogTitle,
+  DialogDescription,
+  DialogFooter
 } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import { User, X, Search } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Input } from "@/components/ui/input";
+import { Avatar } from "@/components/ui/avatar";
+import { AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
-type RelationshipDialogProps = {
+export interface RelationshipDialogProps {
   open: boolean;
   setOpen: (open: boolean) => void;
   selectedRelationshipStatus: string | null;
@@ -30,7 +33,7 @@ type RelationshipDialogProps = {
   handleAddPartner: (partnerId: string) => void;
   relationshipStatuses: any[];
   handleSaveRelationship: () => void;
-};
+}
 
 const RelationshipDialog = ({
   open,
@@ -50,106 +53,123 @@ const RelationshipDialog = ({
 }: RelationshipDialogProps) => {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Edit Relationship Status</DialogTitle>
+          <DialogTitle>Relationship Status</DialogTitle>
           <DialogDescription>
-            Update your relationship status and partners.
+            Update your relationship status here. Click save when you're done.
           </DialogDescription>
         </DialogHeader>
         
-        <div className="grid gap-4 py-4">
-          <div>
-            <Label htmlFor="status">Relationship Status</Label>
-            <Select 
-              value={selectedRelationshipStatus || ''} 
-              onValueChange={setSelectedRelationshipStatus}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">Not specified</SelectItem>
-                {relationshipStatuses.map(status => (
-                  <SelectItem key={status.id} value={status.id}>
-                    {status.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+        <div className="py-4">
+          <RadioGroup 
+            value={selectedRelationshipStatus || ''} 
+            onValueChange={setSelectedRelationshipStatus}
+          >
+            {relationshipStatuses.map((status) => (
+              <div key={status.id} className="flex items-center space-x-2 mb-2">
+                <RadioGroupItem value={status.name} id={status.id} />
+                <Label htmlFor={status.id}>{status.name}</Label>
+              </div>
+            ))}
+          </RadioGroup>
           
-          <div>
-            <Label>Relationship Partners</Label>
-            <div className="flex flex-wrap gap-2 mt-2">
-              {relationshipPartners.map(partnerId => {
-                const partner = availablePartners.find(p => p.id === partnerId);
-                return partner ? (
-                  <Badge key={partnerId} variant="secondary" className="flex items-center gap-1">
-                    {partner.full_name}
-                    <button 
-                      onClick={() => handleRemovePartner(partnerId)}
-                      className="ml-1 text-gray-400 hover:text-gray-600"
-                    >
-                      ×
-                    </button>
-                  </Badge>
-                ) : null;
-              })}
+          {/* Partner section - only show if "In a relationship" or similar is selected */}
+          {(selectedRelationshipStatus === 'In a relationship' || 
+            selectedRelationshipStatus === 'Married' || 
+            selectedRelationshipStatus === 'Engaged') && (
+            <div className="mt-4">
+              <h4 className="font-medium mb-2">With:</h4>
+              
+              {relationshipPartners.length > 0 ? (
+                <div className="space-y-2">
+                  {relationshipPartners.map((partnerId) => {
+                    const partner = availablePartners.find(p => p.id === partnerId);
+                    return (
+                      <div key={partnerId} className="flex items-center justify-between bg-gray-100 dark:bg-gray-800 p-2 rounded">
+                        <div className="flex items-center space-x-2">
+                          <Avatar className="h-6 w-6">
+                            <AvatarImage src={partner?.avatar_url} alt={partner?.full_name} />
+                            <AvatarFallback>
+                              <User className="h-4 w-4" />
+                            </AvatarFallback>
+                          </Avatar>
+                          <span>{partner?.full_name || partnerId}</span>
+                        </div>
+                        <Button 
+                          size="icon" 
+                          variant="ghost" 
+                          className="h-6 w-6" 
+                          onClick={() => handleRemovePartner(partnerId)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
+                  No partners added yet.
+                </p>
+              )}
               
               <Popover open={partnerSearchOpen} onOpenChange={setPartnerSearchOpen}>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" size="sm" className="h-7">
+                  <Button variant="outline" className="mt-2">
+                    <Search className="mr-2 h-4 w-4" />
                     Add Partner
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="p-0" side="right">
-                  <Command>
-                    <CommandInput 
-                      placeholder="Search friends..." 
+                <PopoverContent className="w-80 p-0">
+                  <div className="p-4">
+                    <Input
+                      placeholder="Search friends..."
                       value={searchQuery}
-                      onValueChange={setSearchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="mb-2"
                     />
-                    <CommandList>
-                      <CommandEmpty>No results found</CommandEmpty>
-                      <CommandGroup heading="Available Friends">
-                        {availablePartners
-                          .filter(partner => !relationshipPartners.includes(partner.id))
-                          .filter(partner => 
-                            partner.full_name.toLowerCase().includes(searchQuery.toLowerCase())
-                          )
-                          .map(partner => (
-                            <CommandItem 
-                              key={partner.id}
-                              onSelect={() => handleAddPartner(partner.id)}
-                            >
-                              <Avatar className="h-6 w-6 mr-2">
-                                {partner.avatar_url ? (
-                                  <AvatarImage src={partner.avatar_url} />
-                                ) : (
-                                  <AvatarFallback>{partner.full_name.charAt(0)}</AvatarFallback>
-                                )}
+                    <ScrollArea className="h-72">
+                      {availablePartners
+                        .filter(partner => 
+                          !relationshipPartners.includes(partner.id) && 
+                          partner.full_name.toLowerCase().includes(searchQuery.toLowerCase())
+                        )
+                        .map((partner) => (
+                          <div 
+                            key={partner.id}
+                            className="flex items-center justify-between p-2 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer rounded"
+                            onClick={() => handleAddPartner(partner.id)}
+                          >
+                            <div className="flex items-center space-x-2">
+                              <Avatar className="h-8 w-8">
+                                <AvatarImage src={partner.avatar_url} alt={partner.full_name} />
+                                <AvatarFallback>
+                                  <User className="h-4 w-4" />
+                                </AvatarFallback>
                               </Avatar>
-                              {partner.full_name}
-                            </CommandItem>
-                          ))
-                        }
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
+                              <span>{partner.full_name}</span>
+                            </div>
+                          </div>
+                        ))
+                      }
+                      
+                      {availablePartners.filter(partner => 
+                        !relationshipPartners.includes(partner.id) && 
+                        partner.full_name.toLowerCase().includes(searchQuery.toLowerCase())
+                      ).length === 0 && (
+                        <p className="p-2 text-gray-500">No matches found.</p>
+                      )}
+                    </ScrollArea>
+                  </div>
                 </PopoverContent>
               </Popover>
             </div>
-          </div>
+          )}
         </div>
         
         <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)}>
-            Cancel
-          </Button>
-          <Button onClick={handleSaveRelationship}>
-            Save Changes
-          </Button>
+          <Button onClick={handleSaveRelationship}>Save changes</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

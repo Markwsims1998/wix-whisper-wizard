@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -30,10 +31,18 @@ import HomePage from "./pages/HomePage";
 import Admin from "./pages/Admin";
 
 // Create a query client
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+    },
+  },
+});
 
 // Layout component that includes the footer
-const Layout = ({ children }) => {
+const Layout = ({ children }: { children: React.ReactNode }) => {
   return (
     <div className="flex flex-col min-h-screen">
       {children}
@@ -43,7 +52,7 @@ const Layout = ({ children }) => {
 };
 
 // Route guard component to protect routes
-const ProtectedRoute = ({ children }) => {
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, loading } = useAuth();
   
   if (loading) {
@@ -63,10 +72,12 @@ const ProtectedRoute = ({ children }) => {
 
 const AppRoutes = () => {
   const [isLoading, setIsLoading] = useState(true);
+  const { user } = useAuth();
 
   useEffect(() => {
     // Log initial app load
     console.log("User activity: Application loaded");
+    console.log("Current user:", user);
     
     // Simulate initial app loading
     const timer = setTimeout(() => {
@@ -74,7 +85,7 @@ const AppRoutes = () => {
     }, 1000); // Reduced loading time
 
     return () => clearTimeout(timer);
-  }, []);
+  }, [user]);
 
   if (isLoading) {
     return (

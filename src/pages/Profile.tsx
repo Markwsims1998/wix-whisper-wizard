@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/auth/AuthProvider';
 import { useToast } from '@/components/ui/use-toast';
@@ -578,7 +577,6 @@ const Profile = () => {
     loadProfileData();
   }, [user?.id, profileId, location.search]);
   
-  // Common layout structure that will properly respond to sidebar collapse
   if (loading) {
     return (
       <div className="flex h-screen bg-gray-100 dark:bg-gray-900">

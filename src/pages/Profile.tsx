@@ -1,7 +1,6 @@
-
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Calendar, Edit, MapPin, User, Image, Video, Heart, MessageCircle, Share2 } from "lucide-react";
+import { ArrowLeft, Calendar, Edit, MapPin, User, Image, Video, Heart, MessageCircle, Share2, UserPlus } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
@@ -10,6 +9,13 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useEffect, useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { RelationshipStatus, User as UserType, getRelationshipStatusById, getUserById, getActiveRelationshipStatuses } from "@/data/database";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Avatar } from "@/components/ui/avatar";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Badge } from "@/components/ui/badge";
 
 const Profile = () => {
   const { subscriptionTier } = useSubscription();
@@ -22,6 +28,13 @@ const Profile = () => {
   const [profile, setProfile] = useState<any>(null);
   const [isMyProfile, setIsMyProfile] = useState(true);
   const [loading, setLoading] = useState(true);
+  const [editRelationshipOpen, setEditRelationshipOpen] = useState(false);
+  const [selectedRelationshipStatus, setSelectedRelationshipStatus] = useState<string | null>(null);
+  const [relationshipPartners, setRelationshipPartners] = useState<string[]>([]);
+  const [availablePartners, setAvailablePartners] = useState<UserType[]>([]);
+  const [relationshipStatusText, setRelationshipStatusText] = useState<string>("");
+  const [partnerSearchOpen, setPartnerSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   
   // Get user profile data
   useEffect(() => {
@@ -165,6 +178,54 @@ const Profile = () => {
     fetchProfileData();
   }, [profileName, user, subscriptionTier, toast]);
 
+  // Effect to update relationship status text
+  useEffect(() => {
+    if (!profile) return;
+    
+    const status = profile.tier ? getRelationshipStatusById(profile.relationshipStatus || '') : null;
+    let statusText = status ? status.name : "Not specified";
+    
+    if (profile.relationshipPartners && profile.relationshipPartners.length > 0) {
+      const partnerNames = profile.relationshipPartners.map((partnerId: string) => {
+        const partner = getUserById(partnerId);
+        return partner ? partner.name : "Unknown";
+      });
+      
+      if (partnerNames.length === 1) {
+        statusText += ` with ${partnerNames[0]}`;
+      } else if (partnerNames.length === 2) {
+        statusText += ` with ${partnerNames[0]} and ${partnerNames[1]}`;
+      } else if (partnerNames.length > 2) {
+        const lastPartner = partnerNames.pop();
+        statusText += ` with ${partnerNames.join(', ')}, and ${lastPartner}`;
+      }
+    }
+    
+    setRelationshipStatusText(statusText);
+  }, [profile]);
+
+  useEffect(() => {
+    // Initialize selected relationship status when profile is loaded
+    if (profile && profile.relationshipStatus) {
+      setSelectedRelationshipStatus(profile.relationshipStatus);
+    }
+    
+    // Initialize relationship partners when profile is loaded
+    if (profile && profile.relationshipPartners) {
+      setRelationshipPartners(profile.relationshipPartners || []);
+    }
+    
+    // Set available partners (friends who aren't already partners)
+    if (profile && user) {
+      const friends = profile.friends || [];
+      const partners = profile.relationshipPartners || [];
+      const availableFriends = friends
+        .map((friendId: string) => getUserById(friendId))
+        .filter((friend: UserType | undefined) => friend && !partners.includes(friend.id));
+      setAvailablePartners(availableFriends as UserType[]);
+    }
+  }, [profile, user]);
+
   const handleAddFriend = () => {
     toast({
       title: "Friend Request Sent",
@@ -191,6 +252,37 @@ const Profile = () => {
       default:
         return null;
     }
+  };
+
+  const handleSaveRelationship = () => {
+    // In a real app, this would make an API call to update the user's relationship status
+    
+    if (profile) {
+      const updatedProfile = {
+        ...profile,
+        relationshipStatus: selectedRelationshipStatus,
+        relationshipPartners: relationshipPartners
+      };
+      
+      setProfile(updatedProfile);
+      setEditRelationshipOpen(false);
+      
+      toast({
+        title: "Relationship Status Updated",
+        description: "Your relationship status has been updated successfully."
+      });
+    }
+  };
+  
+  const handleRemovePartner = (partnerId: string) => {
+    setRelationshipPartners(relationshipPartners.filter(id => id !== partnerId));
+  };
+  
+  const handleAddPartner = (partnerId: string) => {
+    if (!relationshipPartners.includes(partnerId)) {
+      setRelationshipPartners([...relationshipPartners, partnerId]);
+    }
+    setPartnerSearchOpen(false);
   };
 
   if (loading) {
@@ -283,6 +375,21 @@ const Profile = () => {
                   </div>
                 </div>
                 
+                <div className="mt-3 flex items-center gap-1">
+                  <Heart className="w-4 h-4 text-pink-500" />
+                  <span className="text-gray-600 text-sm">
+                    {relationshipStatusText}
+                    {isMyProfile && (
+                      <button 
+                        onClick={() => setEditRelationshipOpen(true)}
+                        className="ml-2 text-blue-500 hover:underline text-xs"
+                      >
+                        Edit
+                      </button>
+                    )}
+                  </span>
+                </div>
+                
                 <div className="flex gap-4 mt-4">
                   <div>
                     <span className="font-bold">{profile?.following}</span>
@@ -371,6 +478,142 @@ const Profile = () => {
           </div>
         </div>
       </div>
+
+      {/* Edit Relationship Status Dialog */}
+      <Dialog open={editRelationshipOpen} onOpenChange={setEditRelationshipOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Relationship Status</DialogTitle>
+            <DialogDescription>
+              Update your relationship status and tag your partners
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="relationshipStatus">Relationship Status</Label>
+              <Select
+                value={selectedRelationshipStatus || ""}
+                onValueChange={(value) => setSelectedRelationshipStatus(value)}
+              >
+                <SelectTrigger id="relationshipStatus">
+                  <SelectValue placeholder="Select your relationship status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Not specified</SelectItem>
+                  {getActiveRelationshipStatuses().map((status) => (
+                    <SelectItem key={status.id} value={status.id}>
+                      {status.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {selectedRelationshipStatus && (
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <Label>Tagged Partners</Label>
+                  <Popover open={partnerSearchOpen} onOpenChange={setPartnerSearchOpen}>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" size="sm" className="gap-1">
+                        <UserPlus className="h-3.5 w-3.5" />
+                        <span>Add Partner</span>
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-80 p-0" align="end">
+                      <Command>
+                        <CommandInput 
+                          placeholder="Search friends..." 
+                          value={searchQuery}
+                          onValueChange={setSearchQuery}
+                        />
+                        <CommandList>
+                          <CommandEmpty>No friends found.</CommandEmpty>
+                          <CommandGroup heading="Friends">
+                            {availablePartners
+                              .filter(partner => 
+                                partner.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                                partner.username.toLowerCase().includes(searchQuery.toLowerCase())
+                              )
+                              .map((partner) => (
+                                <CommandItem
+                                  key={partner.id}
+                                  onSelect={() => handleAddPartner(partner.id)}
+                                  className="cursor-pointer"
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <div className="h-8 w-8 rounded-full bg-purple-100 flex items-center justify-center overflow-hidden">
+                                      <User className="h-4 w-4 text-purple-600" />
+                                    </div>
+                                    <div>
+                                      <p className="text-sm font-medium">{partner.name}</p>
+                                      <p className="text-xs text-muted-foreground">{partner.username}</p>
+                                    </div>
+                                  </div>
+                                </CommandItem>
+                              ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                
+                <div className="flex flex-wrap gap-2 mt-1">
+                  {relationshipPartners.length === 0 ? (
+                    <p className="text-sm text-muted-foreground italic">
+                      No partners tagged
+                    </p>
+                  ) : (
+                    relationshipPartners.map((partnerId) => {
+                      const partner = getUserById(partnerId);
+                      return partner ? (
+                        <Badge key={partnerId} variant="secondary" className="flex items-center gap-1">
+                          <span>{partner.name}</span>
+                          <button
+                            className="ml-1 hover:bg-gray-200 rounded-full p-0.5"
+                            onClick={() => handleRemovePartner(partnerId)}
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              width="14"
+                              height="14"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            >
+                              <path d="M18 6 6 18" />
+                              <path d="m6 6 12 12" />
+                            </svg>
+                            <span className="sr-only">Remove</span>
+                          </button>
+                        </Badge>
+                      ) : null;
+                    })
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+          
+          <DialogFooter className="sm:justify-between">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setEditRelationshipOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button type="button" onClick={handleSaveRelationship}>
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,8 +8,9 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Globe, Shield, Bell, Filter } from "lucide-react";
+import { FileText, Globe, Shield, Bell, Filter, Heart } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import RelationshipStatusManager from "./RelationshipStatusManager";
 
 const AdminSettings = () => {
   const { toast } = useToast();
@@ -31,11 +31,12 @@ const AdminSettings = () => {
       </div>
       
       <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid grid-cols-2 md:grid-cols-5 gap-2">
+        <TabsList className="grid grid-cols-2 md:grid-cols-6 gap-2">
           <TabsTrigger value="general">General</TabsTrigger>
           <TabsTrigger value="security">Security</TabsTrigger>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
           <TabsTrigger value="moderation">Moderation</TabsTrigger>
+          <TabsTrigger value="profiles">Profiles</TabsTrigger>
           <TabsTrigger value="branding">Branding</TabsTrigger>
         </TabsList>
         
@@ -392,6 +393,66 @@ const AdminSettings = () => {
             </CardContent>
             <CardFooter>
               <Button onClick={() => handleSaveSettings("moderation")}>Save Changes</Button>
+            </CardFooter>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="profiles" className="space-y-4">
+          <RelationshipStatusManager />
+          
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Heart className="h-5 w-5 text-pink-500" />
+                Profile Settings
+              </CardTitle>
+              <CardDescription>
+                Configure profile settings and options for users
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Relationship Status Display</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Allow users to display their relationship status on profiles
+                  </p>
+                </div>
+                <Switch id="show-relationship-status" defaultChecked />
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Partner Tagging</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Allow users to tag partners in their relationship status
+                  </p>
+                </div>
+                <Switch id="allow-partner-tagging" defaultChecked />
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Public Relationships</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Allow non-friends to see relationship status
+                  </p>
+                </div>
+                <Switch id="public-relationships" defaultChecked />
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Relationship Verification</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Require both users to confirm relationships
+                  </p>
+                </div>
+                <Switch id="relationship-verification" defaultChecked />
+              </div>
+            </CardContent>
+            <CardFooter>
+              <Button onClick={() => handleSaveSettings("profile")}>Save Changes</Button>
             </CardFooter>
           </Card>
         </TabsContent>

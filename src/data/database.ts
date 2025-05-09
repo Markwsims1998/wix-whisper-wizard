@@ -1,4 +1,3 @@
-
 export interface User {
   id: string;
   username: string;
@@ -75,6 +74,29 @@ export interface Product {
   ratings: number;
   reviewCount: number;
   inStock: boolean;
+}
+
+export interface RelationshipStatus {
+  id: string;
+  name: string;
+  isActive: boolean;
+  createdAt: string;
+}
+
+// Update User interface to include relationship status
+export interface User {
+  id: string;
+  username: string;
+  name: string;
+  email: string;
+  bio: string;
+  role: string;
+  profilePic?: string;
+  coverPhoto?: string;
+  friends: string[];
+  joinedDate: string;
+  relationshipStatus?: string;
+  relationshipPartners?: string[]; // IDs of users tagged in relationship
 }
 
 // Mock users data
@@ -504,6 +526,121 @@ export const products: Product[] = [
   }
 ];
 
+// Mock relationship status data
+export const relationshipStatuses: RelationshipStatus[] = [
+  {
+    id: '1',
+    name: 'Single',
+    isActive: true,
+    createdAt: '2023-01-15T10:00:00Z'
+  },
+  {
+    id: '2',
+    name: 'In a relationship',
+    isActive: true,
+    createdAt: '2023-01-15T10:00:00Z'
+  },
+  {
+    id: '3',
+    name: 'Married',
+    isActive: true,
+    createdAt: '2023-01-15T10:00:00Z'
+  },
+  {
+    id: '4',
+    name: 'Engaged',
+    isActive: true,
+    createdAt: '2023-01-15T10:00:00Z'
+  },
+  {
+    id: '5',
+    name: 'Polyamorous',
+    isActive: true,
+    createdAt: '2023-01-15T10:00:00Z'
+  },
+  {
+    id: '6',
+    name: 'Open relationship',
+    isActive: true,
+    createdAt: '2023-01-15T10:00:00Z'
+  },
+  {
+    id: '7',
+    name: 'It\'s complicated',
+    isActive: true,
+    createdAt: '2023-01-15T10:00:00Z'
+  },
+  {
+    id: '8',
+    name: 'Casual partners',
+    isActive: true,
+    createdAt: '2023-01-15T10:00:00Z'
+  }
+];
+
+// Update mock users data to include relationship status
+export const users: User[] = [
+  {
+    id: '1',
+    username: 'alexjohnson',
+    name: 'Alex Johnson',
+    email: 'alex@example.com',
+    bio: 'Member of HappyKinks community since 2023. I enjoy participating in various community events and discussions.',
+    role: 'admin',
+    friends: ['2', '3', '4', '5'],
+    joinedDate: '2023-01-15',
+    relationshipStatus: '5', // Polyamorous
+    relationshipPartners: ['2', '3'] // In relationship with Sephiroth and Linda
+  },
+  {
+    id: '2',
+    username: 'sephiroth',
+    name: 'Sephiroth',
+    email: 'sephiroth@example.com',
+    bio: 'One-Winged Angel. Seeking the Promised Land.',
+    role: 'user',
+    friends: ['1', '3'],
+    joinedDate: '2023-02-10',
+    relationshipStatus: '5', // Polyamorous
+    relationshipPartners: ['1'] // In relationship with Alex
+  },
+  {
+    id: '3',
+    username: 'lindalohan',
+    name: 'Linda Lohan',
+    email: 'linda@example.com',
+    bio: 'Yoga enthusiast and spiritual seeker.',
+    role: 'user',
+    friends: ['1', '2', '5'],
+    joinedDate: '2023-03-22',
+    relationshipStatus: '5', // Polyamorous
+    relationshipPartners: ['1'] // In relationship with Alex
+  },
+  {
+    id: '4',
+    username: 'irinapetrova',
+    name: 'Irina Petrova',
+    email: 'irina@example.com',
+    bio: 'Professional dancer and choreographer.',
+    role: 'user',
+    friends: ['1'],
+    joinedDate: '2023-04-05',
+    relationshipStatus: '1' // Single
+  },
+  {
+    id: '5',
+    username: 'jennieferguson',
+    name: 'Jennie Ferguson',
+    email: 'jennie@example.com',
+    bio: 'Digital artist and content creator.',
+    role: 'user',
+    friends: ['1', '3'],
+    joinedDate: '2023-05-18',
+    relationshipStatus: '2', // In a relationship
+    relationshipPartners: [] // Not tagged anyone yet
+  }
+];
+
 // Helper function to get a user by ID
 export const getUserById = (id: string): User | undefined => {
   return users.find(user => user.id === id);
@@ -580,4 +717,14 @@ export const getUserPhotos = (userId: string): Photo[] => {
 export const getUserVideos = (userId: string): Video[] => {
   return videos.filter(v => v.userId === userId)
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+};
+
+// Helper function to get relationship status by ID
+export const getRelationshipStatusById = (id: string): RelationshipStatus | undefined => {
+  return relationshipStatuses.find(status => status.id === id);
+};
+
+// Helper function to get active relationship statuses
+export const getActiveRelationshipStatuses = (): RelationshipStatus[] => {
+  return relationshipStatuses.filter(status => status.isActive);
 };

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/auth/AuthProvider';
 import { useToast } from '@/components/ui/use-toast';
@@ -10,7 +11,7 @@ import { ProfileData, Post } from '@/components/profile/types';
 import { supabase } from '@/integrations/supabase/client';
 
 const Profile = () => {
-  const { user } = useAuth();
+  const { user, updateUserProfile } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [newPostText, setNewPostText] = useState('');
@@ -317,9 +318,9 @@ const Profile = () => {
       // Close dialog
       setEditRelationshipOpen(false);
       
-      // Update local user data
-      if (user?.updateUserProfile) {
-        await user.updateUserProfile({
+      // Update local user data using the auth context's updateUserProfile method
+      if (updateUserProfile) {
+        await updateUserProfile({
           relationshipStatus: selectedRelationshipStatus,
           relationshipPartners: relationshipPartners
         });

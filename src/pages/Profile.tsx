@@ -79,7 +79,7 @@ const Profile = () => {
     if (!user?.id) return;
     
     try {
-      const { data, error } = await supabase
+      const { data: postsData, error: postsError } = await supabase
         .from('posts')
         .select(`
           id,
@@ -95,19 +95,57 @@ const Profile = () => {
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
         
-      if (error) throw error;
+      if (postsError) throw postsError;
+      
+      // Get likes information for the current user
+      let likesInfo: Record<string, boolean> = {};
+      
+      if (postsData && postsData.length > 0) {
+        const postIds = postsData.map(post => post.id);
+        
+        const { data: likesData } = await supabase
+          .from('likes')
+          .select('post_id')
+          .eq('user_id', user.id)
+          .in('post_id', postIds);
+          
+        if (likesData) {
+          likesInfo = likesData.reduce((acc: Record<string, boolean>, like) => {
+            acc[like.post_id] = true;
+            return acc;
+          }, {});
+        }
+      }
+      
+      // Get like counts for each post
+      const likeCountsPromises = (postsData || []).map(async post => {
+        const { count, error } = await supabase
+          .from('likes')
+          .select('id', { count: 'exact', head: false })
+          .eq('post_id', post.id);
+          
+        return { postId: post.id, count: count || 0, error };
+      });
+      
+      const likeCounts = await Promise.all(likeCountsPromises);
+      const likeCountsMap = likeCounts.reduce((acc: Record<string, number>, item) => {
+        acc[item.postId] = item.count;
+        return acc;
+      }, {});
       
       // Transform the data to match the Post type
-      const formattedPosts: Post[] = data.map(post => ({
+      const formattedPosts: Post[] = (postsData || []).map(post => ({
         id: post.id,
         content: post.content,
         created_at: post.created_at,
         user_id: post.user_id,
         media: post.media,
+        likes_count: likeCountsMap[post.id] || 0,
+        is_liked: likesInfo[post.id] || false,
         author: {
           id: user.id,
-          full_name: user.name,
-          username: user.username,
+          full_name: user.name || '',
+          username: user.username || '',
           avatar_url: user.profilePicture
         }
       }));
@@ -129,10 +167,11 @@ const Profile = () => {
             content: 'Just set up my profile on this platform!',
             created_at: new Date().toISOString(),
             user_id: user.id,
+            likes_count: 0,
             author: {
               id: user.id,
-              full_name: user.name,
-              username: user.username,
+              full_name: user.name || '',
+              username: user.username || '',
               avatar_url: user.profilePicture
             }
           }
@@ -165,10 +204,11 @@ const Profile = () => {
           content: data[0].content,
           created_at: data[0].created_at,
           user_id: data[0].user_id,
+          likes_count: 0,
           author: {
             id: user.id,
-            full_name: user.name,
-            username: user.username,
+            full_name: user.name || '',
+            username: user.username || '',
             avatar_url: user.profilePicture
           }
         };
@@ -217,13 +257,7 @@ const Profile = () => {
           
         if (unlikeError) throw unlikeError;
         
-        // Update like count in UI
-        setPosts(prev => prev.map(post => {
-          if (post.id === postId) {
-            return { ...post, likes_count: (post.likes_count || 1) - 1 };
-          }
-          return post;
-        }));
+        // UI update is handled by the PostItem component
       } else {
         // Like the post
         const { error: likeError } = await supabase
@@ -232,13 +266,7 @@ const Profile = () => {
           
         if (likeError) throw likeError;
         
-        // Update like count in UI
-        setPosts(prev => prev.map(post => {
-          if (post.id === postId) {
-            return { ...post, likes_count: (post.likes_count || 0) + 1 };
-          }
-          return post;
-        }));
+        // UI update is handled by the PostItem component
       }
     } catch (error) {
       console.error('Error liking post:', error);

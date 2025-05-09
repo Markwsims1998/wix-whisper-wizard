@@ -23,6 +23,7 @@ export type Post = {
   user_id: string;
   likes_count?: number;
   comments_count?: number;
+  is_liked?: boolean;
   media?: {
     id: string;
     file_url: string;

@@ -20,7 +20,11 @@ const AdDisplay = ({ className = "" }: AdDisplayProps) => {
     // Set loaded state once subscription data has been loaded
     setIsLoaded(true);
     console.log("AdDisplay: Current subscription tier:", subscriptionTier);
-    console.log("AdDisplay: User authenticated:", isAuthenticated, "User ID:", user?.id);
+    console.log("AdDisplay: Authentication check:", { 
+      isAuthenticated, 
+      userId: user?.id, 
+      hasUser: !!user
+    });
   }, [subscriptionTier, isAuthenticated, user]);
   
   // Determine whether to show ads based on subscription tier

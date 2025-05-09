@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Award, Diamond, Badge as BadgeIcon, Check, ChevronDown, ChevronUp, ShoppingCart, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -22,22 +21,31 @@ const Shop = () => {
   const [cartItems, setCartItems] = useState<number>(3);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Debugging logs
+  // Enhanced debugging logs
   useEffect(() => {
-    console.log("Shop - Auth state updated:", { 
+    console.log("Shop - Auth state detailed check:", { 
       isAuthenticated, 
       userId: user?.id, 
       userEmail: user?.email,
-      subscriptionTier
+      userName: user?.name,
+      subscriptionTier,
+      authObjectPresent: !!user
     });
     setErrorMessage(null);
   }, [user, isAuthenticated, subscriptionTier]);
   
   const handleSubscribe = async (tier: SubscriptionTier) => {
     console.log("Subscribe button clicked for tier:", tier);
-    console.log("Current auth state:", { isAuthenticated, user: !!user });
+    console.log("Current auth state detailed:", { 
+      isAuthenticated, 
+      user: user ? {
+        id: user.id,
+        email: user.email,
+        name: user.name
+      } : null 
+    });
     
-    if (!isAuthenticated) {
+    if (!isAuthenticated || !user?.id) {
       toast({
         title: "Authentication Required",
         description: "Please sign in to subscribe to a plan.",
@@ -63,7 +71,6 @@ const Shop = () => {
         toast({
           title: "Subscription Error",
           description: "There was a problem updating your subscription. Please try again.",
-          variant: "destructive",
         });
       }
     } catch (error) {
@@ -206,7 +213,7 @@ const Shop = () => {
           )}
           
           {/* Authentication Warning - Only show when not authenticated */}
-          {!isAuthenticated && (
+          {!user?.id && (
             <Alert className="mb-4 bg-yellow-50 border-yellow-200">
               <AlertCircle className="h-4 w-4 text-yellow-600" />
               <AlertTitle>Authentication Required</AlertTitle>
@@ -222,7 +229,7 @@ const Shop = () => {
           )}
           
           {/* Subscription Status Alert */}
-          {isAuthenticated && subscriptionTier !== "free" && (
+          {user?.id && subscriptionTier !== "free" && (
             <Alert className="mb-4 bg-green-50 border-green-200">
               <Check className="h-4 w-4 text-green-600" />
               <AlertTitle className="flex items-center">

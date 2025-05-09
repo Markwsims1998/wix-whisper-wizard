@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client"; 
 import { Session } from "@supabase/supabase-js";
@@ -46,13 +45,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setSession(currentSession);
         
         // If there's a session, get and transform the user
-        if (currentSession) {
+        if (currentSession?.user) {
           const transformedUser = await transformUser(currentSession.user);
           console.log("AuthContext: Transformed user:", transformedUser);
-          setUser(transformedUser);
-          setIsAuthenticated(true);
-          console.log("AuthContext: User authenticated:", transformedUser?.id);
+          
+          if (transformedUser) {
+            setUser(transformedUser);
+            setIsAuthenticated(true);
+            console.log("AuthContext: User authenticated:", transformedUser.id);
+          } else {
+            console.error("AuthContext: User transformation failed");
+            setIsAuthenticated(false);
+          }
         } else {
+          setUser(null);
           setIsAuthenticated(false);
           console.log("AuthContext: No authenticated user");
         }
@@ -63,6 +69,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           description: "There was a problem loading your user profile.",
           variant: "destructive",
         });
+        setUser(null);
+        setIsAuthenticated(false);
       } finally {
         setLoading(false);
       }
@@ -76,11 +84,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         console.log("AuthContext: Auth state changed, session exists:", !!currentSession);
         setSession(currentSession);
         
-        if (currentSession) {
-          const transformedUser = await transformUser(currentSession.user);
-          console.log("AuthContext: User authenticated after state change:", transformedUser?.id);
-          setUser(transformedUser);
-          setIsAuthenticated(true);
+        if (currentSession?.user) {
+          try {
+            const transformedUser = await transformUser(currentSession.user);
+            
+            if (transformedUser) {
+              console.log("AuthContext: User authenticated after state change:", transformedUser.id);
+              setUser(transformedUser);
+              setIsAuthenticated(true);
+            } else {
+              console.error("AuthContext: User transformation failed during state change");
+              setUser(null);
+              setIsAuthenticated(false);
+            }
+          } catch (error) {
+            console.error("Error transforming user after auth state change:", error);
+            setUser(null);
+            setIsAuthenticated(false);
+          }
         } else {
           setUser(null);
           setIsAuthenticated(false);

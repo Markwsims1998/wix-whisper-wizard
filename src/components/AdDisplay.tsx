@@ -24,7 +24,7 @@ const AdDisplay = ({ className = "" }: AdDisplayProps) => {
       </div>
       
       <Link to="/shop" className="block">
-        <div className="relative">
+        <div className="relative rounded-md overflow-hidden">
           <img 
             src="https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?auto=format&fit=crop&w=800&h=400"
             alt="Premium subscription" 

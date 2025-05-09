@@ -27,9 +27,18 @@ const Index = () => {
   const [showEmojis, setShowEmojis] = useState(false);
   const [showGifs, setShowGifs] = useState(false);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
-  const [uploadType, setUploadType] = useState<'photo' | 'video'>('photo');
+  const [uploadType, setUploadType<'photo' | 'video'>('photo');
   const [tagSuggestions, setTagSuggestions] = useState<boolean>(false);
   const [selectedGif, setSelectedGif] = useState<string | null>(null);
+  const [showBanner, setShowBanner] = useState(true);
+
+  // Load banner state from localStorage on component mount
+  useEffect(() => {
+    const bannerState = localStorage.getItem('bannerHidden');
+    if (bannerState === 'true') {
+      setShowBanner(false);
+    }
+  }, []);
 
   // Update header position based on sidebar width
   useEffect(() => {
@@ -61,7 +70,7 @@ const Index = () => {
     return () => {
       if (sidebar) observer.unobserve(sidebar);
     };
-  }, []);
+  }, [showBanner]);
 
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setPostText(e.target.value);
@@ -120,8 +129,14 @@ const Index = () => {
       <Sidebar />
       <Header />
       
-      <div className="pl-[280px] pt-16 pr-4 pb-36 md:pb-10 transition-all duration-300 flex-grow" 
-         style={{ paddingLeft: 'var(--sidebar-width, 280px)', marginTop: '40px' }}>
+      <div 
+        className="pl-[280px] pt-16 pr-4 pb-36 md:pb-10 transition-all duration-300 flex-grow" 
+        style={{ 
+          paddingLeft: 'var(--sidebar-width, 280px)', 
+          marginTop: showBanner ? '40px' : '0'
+        }}
+      >
+        {/* Rest of the content */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 max-w-screen-xl mx-auto w-full">
           <div className="lg:col-span-8 w-full">
             {/* Create Post Area */}

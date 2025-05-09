@@ -69,9 +69,11 @@ const Header = () => {
       )}
 
       <header 
-        className="bg-white shadow-sm py-3 px-6 flex items-center justify-between right-0 dark:bg-gray-800 dark:text-white" 
+        className="bg-white shadow-sm py-3 px-6 flex items-center justify-between dark:bg-gray-800 dark:text-white" 
         style={{ 
+          position: 'fixed',
           left: 'var(--sidebar-width, 280px)', 
+          right: '0',
           width: 'calc(100% - var(--sidebar-width, 280px))'
         }}
       >

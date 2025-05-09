@@ -6,10 +6,16 @@ import { Bell, User, Heart, MessageCircle } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { formatDistanceToNow } from "date-fns";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
+
+type NotificationType = 'like' | 'comment' | 'friend' | 'system';
 
 type Notification = {
   id: string;
-  type: 'like' | 'comment' | 'friend' | 'system';
+  type: NotificationType;
   content: string;
   timestamp: string;
   user?: {
@@ -21,13 +27,9 @@ type Notification = {
 
 const Notifications = () => {
   const { toast } = useToast();
-  const [notifications, setNotifications] = useState<Notification[]>([
-    { id: '1', type: 'like', content: 'liked your post', timestamp: '3 mins ago', user: { name: 'Sephiroth' }, read: false },
-    { id: '2', type: 'comment', content: 'commented on your post', timestamp: '1 hour ago', user: { name: 'Linda Lohan' }, read: false },
-    { id: '3', type: 'friend', content: 'accepted your friend request', timestamp: '2 hours ago', user: { name: 'Irina Petrova' }, read: false },
-    { id: '4', type: 'system', content: 'Your subscription has been renewed', timestamp: '1 day ago', read: true },
-    { id: '5', type: 'like', content: 'liked your comment', timestamp: '2 days ago', user: { name: 'Robert Cook' }, read: true },
-  ]);
+  const { user } = useAuth();
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   
   // Update header position based on sidebar width
   useEffect(() => {
@@ -54,26 +56,138 @@ const Notifications = () => {
     };
   }, []);
 
-  const handleMarkAllAsRead = () => {
-    const updatedNotifications = notifications.map(notification => ({
-      ...notification,
-      read: true
-    }));
+  // Fetch notifications from Supabase
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      if (!user) return;
+      
+      setIsLoading(true);
+      
+      try {
+        const { data, error } = await supabase
+          .from('activities')
+          .select(`
+            *,
+            actor:actor_id (
+              full_name,
+              avatar_url
+            )
+          `)
+          .eq('user_id', user.id)
+          .in('activity_type', ['like', 'comment', 'follow', 'system'])
+          .order('created_at', { ascending: false });
+          
+        if (error) {
+          console.error('Error fetching notifications:', error);
+          toast({
+            title: 'Error',
+            description: 'Failed to load notifications',
+            variant: 'destructive',
+          });
+          return;
+        }
+        
+        // Transform Supabase data to our Notification format
+        if (data) {
+          const transformedData: Notification[] = data.map(item => {
+            // Map activity_type to NotificationType
+            let type: NotificationType = 'system';
+            if (item.activity_type === 'like') type = 'like';
+            else if (item.activity_type === 'comment') type = 'comment';
+            else if (item.activity_type === 'follow') type = 'friend';
+            
+            return {
+              id: item.id,
+              type: type,
+              content: item.content || '',
+              timestamp: formatTimeAgo(item.created_at),
+              user: item.actor ? {
+                name: item.actor.full_name || 'Unknown User',
+                avatar: item.actor.avatar_url
+              } : undefined,
+              read: item.read || false
+            };
+          });
+          
+          setNotifications(transformedData);
+        }
+      } catch (err) {
+        console.error('Unexpected error:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
     
-    setNotifications(updatedNotifications);
-    
-    toast({
-      title: "All Notifications Marked as Read",
-      description: "Your notifications have been marked as read.",
-    });
+    fetchNotifications();
+  }, [user, toast]);
+
+  // Format timestamps
+  const formatTimeAgo = (timestamp: string) => {
+    try {
+      return formatDistanceToNow(new Date(timestamp), { addSuffix: true });
+    } catch (e) {
+      return 'unknown time';
+    }
   };
 
-  const handleMarkAsRead = (id: string) => {
-    const updatedNotifications = notifications.map(notification => 
-      notification.id === id ? { ...notification, read: true } : notification
-    );
+  const handleMarkAllAsRead = async () => {
+    if (!user) return;
     
-    setNotifications(updatedNotifications);
+    try {
+      const { error } = await supabase
+        .from('activities')
+        .update({ read: true })
+        .eq('user_id', user.id)
+        .eq('read', false);
+        
+      if (error) {
+        console.error('Error marking all notifications as read:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to mark notifications as read',
+          variant: 'destructive',
+        });
+        return;
+      }
+      
+      // Update local state
+      setNotifications(prev => 
+        prev.map(notification => ({ ...notification, read: true }))
+      );
+      
+      toast({
+        title: 'Success',
+        description: 'All notifications marked as read',
+      });
+    } catch (err) {
+      console.error('Unexpected error:', err);
+    }
+  };
+
+  const handleMarkAsRead = async (id: string) => {
+    if (!user) return;
+    
+    try {
+      const { error } = await supabase
+        .from('activities')
+        .update({ read: true })
+        .eq('id', id)
+        .eq('user_id', user.id);
+        
+      if (error) {
+        console.error('Error marking notification as read:', error);
+        return;
+      }
+      
+      // Update local state
+      setNotifications(prev => 
+        prev.map(notification => 
+          notification.id === id ? { ...notification, read: true } : notification
+        )
+      );
+    } catch (err) {
+      console.error('Unexpected error:', err);
+    }
   };
   
   // Count unread notifications
@@ -102,52 +216,58 @@ const Notifications = () => {
               </Button>
             </div>
             
-            <div className="space-y-4">
-              {notifications.length === 0 ? (
-                <div className="text-center py-8">
-                  <Bell className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                  <p className="text-gray-500">No notifications to display</p>
-                </div>
-              ) : (
-                notifications.map((notification, index) => (
-                  <div key={notification.id}>
-                    <div 
-                      className={`p-3 rounded-lg ${!notification.read ? 'bg-purple-50' : ''} hover:bg-gray-50 transition-colors cursor-pointer`}
-                      onClick={() => handleMarkAsRead(notification.id)}
-                    >
-                      <div className="flex items-center gap-3">
-                        {notification.type !== 'system' ? (
-                          <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
-                            {notification.user?.avatar ? (
-                              <img src={notification.user.avatar} alt={notification.user.name} className="h-full w-full object-cover" />
-                            ) : (
-                              <User className="h-5 w-5 text-gray-500" />
-                            )}
-                          </div>
-                        ) : (
-                          <div className="h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center">
-                            <Bell className="h-5 w-5 text-purple-600" />
-                          </div>
-                        )}
-                        <div className="flex-1">
-                          <div className="flex flex-wrap gap-1">
-                            {notification.user && (
-                              <span className="font-medium">{notification.user.name}</span>
-                            )}
-                            <span>{notification.content}</span>
-                          </div>
-                          <p className="text-xs text-gray-500 mt-1">{notification.timestamp}</p>
-                        </div>
-                        {!notification.read && (
-                          <div className="h-2 w-2 rounded-full bg-purple-600"></div>
-                        )}
-                      </div>
-                    </div>
-                    {index < notifications.length - 1 && <Separator className="my-2" />}
+            {isLoading ? (
+              <div className="flex justify-center py-12">
+                <LoadingSpinner />
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {notifications.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Bell className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                    <p className="text-gray-500">No notifications to display</p>
                   </div>
-                ))
-              )}
-            </div>
+                ) : (
+                  notifications.map((notification, index) => (
+                    <div key={notification.id}>
+                      <div 
+                        className={`p-3 rounded-lg ${!notification.read ? 'bg-purple-50' : ''} hover:bg-gray-50 transition-colors cursor-pointer`}
+                        onClick={() => handleMarkAsRead(notification.id)}
+                      >
+                        <div className="flex items-center gap-3">
+                          {notification.type !== 'system' ? (
+                            <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
+                              {notification.user?.avatar ? (
+                                <img src={notification.user.avatar} alt={notification.user.name} className="h-full w-full object-cover" />
+                              ) : (
+                                <User className="h-5 w-5 text-gray-500" />
+                              )}
+                            </div>
+                          ) : (
+                            <div className="h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center">
+                              <Bell className="h-5 w-5 text-purple-600" />
+                            </div>
+                          )}
+                          <div className="flex-1">
+                            <div className="flex flex-wrap gap-1">
+                              {notification.user && (
+                                <span className="font-medium">{notification.user.name}</span>
+                              )}
+                              <span>{notification.content}</span>
+                            </div>
+                            <p className="text-xs text-gray-500 mt-1">{notification.timestamp}</p>
+                          </div>
+                          {!notification.read && (
+                            <div className="h-2 w-2 rounded-full bg-purple-600"></div>
+                          )}
+                        </div>
+                      </div>
+                      {index < notifications.length - 1 && <Separator className="my-2" />}
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>

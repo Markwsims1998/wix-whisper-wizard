@@ -8,20 +8,33 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { useToast } from "@/components/ui/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { format, formatDistanceToNow } from "date-fns";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
-type ActivityType = 'photo' | 'comment' | 'like' | 'share' | 'join' | 'profile';
+type ActivityType = 'like' | 'comment' | 'follow' | 'message' | 'tag' | 'system';
 
 interface ActivityItem {
-  id: number;
-  user: string;
-  action: string;
-  time: string;
-  actionIcon: ActivityType;
+  id: string;
+  type: ActivityType;
+  content: string;
+  timestamp: string;
+  user?: {
+    name: string;
+    avatar?: string;
+  };
+  read: boolean;
 }
 
 const Activity = () => {
   const [activeFilters, setActiveFilters] = useState<ActivityType[]>([]);
   const [filteredActivities, setFilteredActivities] = useState<ActivityItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [activities, setActivities] = useState<ActivityItem[]>([]);
+  const { toast } = useToast();
+  const { user } = useAuth();
 
   // Update header position based on sidebar width
   useEffect(() => {
@@ -48,14 +61,70 @@ const Activity = () => {
     };
   }, []);
 
-  const activities = [
-    { id: 1, user: 'Admin', action: 'posted a new photo', time: '15 minutes ago', actionIcon: 'photo' as ActivityType },
-    { id: 2, user: 'Sephiroth', action: 'commented on your post', time: '2 hours ago', actionIcon: 'comment' as ActivityType },
-    { id: 3, user: 'Linda Lohan', action: 'liked your photo', time: '4 hours ago', actionIcon: 'like' as ActivityType },
-    { id: 4, user: 'Irina Petrova', action: 'shared your post', time: '1 day ago', actionIcon: 'share' as ActivityType },
-    { id: 5, user: 'Robert Cook', action: 'joined the group', time: '2 days ago', actionIcon: 'join' as ActivityType },
-    { id: 6, user: 'Jennie Ferguson', action: 'updated their profile', time: '3 days ago', actionIcon: 'profile' as ActivityType }
-  ];
+  // Fetch activities from Supabase
+  useEffect(() => {
+    const fetchActivities = async () => {
+      if (!user) return;
+      
+      setIsLoading(true);
+      
+      try {
+        const { data, error } = await supabase
+          .from('activities')
+          .select(`
+            *,
+            actor:actor_id (
+              full_name,
+              avatar_url
+            )
+          `)
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
+          
+        if (error) {
+          console.error('Error fetching activities:', error);
+          toast({
+            title: 'Error',
+            description: 'Failed to load activities',
+            variant: 'destructive',
+          });
+          return;
+        }
+        
+        // Transform Supabase data to our ActivityItem format
+        if (data) {
+          const transformedData: ActivityItem[] = data.map(item => ({
+            id: item.id,
+            type: item.activity_type as ActivityType,
+            content: item.content || '',
+            timestamp: formatTimeAgo(item.created_at),
+            user: item.actor ? {
+              name: item.actor.full_name || 'Unknown User',
+              avatar: item.actor.avatar_url
+            } : undefined,
+            read: item.read || false
+          }));
+          
+          setActivities(transformedData);
+        }
+      } catch (err) {
+        console.error('Unexpected error:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchActivities();
+  }, [user, toast]);
+
+  // Format timestamps
+  const formatTimeAgo = (timestamp: string) => {
+    try {
+      return formatDistanceToNow(new Date(timestamp), { addSuffix: true });
+    } catch (e) {
+      return 'unknown time';
+    }
+  };
 
   // Filter activities based on active filters
   useEffect(() => {
@@ -63,10 +132,10 @@ const Activity = () => {
       setFilteredActivities(activities);
     } else {
       setFilteredActivities(activities.filter(activity => 
-        activeFilters.includes(activity.actionIcon)
+        activeFilters.includes(activity.type)
       ));
     }
-  }, [activeFilters]);
+  }, [activeFilters, activities]);
 
   const handleFilterChange = (type: ActivityType) => {
     setActiveFilters(prev => {
@@ -80,6 +149,81 @@ const Activity = () => {
 
   const clearFilters = () => {
     setActiveFilters([]);
+  };
+
+  const handleMarkAsRead = async (id: string) => {
+    if (!user) return;
+    
+    try {
+      const { error } = await supabase
+        .from('activities')
+        .update({ read: true })
+        .eq('id', id)
+        .eq('user_id', user.id);
+        
+      if (error) {
+        console.error('Error marking activity as read:', error);
+        return;
+      }
+      
+      // Update local state
+      setActivities(prev => 
+        prev.map(activity => 
+          activity.id === id ? { ...activity, read: true } : activity
+        )
+      );
+    } catch (err) {
+      console.error('Unexpected error:', err);
+    }
+  };
+
+  const handleMarkAllAsRead = async () => {
+    if (!user) return;
+    
+    try {
+      const { error } = await supabase
+        .from('activities')
+        .update({ read: true })
+        .eq('user_id', user.id)
+        .eq('read', false);
+        
+      if (error) {
+        console.error('Error marking all activities as read:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to mark activities as read',
+          variant: 'destructive',
+        });
+        return;
+      }
+      
+      // Update local state
+      setActivities(prev => 
+        prev.map(activity => ({ ...activity, read: true }))
+      );
+      
+      toast({
+        title: 'Success',
+        description: 'All activities marked as read',
+      });
+    } catch (err) {
+      console.error('Unexpected error:', err);
+    }
+  };
+
+  const getActivityIcon = (type: ActivityType) => {
+    switch (type) {
+      case 'like':
+        return <Heart className="h-5 w-5 text-red-500" />;
+      case 'comment':
+        return <MessageCircle className="h-5 w-5 text-blue-500" />;
+      case 'follow':
+        return <User className="h-5 w-5 text-green-500" />;
+      case 'message':
+        return <MessageCircle className="h-5 w-5 text-purple-500" />;
+      default:
+        return <ActivityIcon className="h-5 w-5 text-gray-500" />;
+    }
   };
 
   return (
@@ -96,113 +240,145 @@ const Activity = () => {
                 <div className="border-b-2 border-purple-500 w-16 mt-1"></div>
               </div>
               
-              <Popover>
-                <PopoverTrigger asChild>
-                  <button className={`flex items-center gap-2 ${activeFilters.length > 0 ? 'bg-purple-500 text-white' : 'bg-gray-100 text-gray-600'} px-4 py-2 rounded-lg hover:bg-opacity-90 transition`}>
-                    <Filter className="w-5 h-5" />
-                    <span>Filter {activeFilters.length > 0 ? `(${activeFilters.length})` : ''}</span>
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent className="w-80">
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-medium text-sm">Filter Activities</h3>
-                      {activeFilters.length > 0 && (
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          onClick={clearFilters}
-                          className="h-8 text-xs text-gray-500 flex items-center"
-                        >
-                          <X className="h-3 w-3 mr-1" />
-                          Clear all
-                        </Button>
-                      )}
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={handleMarkAllAsRead}
+                  disabled={!activities.some(a => !a.read)}
+                >
+                  Mark All as Read
+                </Button>
+                
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button 
+                      variant={activeFilters.length > 0 ? "default" : "outline"}
+                      size="sm"
+                      className="flex items-center gap-1"
+                    >
+                      <Filter className="w-4 h-4" />
+                      <span>Filter {activeFilters.length > 0 ? `(${activeFilters.length})` : ''}</span>
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-80">
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h3 className="font-medium text-sm">Filter Activities</h3>
+                        {activeFilters.length > 0 && (
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={clearFilters}
+                            className="h-8 text-xs text-gray-500 flex items-center"
+                          >
+                            <X className="h-3 w-3 mr-1" />
+                            Clear all
+                          </Button>
+                        )}
+                      </div>
+                      
+                      <Separator />
+                      
+                      <div className="space-y-2">
+                        <div className="flex items-center space-x-2">
+                          <Checkbox 
+                            id="filter-likes" 
+                            checked={activeFilters.includes('like')} 
+                            onCheckedChange={() => handleFilterChange('like')}
+                          />
+                          <Label htmlFor="filter-likes">Likes</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Checkbox 
+                            id="filter-comments" 
+                            checked={activeFilters.includes('comment')} 
+                            onCheckedChange={() => handleFilterChange('comment')}
+                          />
+                          <Label htmlFor="filter-comments">Comments</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Checkbox 
+                            id="filter-follows" 
+                            checked={activeFilters.includes('follow')} 
+                            onCheckedChange={() => handleFilterChange('follow')}
+                          />
+                          <Label htmlFor="filter-follows">Follows</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Checkbox 
+                            id="filter-messages" 
+                            checked={activeFilters.includes('message')} 
+                            onCheckedChange={() => handleFilterChange('message')}
+                          />
+                          <Label htmlFor="filter-messages">Messages</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Checkbox 
+                            id="filter-system" 
+                            checked={activeFilters.includes('system')} 
+                            onCheckedChange={() => handleFilterChange('system')}
+                          />
+                          <Label htmlFor="filter-system">System</Label>
+                        </div>
+                      </div>
                     </div>
-                    
-                    <Separator />
-                    
-                    <div className="space-y-2">
-                      <div className="flex items-center space-x-2">
-                        <Checkbox 
-                          id="filter-photos" 
-                          checked={activeFilters.includes('photo')} 
-                          onCheckedChange={() => handleFilterChange('photo')}
-                        />
-                        <Label htmlFor="filter-photos">Photos</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Checkbox 
-                          id="filter-comments" 
-                          checked={activeFilters.includes('comment')} 
-                          onCheckedChange={() => handleFilterChange('comment')}
-                        />
-                        <Label htmlFor="filter-comments">Comments</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Checkbox 
-                          id="filter-likes" 
-                          checked={activeFilters.includes('like')} 
-                          onCheckedChange={() => handleFilterChange('like')}
-                        />
-                        <Label htmlFor="filter-likes">Likes</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Checkbox 
-                          id="filter-shares" 
-                          checked={activeFilters.includes('share')} 
-                          onCheckedChange={() => handleFilterChange('share')}
-                        />
-                        <Label htmlFor="filter-shares">Shares</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Checkbox 
-                          id="filter-joins" 
-                          checked={activeFilters.includes('join')} 
-                          onCheckedChange={() => handleFilterChange('join')}
-                        />
-                        <Label htmlFor="filter-joins">Group Joins</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Checkbox 
-                          id="filter-profiles" 
-                          checked={activeFilters.includes('profile')} 
-                          onCheckedChange={() => handleFilterChange('profile')}
-                        />
-                        <Label htmlFor="filter-profiles">Profile Updates</Label>
-                      </div>
-                    </div>
-                  </div>
-                </PopoverContent>
-              </Popover>
+                  </PopoverContent>
+                </Popover>
+              </div>
             </div>
             
-            <div className="space-y-4">
-              {filteredActivities.map(activity => (
-                <div key={activity.id} className="flex items-start gap-3 p-3 hover:bg-gray-50 rounded-lg transition">
-                  <div className="h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center overflow-hidden">
-                    <User className="h-5 w-5 text-purple-600" />
+            {isLoading ? (
+              <div className="flex justify-center py-12">
+                <LoadingSpinner />
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {filteredActivities.length === 0 ? (
+                  <div className="text-center py-12">
+                    <ActivityIcon className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                    <p className="text-gray-500">No activities to display</p>
+                    {activeFilters.length > 0 && (
+                      <Button 
+                        variant="link" 
+                        onClick={clearFilters}
+                        className="mt-2"
+                      >
+                        Clear filters
+                      </Button>
+                    )}
                   </div>
-                  <div className="flex-1">
-                    <div className="flex items-center">
-                      <h3 className="text-md font-medium">{activity.user}</h3>
-                      <span className="text-sm text-gray-500 ml-2">{activity.action}</span>
+                ) : (
+                  filteredActivities.map(activity => (
+                    <div 
+                      key={activity.id} 
+                      className={`flex items-start gap-3 p-3 ${!activity.read ? 'bg-purple-50' : ''} hover:bg-gray-50 rounded-lg transition cursor-pointer`}
+                      onClick={() => handleMarkAsRead(activity.id)}
+                    >
+                      <div className="h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center overflow-hidden">
+                        {activity.user?.avatar ? (
+                          <img src={activity.user.avatar} alt={activity.user.name} className="w-full h-full object-cover" />
+                        ) : (
+                          getActivityIcon(activity.type)
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-1 flex-wrap">
+                          {activity.user && (
+                            <span className="font-medium">{activity.user.name}</span>
+                          )}
+                          <span>{activity.content}</span>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">{activity.timestamp}</p>
+                      </div>
+                      {!activity.read && (
+                        <div className="h-2 w-2 rounded-full bg-purple-600 mt-2"></div>
+                      )}
                     </div>
-                    <p className="text-xs text-gray-500">{activity.time}</p>
-                  </div>
-                  <div className="flex gap-2">
-                    {activity.actionIcon === 'like' && <Heart className="w-4 h-4 text-red-500" />}
-                    {activity.actionIcon === 'comment' && <MessageCircle className="w-4 h-4 text-blue-500" />}
-                  </div>
-                </div>
-              ))}
-              
-              {filteredActivities.length === 0 && (
-                <div className="text-center py-8 text-gray-500">
-                  <p>No activities match your filter criteria.</p>
-                </div>
-              )}
-            </div>
+                  ))
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>

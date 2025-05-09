@@ -406,8 +406,15 @@ const Profile = () => {
       <Sidebar />
       <Header />
       
-      <main className="transition-all duration-300 flex-1">
-        <div className="ml-[var(--sidebar-width,280px)] pt-16 px-4 pb-10">
+      <main className="flex-1 transition-all duration-300">
+        <div 
+          className="ml-[var(--sidebar-width,280px)] pt-16 px-4 pb-10"
+          style={{
+            transitionProperty: 'margin-left',
+            transitionDuration: '300ms',
+            transitionTimingFunction: 'ease-in-out'
+          }}
+        >
           <div className="container max-w-4xl mx-auto px-4 pb-10 pt-5">
             <ProfileHeader 
               profile={profile}

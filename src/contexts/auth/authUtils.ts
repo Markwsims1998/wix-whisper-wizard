@@ -101,3 +101,19 @@ export const convertToProfileUpdates = (updates: Partial<AuthUser>): Record<stri
 
   return profileUpdates;
 };
+
+// Update a user's role (admin function)
+export const updateUserRoleDirectly = async (targetUserId: string, newRole: 'admin' | 'moderator' | 'user'): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('profiles')
+      .update({ role: newRole })
+      .eq('id', targetUserId);
+      
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error(`Error updating user role to ${newRole}:`, error);
+    return false;
+  }
+};

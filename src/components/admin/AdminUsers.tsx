@@ -19,6 +19,14 @@ import { useToast } from "@/hooks/use-toast";
 import { fetchAllUsers, banUser, unbanUser, updateUserRole, UserProfile } from "@/services/adminService";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { 
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 const AdminUsers = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -245,23 +253,29 @@ const AdminUsers = () => {
             </div>
           ) : (
             <div className="rounded-md border">
-              <div className="relative w-full overflow-auto">
-                <table className="w-full caption-bottom text-sm">
-                  <thead className="bg-gray-100 dark:bg-gray-800 [&_tr]:border-b">
-                    <tr className="border-b transition-colors">
-                      <th className="h-12 px-4 text-left align-middle font-medium">User</th>
-                      <th className="h-12 px-4 text-left align-middle font-medium">Role</th>
-                      <th className="h-12 px-4 text-left align-middle font-medium">Status</th>
-                      <th className="h-12 px-4 text-left align-middle font-medium">Subscription</th>
-                      <th className="h-12 px-4 text-left align-middle font-medium">Last Active</th>
-                      <th className="h-12 px-4 text-left align-middle font-medium">Joined</th>
-                      <th className="h-12 px-4 text-right align-middle font-medium">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="[&_tr:last-child]:border-0">
-                    {filteredUsers.map(user => (
-                      <tr key={user.id} className="border-b transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                        <td className="p-4 align-middle">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>User</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Subscription</TableHead>
+                    <TableHead>Last Active</TableHead>
+                    <TableHead>Joined</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredUsers.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-10">
+                        No users found matching the current filters.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredUsers.map(user => (
+                      <TableRow key={user.id}>
+                        <TableCell>
                           <div className="flex items-center gap-3">
                             <div className="h-10 w-10 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700">
                               {user.avatar_url ? (
@@ -277,8 +291,8 @@ const AdminUsers = () => {
                               <div className="text-xs text-gray-500">{user.email}</div>
                             </div>
                           </div>
-                        </td>
-                        <td className="p-4 align-middle">
+                        </TableCell>
+                        <TableCell>
                           <Badge className={
                             user.role === 'admin' ? 'bg-purple-100 text-purple-800 hover:bg-purple-200' : 
                             user.role === 'moderator' ? 'bg-blue-100 text-blue-800 hover:bg-blue-200' : 
@@ -286,32 +300,32 @@ const AdminUsers = () => {
                           }>
                             {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
                           </Badge>
-                        </td>
-                        <td className="p-4 align-middle">
+                        </TableCell>
+                        <TableCell>
                           <Badge className={
                             user.status === 'active' ? 'bg-green-100 text-green-800 hover:bg-green-200' : 
                             'bg-red-100 text-red-800 hover:bg-red-200'
                           }>
                             {user.status.charAt(0).toUpperCase() + user.status.slice(1)}
                           </Badge>
-                        </td>
-                        <td className="p-4 align-middle">
+                        </TableCell>
+                        <TableCell>
                           <Badge className={
                             user.subscription_tier === 'free' ? 'bg-gray-100 text-gray-800 hover:bg-gray-200' : 
                             user.subscription_tier === 'bronze' ? 'bg-amber-700 text-white hover:bg-amber-800' : 
                             user.subscription_tier === 'silver' ? 'bg-gray-400 text-white hover:bg-gray-500' : 
                             'bg-yellow-500 text-white hover:bg-yellow-600'
                           }>
-                            {user.subscription_tier.charAt(0).toUpperCase() + user.subscription_tier.slice(1)}
+                            {user.subscription_tier?.charAt(0).toUpperCase() + (user.subscription_tier?.slice(1) || '')}
                           </Badge>
-                        </td>
-                        <td className="p-4 align-middle text-sm">
+                        </TableCell>
+                        <TableCell className="text-sm">
                           {user.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleDateString() : "Never"}
-                        </td>
-                        <td className="p-4 align-middle text-sm">
+                        </TableCell>
+                        <TableCell className="text-sm">
                           {user.created_at ? new Date(user.created_at).toLocaleDateString() : "Unknown"}
-                        </td>
-                        <td className="p-4 align-middle text-right">
+                        </TableCell>
+                        <TableCell className="text-right">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button variant="ghost" size="icon">
@@ -351,12 +365,12 @@ const AdminUsers = () => {
                               )}
                             </DropdownMenuContent>
                           </DropdownMenu>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
             </div>
           )}
         </CardContent>

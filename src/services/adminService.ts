@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -21,46 +20,29 @@ export interface UserProfile {
  */
 export const fetchAllUsers = async (): Promise<UserProfile[]> => {
   try {
-    // First fetch all user auth data
-    const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
-    
-    if (authError) throw authError;
-    if (!authUsers || !authUsers.users) return [];
-    
-    // Then fetch all profile data
+    // Instead of using the admin.listUsers() which requires special privileges,
+    // we'll directly query the profiles table and get all users
     const { data: profiles, error: profilesError } = await supabase
       .from('profiles')
       .select('*');
       
     if (profilesError) throw profilesError;
     
-    // Combine auth data and profile data
-    const users = authUsers.users.map(authUser => {
-      // Find matching profile or use an empty object with defined types
-      const profile = profiles?.find(p => p.id === authUser.id) || {};
-      
-      // Use type assertion to ensure TypeScript recognizes the expected properties
-      const typedProfile = profile as {
-        username?: string;
-        full_name?: string;
-        role?: string;
-        avatar_url?: string;
-        subscription_tier?: 'free' | 'bronze' | 'silver' | 'gold';
-      };
-      
+    // Transform profiles into our UserProfile format
+    const users: UserProfile[] = profiles?.map(profile => {
       return {
-        id: authUser.id,
-        email: authUser.email || '',
-        username: typedProfile.username || authUser.email?.split('@')[0] || '',
-        full_name: typedProfile.full_name || '',
-        role: (typedProfile.role as 'admin' | 'moderator' | 'user') || 'user',
-        avatar_url: typedProfile.avatar_url,
-        status: authUser.banned ? 'banned' as const : 'active' as const,
-        subscription_tier: typedProfile.subscription_tier || 'free',
-        last_sign_in_at: authUser.last_sign_in_at,
-        created_at: authUser.created_at
+        id: profile.id,
+        email: profile.username.includes('@') ? profile.username : `${profile.username}@example.com`,
+        username: profile.username || '',
+        full_name: profile.full_name || '',
+        role: (profile.role as 'admin' | 'moderator' | 'user') || 'user',
+        avatar_url: profile.avatar_url,
+        status: profile.status as 'active' | 'banned' || 'active', // Using status from profile
+        subscription_tier: profile.subscription_tier as 'free' | 'bronze' | 'silver' | 'gold' || 'free',
+        created_at: profile.created_at,
+        last_sign_in_at: profile.last_sign_in_at
       };
-    });
+    }) || [];
     
     return users;
   } catch (error) {
@@ -76,11 +58,11 @@ export const fetchAllUsers = async (): Promise<UserProfile[]> => {
  */
 export const banUser = async (userId: string): Promise<boolean> => {
   try {
-    // Update the user's status in auth system
-    const { error } = await supabase.auth.admin.updateUserById(
-      userId,
-      { ban_duration: 'infinite' }
-    );
+    // Instead of using auth.admin API, update user status in profiles table
+    const { error } = await supabase
+      .from('profiles')
+      .update({ status: 'banned' })
+      .eq('id', userId);
     
     if (error) throw error;
     return true;
@@ -97,11 +79,11 @@ export const banUser = async (userId: string): Promise<boolean> => {
  */
 export const unbanUser = async (userId: string): Promise<boolean> => {
   try {
-    // Update the user's status in auth system
-    const { error } = await supabase.auth.admin.updateUserById(
-      userId,
-      { ban_duration: null }
-    );
+    // Update the user's status in profiles table
+    const { error } = await supabase
+      .from('profiles')
+      .update({ status: 'active' })
+      .eq('id', userId);
     
     if (error) throw error;
     return true;

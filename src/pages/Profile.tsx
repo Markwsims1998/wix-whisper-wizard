@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/auth/AuthProvider';
 import { useToast } from '@/components/ui/use-toast';
@@ -17,6 +16,18 @@ const Profile = () => {
   const [newPostText, setNewPostText] = useState('');
   const [editRelationshipOpen, setEditRelationshipOpen] = useState(false);
   const [posts, setPosts] = useState<Post[]>([]);
+  
+  // Relationship status state
+  const [selectedRelationshipStatus, setSelectedRelationshipStatus] = useState<string | null>(
+    user?.relationshipStatus || null
+  );
+  const [relationshipPartners, setRelationshipPartners] = useState<string[]>(
+    user?.relationshipPartners || []
+  );
+  const [availablePartners, setAvailablePartners] = useState<any[]>([]);
+  const [partnerSearchOpen, setPartnerSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [relationshipStatuses, setRelationshipStatuses] = useState<any[]>([]);
   
   // Prepare profile data from authenticated user
   const profile: ProfileData = {
@@ -238,6 +249,96 @@ const Profile = () => {
     }
   };
   
+  // Fetch relationship statuses
+  const fetchRelationshipStatuses = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('relationship_statuses')
+        .select('*')
+        .eq('isactive', true);
+        
+      if (error) throw error;
+      
+      setRelationshipStatuses(data || []);
+    } catch (error) {
+      console.error('Error fetching relationship statuses:', error);
+      // Fallback mock data
+      setRelationshipStatuses([
+        { id: 'single', name: 'Single' },
+        { id: 'in-relationship', name: 'In a relationship' },
+        { id: 'married', name: 'Married' },
+        { id: 'complicated', name: 'It\'s complicated' }
+      ]);
+    }
+  };
+  
+  // Fetch available partners (friends)
+  const fetchAvailablePartners = async () => {
+    try {
+      // In a real app, this would fetch the user's friends from the database
+      // For now, we'll use mock data
+      setAvailablePartners([
+        { id: 'user1', full_name: 'Jane Smith', avatar_url: null },
+        { id: 'user2', full_name: 'John Doe', avatar_url: null },
+        { id: 'user3', full_name: 'Sam Wilson', avatar_url: null }
+      ]);
+    } catch (error) {
+      console.error('Error fetching available partners:', error);
+    }
+  };
+  
+  // Handle adding a partner
+  const handleAddPartner = (partnerId: string) => {
+    setRelationshipPartners(prev => [...prev, partnerId]);
+    setPartnerSearchOpen(false);
+  };
+  
+  // Handle removing a partner
+  const handleRemovePartner = (partnerId: string) => {
+    setRelationshipPartners(prev => prev.filter(id => id !== partnerId));
+  };
+  
+  // Handle saving relationship changes
+  const handleSaveRelationship = async () => {
+    try {
+      if (!user?.id) return;
+      
+      // Update profile in Supabase
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          relationship_status: selectedRelationshipStatus,
+          relationship_partners: relationshipPartners
+        })
+        .eq('id', user.id);
+        
+      if (error) throw error;
+      
+      // Close dialog
+      setEditRelationshipOpen(false);
+      
+      // Update local user data
+      if (user?.updateUserProfile) {
+        await user.updateUserProfile({
+          relationshipStatus: selectedRelationshipStatus,
+          relationshipPartners: relationshipPartners
+        });
+      }
+      
+      toast({
+        title: "Relationship status updated",
+        description: "Your relationship status has been updated successfully.",
+      });
+    } catch (error) {
+      console.error('Error updating relationship status:', error);
+      toast({
+        title: "Failed to update",
+        description: "There was a problem updating your relationship status.",
+        variant: "destructive",
+      });
+    }
+  };
+  
   // Mock functions for social actions - to be implemented with real functionality later
   const handleAddFriend = () => {
     toast({
@@ -257,6 +358,12 @@ const Profile = () => {
   useEffect(() => {
     if (user?.id) {
       fetchPosts();
+      fetchRelationshipStatuses();
+      fetchAvailablePartners();
+      
+      // Set initial values from user data
+      setSelectedRelationshipStatus(user.relationshipStatus || null);
+      setRelationshipPartners(user.relationshipPartners || []);
     } else {
       setLoading(false);
     }
@@ -292,7 +399,19 @@ const Profile = () => {
       
       <RelationshipDialog 
         open={editRelationshipOpen} 
-        onClose={() => setEditRelationshipOpen(false)} 
+        setOpen={setEditRelationshipOpen}
+        selectedRelationshipStatus={selectedRelationshipStatus}
+        setSelectedRelationshipStatus={setSelectedRelationshipStatus}
+        relationshipPartners={relationshipPartners}
+        handleRemovePartner={handleRemovePartner}
+        availablePartners={availablePartners}
+        partnerSearchOpen={partnerSearchOpen}
+        setPartnerSearchOpen={setPartnerSearchOpen}
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        handleAddPartner={handleAddPartner}
+        relationshipStatuses={relationshipStatuses}
+        handleSaveRelationship={handleSaveRelationship}
       />
     </div>
   );

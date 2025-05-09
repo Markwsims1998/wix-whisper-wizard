@@ -28,7 +28,8 @@ export const transformUser = async (supabaseUser: User | null): Promise<AuthUser
         privacy_settings,
         role,
         status,
-        last_sign_in_at
+        last_sign_in_at,
+        created_at
       `)
       .eq('id', supabaseUser.id)
       .single();
@@ -100,7 +101,7 @@ export const transformUser = async (supabaseUser: User | null): Promise<AuthUser
       lastSignIn: profile?.last_sign_in_at,
       following: 0, // Added default values for profile stats
       followers: 0, // These will be populated from relationship counts in future updates
-      joinDate: profile?.created_at || new Date().toISOString()
+      joinDate: new Date().toISOString() // Fixed this line to use the current date instead of profile.created_at
     };
   } catch (err) {
     console.error('Error transforming user:', err);

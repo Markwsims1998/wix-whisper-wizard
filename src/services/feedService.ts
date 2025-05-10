@@ -1,28 +1,9 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { PostgrestError } from "@supabase/supabase-js";
+import { Post } from "@/components/profile/types";
 
-export interface Post {
-  id: string;
-  content: string;
-  created_at: string;
-  user_id: string;
-  is_liked?: boolean;
-  likes_count?: number;
-  comments_count?: number;
-  author?: {
-    id: string;
-    full_name: string;
-    username: string;
-    avatar_url: string | null;
-    subscription_tier: string | null;
-  };
-  media?: {
-    id: string;
-    file_url: string;
-    media_type: string;
-    thumbnail_url?: string;
-  }[];
-}
+export type { Post };
 
 interface DatabaseResult<T> {
   data: T | null;
@@ -83,13 +64,29 @@ export const getFeedPosts = async (
       return [];
     }
 
-    // Map the data to include whether the post is liked by the current user
-    const postsWithLikeStatus = data.map(post => ({
-      ...post,
-      is_liked: post.is_liked !== null, // Convert to boolean
-    }));
+    if (!data) return [];
 
-    return postsWithLikeStatus as Post[];
+    // Process the data to transform it into the correct Post format
+    const processedPosts: Post[] = data.map(post => {
+      // Extract counts from arrays
+      const commentsCount = post.comments_count && post.comments_count.length > 0 ? post.comments_count[0].count : 0;
+      const likesCount = post.likes_count && post.likes_count.length > 0 ? post.likes_count[0].count : 0;
+      
+      return {
+        id: post.id,
+        content: post.content,
+        created_at: post.created_at,
+        updated_at: post.updated_at,
+        user_id: post.user_id,
+        author: post.author,
+        comments_count: commentsCount,
+        likes_count: likesCount,
+        media: post.media,
+        is_liked: post.is_liked !== null
+      };
+    });
+
+    return processedPosts;
   } catch (error) {
     console.error('Unexpected error fetching posts:', error);
     return [];
@@ -137,7 +134,27 @@ export const createPost = async (
       return { success: false, error: error.message };
     }
 
-    return { success: true, post: data as Post };
+    if (!data) {
+      return { success: false, error: 'No data returned from post creation' };
+    }
+
+    // Process the data to transform it into the correct Post format
+    const commentsCount = data.comments_count && data.comments_count.length > 0 ? data.comments_count[0].count : 0;
+    const likesCount = data.likes_count && data.likes_count.length > 0 ? data.likes_count[0].count : 0;
+    
+    const processedPost: Post = {
+      id: data.id,
+      content: data.content,
+      created_at: data.created_at,
+      updated_at: data.updated_at,
+      user_id: data.user_id,
+      author: data.author,
+      comments_count: commentsCount,
+      likes_count: likesCount,
+      media: data.media
+    };
+
+    return { success: true, post: processedPost };
   } catch (error) {
     console.error('Unexpected error creating post:', error);
     return { success: false, error: 'An unexpected error occurred' };
@@ -220,7 +237,23 @@ export const getPostById = async (postId: string): Promise<Post | null> => {
       return null;
     }
 
-    return data as Post;
+    // Process the data to transform it into the correct Post format
+    const commentsCount = data.comments_count && data.comments_count.length > 0 ? data.comments_count[0].count : 0;
+    const likesCount = data.likes_count && data.likes_count.length > 0 ? data.likes_count[0].count : 0;
+    
+    const processedPost: Post = {
+      id: data.id,
+      content: data.content,
+      created_at: data.created_at,
+      updated_at: data.updated_at,
+      user_id: data.user_id,
+      author: data.author,
+      comments_count: commentsCount,
+      likes_count: likesCount,
+      media: data.media
+    };
+
+    return processedPost;
   } catch (error) {
     console.error('Unexpected error fetching post by ID:', error);
     return null;

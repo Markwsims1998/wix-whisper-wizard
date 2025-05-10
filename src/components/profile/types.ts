@@ -87,15 +87,22 @@ export interface Post {
   content: string;
   created_at: string;
   user_id: string;
-  media?: any[];
-  likes_count: number;
+  updated_at?: string;
+  media?: {
+    id: string;
+    file_url: string;
+    media_type: string;
+    thumbnail_url?: string;
+  }[];
+  likes_count?: number;
   comments_count?: number;
-  is_liked: boolean;
-  author: {
+  is_liked?: boolean;
+  author?: {
     id: string;
     full_name: string;
     username: string;
-    avatar_url: string;
+    avatar_url: string | null;
+    subscription_tier?: string | null;
   };
 }
 

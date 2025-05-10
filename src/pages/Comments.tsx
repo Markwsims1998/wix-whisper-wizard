@@ -7,10 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth/AuthProvider";
-import { Post } from "@/components/profile/types";
 import CommentInput from "@/components/comments/CommentInput";
 import CommentList from "@/components/comments/CommentList";
-import { getPostById, likePost } from "@/services/feedService";
+import { getPostById, likePost, Post } from "@/services/feedService";
 import Header from "@/components/Header";
 
 const CommentsPage = () => {

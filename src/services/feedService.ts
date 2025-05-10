@@ -255,3 +255,69 @@ export const getLikesForPost = async (postId: string) => {
     return [];
   }
 };
+
+// Create a new post
+export const createPost = async (
+  content: string,
+  userId: string,
+  mediaUrl?: string | null,
+  mediaType?: string
+): Promise<{ success: boolean; post?: Post; error?: string }> => {
+  try {
+    if (!content.trim() && !mediaUrl) {
+      return { success: false, error: 'Post content cannot be empty' };
+    }
+
+    // Create the post
+    const { data: postData, error: postError } = await supabase
+      .from('posts')
+      .insert({ 
+        content, 
+        user_id: userId 
+      })
+      .select()
+      .single();
+
+    if (postError) {
+      console.error('Error creating post:', postError);
+      return { success: false, error: postError.message };
+    }
+
+    // If there's media, create a media entry
+    if (mediaUrl && mediaType) {
+      const { error: mediaError } = await supabase
+        .from('media')
+        .insert({ 
+          post_id: postData.id, 
+          file_url: mediaUrl,
+          media_type: mediaType
+        });
+
+      if (mediaError) {
+        console.error('Error adding media to post:', mediaError);
+        // We don't return an error here as the post was created successfully
+      }
+    }
+
+    // Get the complete post with author info
+    const { data: fullPost, error: fetchError } = await supabase
+      .from('posts')
+      .select(`
+        *,
+        author:user_id(id, full_name, username, avatar_url, subscription_tier),
+        media(id, file_url, thumbnail_url, media_type, created_at)
+      `)
+      .eq('id', postData.id)
+      .single();
+
+    if (fetchError) {
+      console.error('Error fetching complete post:', fetchError);
+      return { success: true, post: postData as Post };
+    }
+
+    return { success: true, post: fullPost as Post };
+  } catch (error) {
+    console.error('Unexpected error creating post:', error);
+    return { success: false, error: 'An unexpected error occurred' };
+  }
+};

@@ -1,6 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
+import { createActivity } from "./activityService";
 
 // Define the Post interface
 export interface Post {
@@ -195,6 +196,17 @@ export const getPostById = async (postId: string): Promise<Post | null> => {
 // Like or unlike a post
 export const likePost = async (postId: string, userId: string): Promise<{ success: boolean; error?: string }> => {
   try {
+    // First get the post details to know the post owner
+    const { data: postData } = await supabase
+      .from('posts')
+      .select('user_id')
+      .eq('id', postId)
+      .single();
+      
+    if (!postData) {
+      return { success: false, error: 'Post not found' };
+    }
+    
     // First check if the user has already liked this post
     const { data: existingLike } = await supabase
       .from('likes')
@@ -203,6 +215,8 @@ export const likePost = async (postId: string, userId: string): Promise<{ succes
       .eq('user_id', userId)
       .single();
 
+    let success = false;
+    
     if (existingLike) {
       // User already liked this post, so unlike it
       const { error } = await supabase
@@ -214,7 +228,7 @@ export const likePost = async (postId: string, userId: string): Promise<{ succes
         console.error('Error removing like:', error);
         return { success: false, error: error.message };
       }
-      return { success: true };
+      success = true;
     } else {
       // User hasn't liked this post yet, so add a like
       const { error } = await supabase
@@ -225,8 +239,22 @@ export const likePost = async (postId: string, userId: string): Promise<{ succes
         console.error('Error adding like:', error);
         return { success: false, error: error.message };
       }
-      return { success: true };
+      success = true;
+      
+      // Create activity notification (only when liking, not when unliking)
+      if (postData.user_id !== userId) {
+        // Don't create notification for self-likes
+        await createActivity(
+          postData.user_id,  // post owner receives the notification
+          userId,            // current user is the actor
+          'like',
+          'liked your post',
+          postId
+        );
+      }
     }
+    
+    return { success };
   } catch (error) {
     console.error('Unexpected error liking post:', error);
     return { success: false, error: 'An unexpected error occurred' };

@@ -11,7 +11,6 @@ import { useAuth } from "@/contexts/auth/AuthProvider";
 import { getFeedPosts, likePost, Post as PostType } from "@/services/feedService";
 import { format } from "date-fns";
 import RefreshableFeed from "./RefreshableFeed";
-import CommentSection from "./comments/CommentSection";
 
 const PostFeed = () => {
   const [activeTab, setActiveTab] = useState("all");
@@ -114,22 +113,40 @@ const PostFeed = () => {
       return;
     }
     
+    // Find the post to check current like state
+    const post = posts.find(p => p.id === postId);
+    if (!post) return;
+    
+    const isCurrentlyLiked = post.is_liked;
+    
+    // Optimistically update UI first
+    setPosts(prevPosts => prevPosts.map(p => {
+      if (p.id === postId) {
+        return {
+          ...p,
+          is_liked: !p.is_liked,
+          likes_count: p.is_liked ? Math.max(0, p.likes_count - 1) : p.likes_count + 1
+        };
+      }
+      return p;
+    }));
+    
+    // Then perform the actual API call
     const { success, error } = await likePost(postId, user.id);
     
-    if (success) {
-      // Update local state to reflect the like/unlike
-      setPosts(prevPosts => prevPosts.map(post => {
-        if (post.id === postId) {
-          // Check if we're liking or unliking
-          const isLiked = post.likes_count > 0; // This is a simplification, ideally track liked state
+    if (!success && error) {
+      // Revert the optimistic update if there was an error
+      setPosts(prevPosts => prevPosts.map(p => {
+        if (p.id === postId) {
           return {
-            ...post,
-            likes_count: isLiked ? post.likes_count - 1 : post.likes_count + 1
+            ...p,
+            is_liked: isCurrentlyLiked,
+            likes_count: isCurrentlyLiked ? p.likes_count + 1 : Math.max(0, p.likes_count - 1)
           };
         }
-        return post;
+        return p;
       }));
-    } else if (error) {
+      
       toast({
         title: "Error",
         description: error,
@@ -345,10 +362,10 @@ const PostFeed = () => {
                     
                     <div className="flex items-center gap-4">
                       <button 
-                        className="flex items-center gap-1 text-gray-500 text-sm hover:text-red-500"
+                        className={`flex items-center gap-1 text-sm ${post.is_liked ? 'text-red-500' : 'text-gray-500 hover:text-red-500'}`}
                         onClick={() => handleLikePost(post.id)}
                       >
-                        <Heart className="h-4 w-4" /> {post.likes_count}
+                        <Heart className={`h-4 w-4 ${post.is_liked ? 'fill-current' : ''}`} /> {post.likes_count}
                       </button>
                       <button 
                         className="flex items-center gap-1 text-gray-500 text-sm hover:text-blue-500"
@@ -358,18 +375,6 @@ const PostFeed = () => {
                       </button>
                     </div>
                     
-                    <CommentSection 
-                      postId={post.id} 
-                      commentsCount={post.comments_count || 0}
-                      onCommentCountChange={(newCount) => {
-                        setPosts(prevPosts => prevPosts.map(p => {
-                          if (p.id === post.id) {
-                            return { ...p, comments_count: newCount };
-                          }
-                          return p;
-                        }));
-                      }}
-                    />
                     
                     {post.id !== posts[posts.length - 1].id && <Separator className="my-6" />}
                   </div>

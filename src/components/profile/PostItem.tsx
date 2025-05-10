@@ -1,12 +1,11 @@
 
-import { Heart, MessageCircle, Share2, User } from "lucide-react";
+import { Heart, MessageCircle, User } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Post } from "./types";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import CommentSection from "../comments/CommentSection";
 
 type PostItemProps = {
   post: Post;
@@ -36,10 +35,6 @@ const PostItem = ({ post, handleLikePost }: PostItemProps) => {
       }
     }
     return "#";
-  };
-
-  const handleCommentCountChange = (newCount: number) => {
-    setCommentsCount(newCount);
   };
   
   return (
@@ -132,31 +127,9 @@ const PostItem = ({ post, handleLikePost }: PostItemProps) => {
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
-        
-        <TooltipProvider delayDuration={300}>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button 
-                variant="ghost" 
-                size="sm"
-                className="flex items-center gap-1 hover:text-green-500 ml-auto px-2"
-              >
-                <Share2 className="w-4 h-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">
-              Share this post
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
       </div>
-
-      {/* Add Comment Section */}
-      <CommentSection 
-        postId={post.id} 
-        commentsCount={commentsCount} 
-        onCommentCountChange={handleCommentCountChange}
-      />
+      
+      {/* Removed CommentSection from here */}
     </div>
   );
 };

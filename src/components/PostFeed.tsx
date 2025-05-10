@@ -358,12 +358,10 @@ const PostFeed = () => {
                       </button>
                     </div>
                     
-                    {/* Add Comment Section */}
                     <CommentSection 
                       postId={post.id} 
                       commentsCount={post.comments_count || 0}
                       onCommentCountChange={(newCount) => {
-                        // Update local state to reflect comment count changes
                         setPosts(prevPosts => prevPosts.map(p => {
                           if (p.id === post.id) {
                             return { ...p, comments_count: newCount };
@@ -382,7 +380,6 @@ const PostFeed = () => {
         </Tabs>
       </div>
 
-      {/* Full-screen media viewer */}
       {selectedMedia && (
         <MediaViewer
           type={selectedMedia.type}

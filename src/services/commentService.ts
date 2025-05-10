@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 
@@ -26,7 +25,7 @@ export const getPostComments = async (postId: string): Promise<Comment[]> => {
         author:user_id(id, full_name, username, avatar_url, subscription_tier)
       `)
       .eq('post_id', postId)
-      .order('created_at', { ascending: true });
+      .order('created_at', { ascending: false });  // Changed to descending order (newest first)
 
     if (error) {
       console.error('Error fetching comments:', error);

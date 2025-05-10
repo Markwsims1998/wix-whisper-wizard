@@ -2,7 +2,6 @@
 import { useState } from "react";
 import { MessageCircle, ChevronUp, ChevronDown } from "lucide-react";
 import CommentList from "./CommentList";
-import CommentInput from "./CommentInput";
 import { Separator } from "@/components/ui/separator";
 
 interface CommentSectionProps {
@@ -20,14 +19,6 @@ const CommentSection = ({
 }: CommentSectionProps) => {
   const [isExpanded, setIsExpanded] = useState(expanded);
   const [localCommentsCount, setLocalCommentsCount] = useState(commentsCount);
-
-  const handleCommentAdded = () => {
-    const newCount = localCommentsCount + 1;
-    setLocalCommentsCount(newCount);
-    if (onCommentCountChange) {
-      onCommentCountChange(newCount);
-    }
-  };
 
   const handleCommentDeleted = () => {
     const newCount = Math.max(0, localCommentsCount - 1);
@@ -62,11 +53,6 @@ const CommentSection = ({
             postId={postId} 
             commentsCount={localCommentsCount}
             onCommentDeleted={handleCommentDeleted}
-          />
-          
-          <CommentInput 
-            postId={postId} 
-            onCommentAdded={handleCommentAdded} 
           />
         </>
       )}

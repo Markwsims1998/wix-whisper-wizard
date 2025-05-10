@@ -26,7 +26,11 @@ const CommentList = ({
     setIsLoading(true);
     try {
       const fetchedComments = await getPostComments(postId);
-      setComments(fetchedComments);
+      // Sort comments by created_at in descending order (newest first)
+      const sortedComments = fetchedComments.sort((a, b) => 
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+      setComments(sortedComments);
     } catch (error) {
       console.error("Error loading comments:", error);
       toast({

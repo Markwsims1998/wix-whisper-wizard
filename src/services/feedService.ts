@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 
@@ -290,7 +291,8 @@ export const createPost = async (
         .insert({ 
           post_id: postData.id, 
           file_url: mediaUrl,
-          media_type: mediaType
+          media_type: mediaType,
+          user_id: userId  // Added missing user_id field here
         });
 
       if (mediaError) {

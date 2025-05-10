@@ -1,3 +1,4 @@
+
 import { Separator } from "@/components/ui/separator";
 import { User, Heart, MessageCircle, Lock, Gift } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -11,6 +12,7 @@ import { useAuth } from "@/contexts/auth/AuthProvider";
 import { getFeedPosts, likePost, Post as PostType } from "@/services/feedService";
 import { format } from "date-fns";
 import RefreshableFeed from "./RefreshableFeed";
+import CommentSection from "./comments/CommentSection";
 
 const PostFeed = () => {
   const [activeTab, setActiveTab] = useState("all");
@@ -353,6 +355,21 @@ const PostFeed = () => {
                         <MessageCircle className="h-4 w-4" /> {post.comments_count}
                       </button>
                     </div>
+                    
+                    {/* Add Comment Section */}
+                    <CommentSection 
+                      postId={post.id} 
+                      commentsCount={post.comments_count || 0}
+                      onCommentCountChange={(newCount) => {
+                        // Update local state to reflect comment count changes
+                        setPosts(prevPosts => prevPosts.map(p => {
+                          if (p.id === post.id) {
+                            return { ...p, comments_count: newCount };
+                          }
+                          return p;
+                        }));
+                      }}
+                    />
                     
                     {post.id !== posts[posts.length - 1].id && <Separator className="my-6" />}
                   </div>

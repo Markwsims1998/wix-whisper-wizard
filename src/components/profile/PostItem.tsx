@@ -6,6 +6,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Post } from "./types";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import CommentSection from "../comments/CommentSection";
 
 type PostItemProps = {
   post: Post;
@@ -15,6 +16,7 @@ type PostItemProps = {
 const PostItem = ({ post, handleLikePost }: PostItemProps) => {
   const [isLiked, setIsLiked] = useState(!!post.is_liked);
   const [likesCount, setLikesCount] = useState(post.likes_count || 0);
+  const [commentsCount, setCommentsCount] = useState(post.comments_count || 0);
   
   const onLikeClick = () => {
     handleLikePost(post.id);
@@ -34,6 +36,10 @@ const PostItem = ({ post, handleLikePost }: PostItemProps) => {
       }
     }
     return "#";
+  };
+
+  const handleCommentCountChange = (newCount: number) => {
+    setCommentsCount(newCount);
   };
   
   return (
@@ -115,7 +121,7 @@ const PostItem = ({ post, handleLikePost }: PostItemProps) => {
                 className="flex items-center gap-1 hover:text-blue-500 px-2"
               >
                 <MessageCircle className="w-4 h-4" />
-                <span>{post.comments_count || 0}</span>
+                <span>{commentsCount}</span>
               </Button>
             </TooltipTrigger>
             <TooltipContent side="bottom">
@@ -141,6 +147,13 @@ const PostItem = ({ post, handleLikePost }: PostItemProps) => {
           </Tooltip>
         </TooltipProvider>
       </div>
+
+      {/* Add Comment Section */}
+      <CommentSection 
+        postId={post.id} 
+        commentsCount={commentsCount} 
+        onCommentCountChange={handleCommentCountChange}
+      />
     </div>
   );
 };

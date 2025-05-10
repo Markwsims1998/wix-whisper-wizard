@@ -1,11 +1,9 @@
 
 import { useState } from "react";
-import { MessageCircle, ChevronUp, ChevronDown, ExternalLink } from "lucide-react";
-import { Link } from "react-router-dom";
+import { MessageCircle, ChevronUp, ChevronDown } from "lucide-react";
 import CommentList from "./CommentList";
 import CommentInput from "./CommentInput";
 import { Separator } from "@/components/ui/separator";
-import { Button } from "@/components/ui/button";
 
 interface CommentSectionProps {
   postId: string;
@@ -54,13 +52,6 @@ const CommentSection = ({
             <ChevronDown className="h-4 w-4 ml-1" />
           )}
         </button>
-
-        <Button variant="ghost" size="sm" asChild className="text-xs">
-          <Link to={`/comments?postId=${postId}`} className="flex items-center gap-1">
-            <ExternalLink className="h-3 w-3" />
-            Full Discussion
-          </Link>
-        </Button>
       </div>
 
       {isExpanded && (

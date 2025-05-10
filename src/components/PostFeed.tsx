@@ -1,4 +1,3 @@
-
 import { Separator } from "@/components/ui/separator";
 import { User, Heart, MessageCircle, Lock, Gift } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -351,7 +350,10 @@ const PostFeed = () => {
                       >
                         <Heart className="h-4 w-4" /> {post.likes_count}
                       </button>
-                      <button className="flex items-center gap-1 text-gray-500 text-sm hover:text-blue-500">
+                      <button 
+                        className="flex items-center gap-1 text-gray-500 text-sm hover:text-blue-500"
+                        onClick={() => navigate(`/comments?postId=${post.id}`)}
+                      >
                         <MessageCircle className="h-4 w-4" /> {post.comments_count}
                       </button>
                     </div>

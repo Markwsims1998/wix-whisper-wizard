@@ -28,6 +28,9 @@ import Feedback from "./pages/Feedback";
 import HomePage from "./pages/HomePage";
 import Admin from "./pages/Admin";
 
+// Import the new Comments page
+import Comments from "./pages/Comments";
+
 // Create a query client with optimized caching
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -107,6 +110,7 @@ const AppRoutes = () => {
       <Route path="/" element={<HomePage />} />
       <Route path="/login" element={<Login />} />
       <Route path="/feedback" element={<Feedback />} />
+      <Route path="/comments" element={<Comments />} />
       
       {/* Protected Routes */}
       <Route 

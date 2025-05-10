@@ -119,13 +119,16 @@ const PostItem = ({ post, handleLikePost }: PostItemProps) => {
                 variant="ghost" 
                 size="sm"
                 className="flex items-center gap-1 hover:text-blue-500 px-2"
+                asChild
               >
-                <MessageCircle className="w-4 h-4" />
-                <span>{commentsCount}</span>
+                <Link to={`/comments?postId=${post.id}`}>
+                  <MessageCircle className="w-4 h-4" />
+                  <span>{commentsCount}</span>
+                </Link>
               </Button>
             </TooltipTrigger>
             <TooltipContent side="bottom">
-              Comment on this post
+              View comments for this post
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>

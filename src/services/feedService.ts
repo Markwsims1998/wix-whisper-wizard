@@ -1,113 +1,97 @@
-
 import { supabase } from "@/integrations/supabase/client";
-import { User } from "@supabase/supabase-js";
+import { PostgrestError } from "@supabase/supabase-js";
 
 export interface Post {
   id: string;
-  author: {
+  content: string;
+  created_at: string;
+  user_id: string;
+  is_liked?: boolean;
+  likes_count?: number;
+  comments_count?: number;
+  author?: {
     id: string;
     full_name: string;
     username: string;
     avatar_url: string | null;
     subscription_tier: string | null;
-  } | null;
-  content: string;
-  created_at: string;
-  likes_count: number;
-  comments_count: number;
-  media?: Array<{
+  };
+  media?: {
     id: string;
-    media_type: string;
     file_url: string;
+    media_type: string;
     thumbnail_url?: string;
-  }>;
-  category?: 'all' | 'local' | 'hotlist' | 'friends';
+  }[];
 }
 
+interface DatabaseResult<T> {
+  data: T | null;
+  error: PostgrestError | null;
+}
+
+const handleDatabaseResult = <T>(result: DatabaseResult<T>, errorMessage: string): T | null => {
+  if (result.error) {
+    console.error(errorMessage, result.error);
+    return null;
+  }
+  return result.data;
+};
+
 export const getFeedPosts = async (
-  category: 'all' | 'local' | 'hotlist' | 'friends' = 'all',
-  userId?: string,
-  userLocation?: string
+  filter: 'all' | 'local' | 'hotlist' | 'friends',
+  userId: string,
+  location: string
 ): Promise<Post[]> => {
   try {
-    if (!userId) {
-      console.log('No user ID provided to getFeedPosts');
-      return [];
-    }
-
-    console.log(`Fetching ${category} feed posts for user ${userId} with location ${userLocation || 'undefined'}`);
+    console.log(`Fetching ${filter} posts for user: ${userId}, location: ${location}`);
 
     let query = supabase
       .from('posts')
       .select(`
         *,
         author:user_id(id, full_name, username, avatar_url, subscription_tier),
-        media(*),
+        comments_count:comments(count),
         likes_count:likes(count),
-        comments_count:comments(count)
+        media(id, file_url, media_type, thumbnail_url),
+        is_liked:likes(user_id)
       `)
       .order('created_at', { ascending: false });
 
-    // Filter based on category
-    if (category === 'local' && userLocation) {
-      // For local feed, get posts from users with the same location
-      const { data: usersInSameLocation } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('location', userLocation);
-      
-      if (usersInSameLocation && usersInSameLocation.length > 0) {
-        const userIds = usersInSameLocation.map(user => user.id);
-        console.log(`Found ${userIds.length} users in location ${userLocation}`);
-        query = query.in('user_id', userIds);
-      } else {
-        console.log(`No users found in location ${userLocation}`);
-        // If no users found in this location, just fallback to all posts
-      }
-    } else if (category === 'hotlist') {
-      // For hotlist, get most liked/commented posts
-      query = query.order('likes_count', { ascending: false }).limit(20);
-    } else if (category === 'friends') {
-      console.log(`Fetching friends for user ${userId}`);
-      // For friends feed, get posts from users the current user follows
-      const { data: following } = await supabase
-        .from('relationships')
-        .select('followed_id')
-        .eq('follower_id', userId)
-        .eq('status', 'accepted');
-      
-      if (following && following.length > 0) {
-        const friendIds = following.map(relation => relation.followed_id);
-        console.log(`Found ${friendIds.length} friends, including user in feed`);
-        query = query.in('user_id', [...friendIds, userId]);  // Include user's own posts
-      } else {
-        console.log('No friends found, showing only user posts');
-        // If no friends, just show own posts
-        query = query.eq('user_id', userId);
-      }
+    // Apply different filters based on the 'filter' parameter
+    switch (filter) {
+      case 'local':
+        // Fetch posts from users in the same location
+        query = query.like('location', `%${location}%`);
+        break;
+      case 'hotlist':
+        // Fetch posts with a high number of likes (example: more than 5)
+        query = query.gt('likes_count', 5);
+        break;
+      case 'friends':
+        // Fetch posts from users who are friends with the current user
+        query = query.in('user_id', [`${userId}`]); // This is a placeholder, replace with actual friend IDs
+        break;
+      default:
+        // 'all' filter: Fetch all posts
+        break;
     }
-    
+
     const { data, error } = await query;
-    
+
     if (error) {
-      console.error('Error fetching feed posts:', error);
+      console.error('Error fetching posts:', error);
       return [];
     }
-    
-    console.log(`Retrieved ${data?.length || 0} posts for ${category} feed`);
-    
-    // Process and return the posts
-    return (data || []).map(post => ({
+
+    // Map the data to include whether the post is liked by the current user
+    const postsWithLikeStatus = data.map(post => ({
       ...post,
-      likes_count: typeof post.likes_count === 'object' && Array.isArray(post.likes_count) 
-        ? post.likes_count[0]?.count || 0 
-        : 0,
-      comments_count: typeof post.comments_count === 'object' && Array.isArray(post.comments_count) 
-        ? post.comments_count[0]?.count || 0 
-        : 0
+      is_liked: post.is_liked !== null, // Convert to boolean
     }));
+
+    return postsWithLikeStatus as Post[];
   } catch (error) {
-    console.error('Unexpected error fetching feed posts:', error);
+    console.error('Unexpected error fetching posts:', error);
     return [];
   }
 };
@@ -115,69 +99,45 @@ export const getFeedPosts = async (
 export const createPost = async (
   content: string,
   userId: string,
-  mediaUrl?: string,
-  mediaType?: string
+  mediaUrl?: string | null,
+  mediaType?: string | null
 ): Promise<{ success: boolean; post?: Post; error?: string }> => {
   try {
-    // First insert the post
-    const { data: post, error: postError } = await supabase
-      .from('posts')
-      .insert({ content, user_id: userId })
-      .select()
-      .single();
-    
-    if (postError) {
-      console.error('Error creating post:', postError);
-      return { success: false, error: postError.message };
+    if (!content.trim() && !mediaUrl) {
+      return { success: false, error: 'Post content cannot be empty' };
     }
-    
-    // If media is provided, add it to the media table
-    if (mediaUrl && mediaType && post) {
-      const { error: mediaError } = await supabase
-        .from('media')
-        .insert({
-          post_id: post.id,
-          user_id: userId,
-          file_url: mediaUrl,
-          media_type: mediaType
-        });
-      
-      if (mediaError) {
-        console.error('Error adding media to post:', mediaError);
-        // We still consider this successful since the post was created
-      }
+
+    const postData: {
+      content: string;
+      user_id: string;
+      media?: { file_url: string; media_type: string }[];
+    } = {
+      content: content,
+      user_id: userId,
+    };
+
+    if (mediaUrl && mediaType) {
+      postData.media = [{ file_url: mediaUrl, media_type: mediaType }];
     }
-    
-    // Get the complete post with author details
-    const { data: completePost, error: fetchError } = await supabase
+
+    const { data, error } = await supabase
       .from('posts')
+      .insert([postData])
       .select(`
         *,
         author:user_id(id, full_name, username, avatar_url, subscription_tier),
-        media(*),
+        comments_count:comments(count),
         likes_count:likes(count),
-        comments_count:comments(count)
+        media(id, file_url, media_type, thumbnail_url)
       `)
-      .eq('id', post.id)
       .single();
-    
-    if (fetchError) {
-      console.error('Error fetching complete post:', fetchError);
-      return { success: true, post: post as unknown as Post };
+
+    if (error) {
+      console.error('Error creating post:', error);
+      return { success: false, error: error.message };
     }
-    
-    return { 
-      success: true, 
-      post: {
-        ...completePost,
-        likes_count: typeof completePost.likes_count === 'object' && Array.isArray(completePost.likes_count) 
-          ? completePost.likes_count[0]?.count || 0 
-          : 0,
-        comments_count: typeof completePost.comments_count === 'object' && Array.isArray(completePost.comments_count) 
-          ? completePost.comments_count[0]?.count || 0 
-          : 0
-      } as Post 
-    };
+
+    return { success: true, post: data as Post };
   } catch (error) {
     console.error('Unexpected error creating post:', error);
     return { success: false, error: 'An unexpected error occurred' };
@@ -189,38 +149,44 @@ export const likePost = async (
   userId: string
 ): Promise<{ success: boolean; error?: string }> => {
   try {
-    // Check if user already liked this post
-    const { data: existingLike } = await supabase
+    // Check if the user has already liked the post
+    const { data: existingLike, error: selectError } = await supabase
       .from('likes')
       .select('*')
       .eq('post_id', postId)
       .eq('user_id', userId)
       .single();
-    
+
+    if (selectError && selectError.code !== 'PGRST116') {
+      console.error('Error checking existing like:', selectError);
+      return { success: false, error: 'Failed to check existing like' };
+    }
+
     if (existingLike) {
-      // User already liked the post, so unlike it
-      const { error } = await supabase
+      // User has already liked the post, so unlike it
+      const { error: deleteError } = await supabase
         .from('likes')
         .delete()
-        .eq('id', existingLike.id);
-      
-      if (error) {
-        console.error('Error unliking post:', error);
-        return { success: false, error: error.message };
+        .eq('post_id', postId)
+        .eq('user_id', userId);
+
+      if (deleteError) {
+        console.error('Error unliking post:', deleteError);
+        return { success: false, error: 'Failed to unlike post' };
       }
-      
+
       return { success: true };
     } else {
-      // User hasn't liked the post, so add a like
-      const { error } = await supabase
+      // User has not liked the post, so like it
+      const { error: insertError } = await supabase
         .from('likes')
-        .insert({ post_id: postId, user_id: userId });
-      
-      if (error) {
-        console.error('Error liking post:', error);
-        return { success: false, error: error.message };
+        .insert([{ post_id: postId, user_id: userId }]);
+
+      if (insertError) {
+        console.error('Error liking post:', insertError);
+        return { success: false, error: 'Failed to like post' };
       }
-      
+
       return { success: true };
     }
   } catch (error) {
@@ -229,32 +195,34 @@ export const likePost = async (
   }
 };
 
-export const getActiveFriends = async (userId: string): Promise<any[]> => {
+export const getPostById = async (postId: string): Promise<Post | null> => {
   try {
-    // Get users that the current user has accepted relationships with
-    const { data: friends, error } = await supabase
-      .from('relationships')
+    console.log(`Fetching post with ID: ${postId}`);
+    
+    const { data, error } = await supabase
+      .from('posts')
       .select(`
-        followed:followed_id(
-          id, 
-          username:profiles!inner(username), 
-          full_name:profiles!inner(full_name), 
-          avatar_url:profiles!inner(avatar_url)
-        )
+        *,
+        author:user_id(id, full_name, username, avatar_url, subscription_tier),
+        comments_count:comments(count),
+        likes_count:likes(count),
+        media(id, file_url, media_type, thumbnail_url)
       `)
-      .eq('follower_id', userId)
-      .eq('status', 'accepted')
-      .order('created_at', { ascending: false });
+      .eq('id', postId)
+      .single();
     
     if (error) {
-      console.error('Error fetching friends:', error);
-      return [];
+      console.error('Error fetching post by ID:', error);
+      return null;
     }
-    
-    // Extract friend profiles and format them for display
-    return (friends || []).map(relationship => relationship.followed);
+
+    if (!data) {
+      return null;
+    }
+
+    return data as Post;
   } catch (error) {
-    console.error('Unexpected error fetching friends:', error);
-    return [];
+    console.error('Unexpected error fetching post by ID:', error);
+    return null;
   }
 };

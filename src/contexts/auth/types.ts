@@ -13,7 +13,10 @@ export const defaultNotificationPrefs = {
 export const defaultPrivacySettings = {
   profileVisibility: 'public' as 'public' | 'friends' | 'private',
   postVisibility: 'public' as 'public' | 'friends' | 'private',
-  searchEngineVisible: true
+  searchEngineVisible: true,
+  allowMessagesFrom: 'all' as 'all' | 'friends' | 'matched' | 'none',
+  allowWinksFrom: 'all' as 'all' | 'friends' | 'matched' | 'none',
+  showProfileTo: 'all' as 'all' | 'friends' | 'matched'
 };
 
 // Helper for safely parsing JSON
@@ -51,12 +54,23 @@ export interface AuthUser {
     profileVisibility: 'public' | 'friends' | 'private';
     postVisibility: 'public' | 'friends' | 'private';
     searchEngineVisible: boolean;
+    allowMessagesFrom: 'all' | 'friends' | 'matched' | 'none';
+    allowWinksFrom: 'all' | 'friends' | 'matched' | 'none';
+    showProfileTo: 'all' | 'friends' | 'matched';
   };
   status?: 'active' | 'banned';
   lastSignIn?: string;
   following?: number;
   followers?: number;
   joinDate?: string;
+  
+  // New profile fields
+  gender?: string;
+  interestedIn?: string[];
+  ageRange?: [number, number];
+  meetSmokers?: boolean;
+  canAccommodate?: boolean;
+  canTravel?: boolean;
 }
 
 // Auth context type definition

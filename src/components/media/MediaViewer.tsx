@@ -19,6 +19,21 @@ const MediaViewer = ({ type, media, onClose, onLike, onPrev, onNext, postId }: M
   const { subscriptionTier } = useSubscription();
   const isGoldMember = subscriptionTier === 'gold';
   
+  // Close on escape key
+  React.useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [onClose]);
+  
+  // Close on background click
+  const handleBackgroundClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.target === e.currentTarget) onClose();
+  };
+  
   // Determine author information
   const authorName = media.author || 
                     (media.user && (media.user.full_name || media.user.username)) || 
@@ -32,7 +47,7 @@ const MediaViewer = ({ type, media, onClose, onLike, onPrev, onNext, postId }: M
     : media.thumbnail || media.thumbnail_url || '';
   
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={handleBackgroundClick}>
       <div className="absolute inset-0 bg-gradient-to-b from-[rgba(15,15,20,0.97)] to-[rgba(15,15,25,0.95)]"></div>
       
       <div className="absolute top-4 right-4 z-10">

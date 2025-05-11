@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth/AuthProvider";
 import FeaturedContentSettings from "./FeaturedContentSettings";
+import GenderPreferencesSettings from "./GenderPreferencesSettings";
 
 const PrivacySettings = () => {
   const { toast } = useToast();
@@ -15,7 +16,10 @@ const PrivacySettings = () => {
   const [privacySettings, setPrivacySettings] = useState({
     profileVisibility: user?.privacySettings?.profileVisibility || "public",
     postVisibility: user?.privacySettings?.postVisibility || "public",
-    searchEngineVisible: user?.privacySettings?.searchEngineVisible !== false
+    searchEngineVisible: user?.privacySettings?.searchEngineVisible !== false,
+    allowMessagesFrom: user?.privacySettings?.allowMessagesFrom || "all",
+    allowWinksFrom: user?.privacySettings?.allowWinksFrom || "all",
+    showProfileTo: user?.privacySettings?.showProfileTo || "all"
   });
 
   const handleVisibilityChange = (field: string, value: string) => {
@@ -128,6 +132,68 @@ const PrivacySettings = () => {
               />
             </div>
           </div>
+          
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label htmlFor="allow-messages">Allow Messages From</Label>
+              <p className="text-sm text-muted-foreground">
+                Choose who can send you messages
+              </p>
+            </div>
+            <div className="flex items-center space-x-2">
+              <select 
+                className="bg-transparent border rounded p-1"
+                value={privacySettings.allowMessagesFrom}
+                onChange={(e) => handleVisibilityChange('allowMessagesFrom', e.target.value)}
+              >
+                <option value="all">Everyone</option>
+                <option value="friends">Friends Only</option>
+                <option value="matched">Matched Preferences Only</option>
+                <option value="none">Nobody</option>
+              </select>
+            </div>
+          </div>
+          
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label htmlFor="allow-winks">Allow Winks From</Label>
+              <p className="text-sm text-muted-foreground">
+                Choose who can send you winks
+              </p>
+            </div>
+            <div className="flex items-center space-x-2">
+              <select 
+                className="bg-transparent border rounded p-1"
+                value={privacySettings.allowWinksFrom}
+                onChange={(e) => handleVisibilityChange('allowWinksFrom', e.target.value)}
+              >
+                <option value="all">Everyone</option>
+                <option value="friends">Friends Only</option>
+                <option value="matched">Matched Preferences Only</option>
+                <option value="none">Nobody</option>
+              </select>
+            </div>
+          </div>
+          
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label htmlFor="show-profile">Show Profile To</Label>
+              <p className="text-sm text-muted-foreground">
+                Choose who can see your full profile details
+              </p>
+            </div>
+            <div className="flex items-center space-x-2">
+              <select 
+                className="bg-transparent border rounded p-1"
+                value={privacySettings.showProfileTo}
+                onChange={(e) => handleVisibilityChange('showProfileTo', e.target.value)}
+              >
+                <option value="all">Everyone</option>
+                <option value="friends">Friends Only</option>
+                <option value="matched">Matched Preferences Only</option>
+              </select>
+            </div>
+          </div>
         </CardContent>
         <CardFooter>
           <Button 
@@ -138,6 +204,8 @@ const PrivacySettings = () => {
           </Button>
         </CardFooter>
       </Card>
+      
+      <GenderPreferencesSettings />
       
       <FeaturedContentSettings />
     </div>

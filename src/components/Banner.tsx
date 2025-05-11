@@ -26,6 +26,7 @@ const Banner = () => {
         setIsLoading(true);
         setHasError(false);
         const settings = await getBannerSettings();
+        console.log("Banner settings loaded:", settings);
         setBanner(settings);
       } catch (error) {
         console.error('Error loading banner:', error);
@@ -61,7 +62,17 @@ const Banner = () => {
   }, [isAuthenticated]);
   
   // If error, loading, no banner, not authenticated, banner not active, or not visible, return null
-  if (hasError || isLoading || !banner || !isAuthenticated || !banner.active || !isVisible) return null;
+  if (hasError || isLoading || !banner || !isAuthenticated || !banner.active || !isVisible) {
+    console.log("Banner not showing because:", { 
+      hasError, 
+      isLoading, 
+      bannerExists: !!banner, 
+      isAuthenticated, 
+      bannerActive: banner?.active,
+      isVisible
+    });
+    return null;
+  }
   
   // Determine banner color class based on the color setting
   const getBannerColorClass = () => {

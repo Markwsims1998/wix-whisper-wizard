@@ -27,9 +27,11 @@ const defaultBannerSettings: BannerSettings = {
 // Get the current banner settings
 export const getBannerSettings = async (): Promise<BannerSettings> => {
   try {
+    console.log("Fetching banner settings from database");
     const { data, error } = await supabase
       .from('banner_settings')
       .select('*')
+      .eq('active', true)
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle(); // Using maybeSingle instead of single to avoid errors
@@ -41,8 +43,11 @@ export const getBannerSettings = async (): Promise<BannerSettings> => {
 
     // If no data found
     if (!data) {
+      console.log("No active banner found");
       return defaultBannerSettings;
     }
+
+    console.log("Banner settings retrieved:", data);
 
     // Check if the banner is scheduled and if it's currently active based on dates
     if (data.scheduled && data.start_date && data.end_date) {
@@ -52,6 +57,7 @@ export const getBannerSettings = async (): Promise<BannerSettings> => {
       
       // If current date is outside the scheduled range, return inactive banner
       if (now < startDate || now > endDate) {
+        console.log("Banner exists but outside scheduled date range");
         return { 
           ...data,
           active: false,
@@ -82,9 +88,21 @@ export const getBannerSettings = async (): Promise<BannerSettings> => {
   }
 };
 
-// Save banner settings
+// Save banner settings - deactivate old banners and create a new one
 export const saveBannerSettings = async (settings: BannerSettings): Promise<boolean> => {
   try {
+    // First deactivate all existing banners
+    const { error: deactivateError } = await supabase
+      .from('banner_settings')
+      .update({ active: false })
+      .neq('id', 'placeholder'); // This will affect all rows
+
+    if (deactivateError) {
+      console.error('Error deactivating existing banners:', deactivateError);
+      return false;
+    }
+
+    // Then insert the new banner settings
     const { error } = await supabase
       .from('banner_settings')
       .insert({

@@ -7,9 +7,10 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import data from '@emoji-mart/data';
 import Picker from '@emoji-mart/react';
 import GifPicker from "@/components/media/GifPicker";
+import { useToast } from "@/hooks/use-toast";
 
 interface ChatMessageInputProps {
-  onSendMessage: (content: { text: string; media?: { type: string; url: string } }) => void;
+  onSendMessage: (content: { text: string; media?: { type: string; url: string; name?: string } }) => void;
   disabled?: boolean;
   placeholder?: string;
 }
@@ -18,8 +19,9 @@ const ChatMessageInput = ({ onSendMessage, disabled = false, placeholder = "Type
   const [message, setMessage] = useState("");
   const [showEmojis, setShowEmojis] = useState(false);
   const [showGifs, setShowGifs] = useState(false);
-  const [selectedMedia, setSelectedMedia] = useState<{ type: string; url: string } | null>(null);
+  const [selectedMedia, setSelectedMedia] = useState<{ type: string; url: string; name?: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
 
   const addEmoji = (emoji: any) => {
     setMessage(prev => prev + emoji.native);
@@ -35,11 +37,21 @@ const ChatMessageInput = ({ onSendMessage, disabled = false, placeholder = "Type
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Check file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Please select an image smaller than 5MB",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     // For demo purposes, create a local URL
     const url = URL.createObjectURL(file);
     const type = file.type.startsWith("image/") ? "image" : "file";
     
-    setSelectedMedia({ type, url });
+    setSelectedMedia({ type, url, name: file.name });
     
     // Clear the file input
     if (fileInputRef.current) fileInputRef.current.value = "";
@@ -92,7 +104,7 @@ const ChatMessageInput = ({ onSendMessage, disabled = false, placeholder = "Type
               <div className="bg-blue-100 p-2 rounded">
                 <Paperclip size={16} />
               </div>
-              <span className="text-sm truncate">Attached file</span>
+              <span className="text-sm truncate">{selectedMedia.name || "Attached file"}</span>
             </div>
           )}
         </div>

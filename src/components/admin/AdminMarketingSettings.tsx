@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Image, Megaphone } from "lucide-react";
+import { CalendarIcon, Image, Megaphone, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { saveBannerSettings, getBannerSettings } from "@/services/bannerService";
 
@@ -18,6 +19,7 @@ const AdminMarketingSettings = () => {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("banner");
   const [isLoading, setIsLoading] = useState(false);
+  const [savedBannerId, setSavedBannerId] = useState<string | null>(null);
   
   // Banner state
   const [bannerActive, setBannerActive] = useState(true);
@@ -42,7 +44,9 @@ const AdminMarketingSettings = () => {
   useEffect(() => {
     const loadBannerSettings = async () => {
       try {
+        setIsLoading(true);
         const settings = await getBannerSettings();
+        console.log("Loaded banner settings:", settings);
         setBannerActive(settings.active);
         setBannerText(settings.text);
         setBannerLink(settings.link);
@@ -59,15 +63,56 @@ const AdminMarketingSettings = () => {
         }
       } catch (error) {
         console.error("Error loading banner settings:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load banner settings",
+          variant: "destructive"
+        });
+      } finally {
+        setIsLoading(false);
       }
     };
     
     loadBannerSettings();
-  }, []);
+  }, [toast]);
 
   const handleSaveBanner = async () => {
     setIsLoading(true);
     try {
+      // Validate text content
+      if (!bannerText.trim()) {
+        toast({
+          title: "Missing Content",
+          description: "Banner text is required",
+          variant: "destructive"
+        });
+        setIsLoading(false);
+        return;
+      }
+      
+      // Validate schedule dates if scheduling is enabled
+      if (bannerSchedule) {
+        if (!bannerStartDate || !bannerEndDate) {
+          toast({
+            title: "Missing Dates",
+            description: "Start and end dates are required when scheduling is enabled",
+            variant: "destructive"
+          });
+          setIsLoading(false);
+          return;
+        }
+        
+        if (bannerEndDate < bannerStartDate) {
+          toast({
+            title: "Invalid Dates",
+            description: "End date must be after start date",
+            variant: "destructive"
+          });
+          setIsLoading(false);
+          return;
+        }
+      }
+      
       const success = await saveBannerSettings({
         active: bannerActive,
         text: bannerText,
@@ -82,8 +127,12 @@ const AdminMarketingSettings = () => {
       if (success) {
         toast({
           title: "Banner Settings Saved",
-          description: "Your banner configuration has been updated.",
+          description: "Your banner configuration has been updated and will be displayed to users.",
         });
+        
+        // Force reload of banner throughout the site
+        const event = new CustomEvent('banner-updated');
+        window.dispatchEvent(event);
       } else {
         toast({
           title: "Failed to Save",
@@ -109,6 +158,18 @@ const AdminMarketingSettings = () => {
       title: "Ad Display Settings Saved",
       description: "Your advertisement configuration has been updated.",
     });
+  };
+
+  // Function to render banner based on current settings
+  const getBannerColorStyle = () => {
+    switch (bannerColor) {
+      case 'blue': return 'bg-blue-600';
+      case 'green': return 'bg-green-600';
+      case 'red': return 'bg-red-600';
+      case 'orange': return 'bg-orange-600';
+      case 'purple':
+      default: return 'bg-purple-600';
+    }
   };
   
   return (
@@ -259,15 +320,29 @@ const AdminMarketingSettings = () => {
               
               <div className="p-4 border rounded-md bg-gray-50 dark:bg-gray-800">
                 <h4 className="font-medium mb-2">Banner Preview</h4>
-                <div className={`bg-${bannerColor}-600 text-white py-2 px-4 rounded flex items-center justify-center shadow-sm`}>
+                <div className={`${getBannerColorStyle()} text-white py-2 px-4 rounded flex items-center justify-center shadow-sm`}>
                   <Megaphone className="w-4 h-4 mr-2" />
                   <span className="text-sm">{bannerText} {bannerLinkText && <span className="underline font-medium">{bannerLinkText}</span>}</span>
                 </div>
               </div>
             </CardContent>
             <CardFooter>
-              <Button onClick={handleSaveBanner} disabled={isLoading}>
-                {isLoading ? "Saving..." : "Save Banner Settings"}
+              <Button 
+                onClick={handleSaveBanner} 
+                disabled={isLoading}
+                className="flex items-center gap-2"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Megaphone className="h-4 w-4" />
+                    Save Banner Settings
+                  </>
+                )}
               </Button>
             </CardFooter>
           </Card>

@@ -23,6 +23,7 @@ const Profile = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [profileData, setProfileData] = useState<any>(null);
+  const [isMyProfile, setIsMyProfile] = useState(false);
   
   // If no userId is provided, show the current user's profile
   const profileId = userId || user?.id;
@@ -42,13 +43,14 @@ const Profile = () => {
         if (error) throw error;
         
         setProfileData(data);
+        setIsMyProfile(user?.id === profileId);
       } catch (err) {
         console.error('Error fetching profile:', err);
       }
     };
     
     fetchProfile();
-  }, [profileId]);
+  }, [profileId, user?.id]);
   
   // Get gender display value
   const getGenderDisplayValue = (genderCode?: string) => {
@@ -67,17 +69,41 @@ const Profile = () => {
   };
   
   // Determine whether to show loading state
-  const isLoading = !user || !profileData;
+  const isLoading = !profileData;
 
-  // Get the relationship status if available
-  const relationshipStatus = profileData?.relationship_status || user?.relationshipStatus || "Single";
+  // Handle friend request
+  const handleAddFriend = async () => {
+    // Implementation here
+  };
+  
+  // Handle sending a message
+  const handleMessage = () => {
+    navigate(`/messages?user=${profileId}`);
+  };
+  
+  // Handle editing the relationship status
+  const [editRelationshipOpen, setEditRelationshipOpen] = useState(false);
+  
+  // Get subscription badge based on tier
+  const getSubscriptionBadge = (tier: string) => {
+    switch (tier) {
+      case 'gold':
+        return <span className="px-2 py-1 bg-yellow-500 text-white text-xs rounded">Gold</span>;
+      case 'silver':
+        return <span className="px-2 py-1 bg-gray-400 text-white text-xs rounded">Silver</span>;
+      case 'bronze':
+        return <span className="px-2 py-1 bg-amber-700 text-white text-xs rounded">Bronze</span>;
+      default:
+        return null;
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
       <Sidebar />
       <Header />
       
-      <div className="pl-[280px] pt-16 pb-10 transition-all duration-300" style={{ paddingLeft: 'var(--sidebar-width, 280px)' }}>
+      <div className="pl-[280px] pt-16 pb-10 pr-4 transition-all duration-300" style={{ paddingLeft: 'var(--sidebar-width, 280px)' }}>
         {isLoading ? (
           <div className="max-w-4xl mx-auto p-4">
             <Skeleton className="h-64 w-full mb-6" />
@@ -88,9 +114,9 @@ const Profile = () => {
           <div className="max-w-4xl mx-auto">
             {/* Cover Photo Area */}
             <div className="relative h-64 bg-gray-200 dark:bg-gray-700 overflow-hidden rounded-t-lg">
-              {profileData?.cover_photo_url || user?.coverPhoto ? (
+              {profileData?.cover_photo_url ? (
                 <img 
-                  src={profileData?.cover_photo_url || user?.coverPhoto} 
+                  src={profileData.cover_photo_url} 
                   alt="Cover" 
                   className="w-full h-full object-cover"
                 />
@@ -106,10 +132,10 @@ const Profile = () => {
                   {/* Profile Picture */}
                   <div className="flex-shrink-0">
                     <div className="w-32 h-32 rounded-full bg-white dark:bg-gray-800 p-1 border-4 border-white dark:border-gray-800 overflow-hidden">
-                      {profileData?.avatar_url || user?.profilePicture ? (
+                      {profileData?.avatar_url ? (
                         <img 
-                          src={profileData?.avatar_url || user?.profilePicture} 
-                          alt={profileData?.full_name || user?.name || "Profile"} 
+                          src={profileData.avatar_url} 
+                          alt={profileData.full_name || "Profile"} 
                           className="rounded-full w-full h-full object-cover"
                         />
                       ) : (
@@ -117,8 +143,6 @@ const Profile = () => {
                           <span className="text-3xl font-medium text-purple-600 dark:text-purple-300">
                             {profileData?.full_name?.charAt(0) || 
                              profileData?.username?.charAt(0) || 
-                             user?.name?.charAt(0) || 
-                             user?.username?.charAt(0) || 
                              "U"}
                           </span>
                         </div>
@@ -129,43 +153,36 @@ const Profile = () => {
                   {/* Profile Details */}
                   <div className="flex-grow pt-2">
                     <h1 className="text-2xl font-bold">
-                      {profileData?.full_name || user?.name || "Unknown User"}
+                      {profileData?.full_name || profileData?.username || "Unknown User"}
                     </h1>
                     <div className="text-sm text-gray-500 dark:text-gray-400">
-                      {profileData?.username ? `@${profileData.username}` : user?.username ? `@${user.username}` : ""}
+                      {profileData?.username ? `@${profileData.username}` : ""}
                     </div>
                     
                     <div className="mt-3 space-y-1">
-                      {(profileData?.gender || user?.gender) && (
+                      {profileData?.gender && (
                         <div className="flex items-center text-sm">
                           <span className="font-medium mr-2">Gender:</span>
-                          <span>{getGenderDisplayValue(profileData?.gender || user?.gender)}</span>
+                          <span>{getGenderDisplayValue(profileData.gender)}</span>
                         </div>
                       )}
                       
-                      {(profileData?.location || user?.location) && (
+                      {profileData?.location && (
                         <div className="flex items-center text-sm">
                           <span className="font-medium mr-2">Location:</span>
-                          <span>{profileData?.location || user?.location}</span>
+                          <span>{profileData.location}</span>
                         </div>
                       )}
                       
                       <div className="flex items-center text-sm">
                         <span className="font-medium mr-2">Status:</span>
-                        <span>{relationshipStatus}</span>
+                        <span>{profileData?.relationship_status || "Single"}</span>
                       </div>
-                      
-                      {user?.ageRange && (
-                        <div className="flex items-center text-sm">
-                          <span className="font-medium mr-2">Looking for:</span>
-                          <span>Ages {user.ageRange[0]}-{user.ageRange[1]}</span>
-                        </div>
-                      )}
                     </div>
                     
-                    {(profileData?.bio || user?.bio) && (
+                    {profileData?.bio && (
                       <div className="mt-4">
-                        <p className="text-sm">{profileData?.bio || user?.bio}</p>
+                        <p className="text-sm">{profileData.bio}</p>
                       </div>
                     )}
                   </div>

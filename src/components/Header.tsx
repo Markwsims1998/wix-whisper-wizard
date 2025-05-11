@@ -3,13 +3,15 @@ import React, { useEffect } from "react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Badge } from "@/components/ui/badge";
 import { Link, useNavigate } from "react-router-dom";
-import { Bell, Search, MessageSquare, ShoppingCart } from "lucide-react";
+import { Bell, Search, MessageSquare, ShoppingCart, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/auth/AuthProvider";
+import { countPendingWinks } from "@/services/winksService";
 
 const Header = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [pendingWinks, setPendingWinks] = React.useState(0);
 
   // Update header position based on sidebar width
   useEffect(() => {
@@ -35,6 +37,22 @@ const Header = () => {
       if (sidebar) observer.unobserve(sidebar);
     };
   }, []);
+
+  // Fetch pending winks count
+  useEffect(() => {
+    if (user) {
+      const fetchWinksCount = async () => {
+        const count = await countPendingWinks();
+        setPendingWinks(count);
+      };
+      
+      fetchWinksCount();
+      
+      // Set up interval to refresh count
+      const interval = setInterval(fetchWinksCount, 60000); // every minute
+      return () => clearInterval(interval);
+    }
+  }, [user]);
 
   const handleSignOut = async () => {
     await logout();
@@ -86,6 +104,18 @@ const Header = () => {
           <Badge className="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 px-1.5 min-w-[20px] h-5 text-xs">
             3
           </Badge>
+        </Link>
+        
+        <Link 
+          className="relative text-gray-600 hover:text-purple-600 transition-colors dark:text-gray-300 dark:hover:text-purple-400 bg-gray-100 dark:bg-gray-700 rounded-full p-2"
+          to="/winks"
+        >
+          <Heart className="w-5 h-5" />
+          {pendingWinks > 0 && (
+            <Badge className="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 px-1.5 min-w-[20px] h-5 text-xs">
+              {pendingWinks}
+            </Badge>
+          )}
         </Link>
 
         <button 

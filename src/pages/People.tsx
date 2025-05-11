@@ -10,6 +10,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/auth/AuthProvider";
+import WinkButton from "@/components/WinkButton";
 
 interface ProfileData {
   id: string;
@@ -463,23 +464,33 @@ const MemberCard = ({ member, isFriendRequested, isFriend, onFriendAction, onVie
           </div>
         )}
         
-        <div className="mt-4 flex gap-2">
+        <div className="mt-4 flex gap-2 flex-wrap justify-center">
           {!isCurrentUser && (
-            <button 
-              className={`${
-                isFriend 
-                  ? 'bg-purple-600 text-white'
-                  : isFriendRequested 
-                    ? 'bg-gray-400 text-white'
-                    : 'bg-purple-600 text-white'
-              } px-3 py-1 text-xs rounded-md hover:opacity-90 transition`}
-              onClick={() => onFriendAction(member.id, isFriend)}
-              disabled={isFriendRequested}
-              aria-label={isFriend ? `Message ${member.full_name}` : isFriendRequested ? `Friend request sent to ${member.full_name}` : `Add ${member.full_name} as friend`}
-            >
-              {isFriend ? 'Message' : isFriendRequested ? 'Requested' : 'Add Friend'}
-            </button>
+            <>
+              <button 
+                className={`${
+                  isFriend 
+                    ? 'bg-purple-600 text-white'
+                    : isFriendRequested 
+                      ? 'bg-gray-400 text-white'
+                      : 'bg-purple-600 text-white'
+                } px-3 py-1 text-xs rounded-md hover:opacity-90 transition`}
+                onClick={() => onFriendAction(member.id, isFriend)}
+                disabled={isFriendRequested}
+                aria-label={isFriend ? `Message ${member.full_name}` : isFriendRequested ? `Friend request sent to ${member.full_name}` : `Add ${member.full_name} as friend`}
+              >
+                {isFriend ? 'Message' : isFriendRequested ? 'Requested' : 'Add Friend'}
+              </button>
+              
+              {!isCurrentUser && (
+                <WinkButton 
+                  recipientId={member.id} 
+                  className="px-3 py-1 text-xs" 
+                />
+              )}
+            </>
           )}
+          
           <button 
             className="bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-200 px-3 py-1 text-xs rounded-md hover:bg-gray-300 dark:hover:bg-gray-500 transition"
             onClick={() => onViewProfile(member.id)}

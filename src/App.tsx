@@ -28,6 +28,27 @@ import { useEffect } from "react";
 function App() {
   const { isAuthenticated, loading } = useAuth();
   
+  // Update sidebar width variable on load and resize
+  useEffect(() => {
+    const updateSidebarWidth = () => {
+      const sidebar = document.querySelector('.sidebar') || document.querySelector('div[class*="bg-[#2B2A33]"]');
+      if (sidebar) {
+        const width = sidebar.getBoundingClientRect().width;
+        document.documentElement.style.setProperty('--sidebar-width', `${width}px`);
+      }
+    };
+
+    // Initial update
+    updateSidebarWidth();
+    
+    // Add resize listener
+    window.addEventListener('resize', updateSidebarWidth);
+    
+    return () => {
+      window.removeEventListener('resize', updateSidebarWidth);
+    };
+  }, []);
+  
   // Show loading indicator if we're checking authentication status
   if (loading) {
     return (

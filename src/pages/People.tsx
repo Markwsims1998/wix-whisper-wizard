@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
@@ -13,6 +12,7 @@ import { useAuth } from "@/contexts/auth/AuthProvider";
 import { Link } from "react-router-dom";
 import WinkButton from "@/components/WinkButton";
 
+// Define the Profile interface to match the data we need
 interface Profile {
   id: string;
   username: string;
@@ -22,6 +22,19 @@ interface Profile {
   location: string | null;
   gender: string | null;
   relationship_status: string | null;
+}
+
+// Define the database profile type to match what Supabase returns
+interface SupabaseProfile {
+  id: string;
+  username: string;
+  full_name: string | null;
+  avatar_url: string | null;
+  bio: string | null;
+  location: string | null;
+  gender?: string | null;
+  relationship_status: string | null;
+  [key: string]: any; // Allow for other properties that might exist in the database
 }
 
 const People = () => {
@@ -45,7 +58,7 @@ const People = () => {
         
         // Map the database profiles to our Profile interface
         // Ensuring all required fields are present
-        const mappedProfiles: Profile[] = (data || []).map(profile => ({
+        const mappedProfiles: Profile[] = (data || []).map((profile: SupabaseProfile) => ({
           id: profile.id,
           username: profile.username || '',
           full_name: profile.full_name,

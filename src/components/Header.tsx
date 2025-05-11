@@ -1,19 +1,11 @@
 
 import React from "react";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { Link, useNavigate } from "react-router-dom";
-import { Bell, ChevronDown, Mail, Settings } from "lucide-react";
+import { Bell, Search, MessageSquare, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/auth/AuthProvider";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
 const Header = () => {
   const { user, logout } = useAuth();
@@ -25,96 +17,72 @@ const Header = () => {
   };
 
   return (
-    <header className="fixed-header w-full h-16 bg-background shadow-sm z-40 border-b">
-      <div className="h-full flex items-center justify-between px-4">
-        <div className="flex items-center gap-2">
-          {/* Logo - shown on mobile when sidebar is hidden */}
-          <div className="lg:hidden">
-            <Link to="/" className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-md bg-purple-600 flex items-center justify-center">
-                <span className="text-white font-medium">L</span>
-              </div>
-            </Link>
-          </div>
+    <header className="bg-white shadow-sm py-3 px-6 flex items-center justify-between dark:bg-gray-800 dark:text-white" style={{
+      position: 'fixed',
+      left: 'var(--sidebar-width, 280px)',
+      right: 0,
+      width: 'calc(100% - var(--sidebar-width, 280px))',
+      top: 0,
+      transition: 'top 0.3s ease-in-out'
+    }}>
+      <div className="flex-1 max-w-md">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+          <input
+            placeholder="Search..."
+            className="pl-10 pr-4 py-2 border border-gray-200 rounded-lg w-full focus:outline-none focus:ring-1 focus:ring-purple-500 text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+          />
         </div>
+      </div>
 
-        <div className="flex items-center gap-3">
-          {user && (
-            <>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={() => navigate('/messages')}
-                className="relative"
-              >
-                <Mail className="h-5 w-5" />
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                  3
-                </span>
-              </Button>
-              
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={() => navigate('/notifications')}
-                className="relative"
-              >
-                <Bell className="h-5 w-5" />
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                  5
-                </span>
-              </Button>
-              
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={() => navigate('/settings')}
-              >
-                <Settings className="h-5 w-5" />
-              </Button>
-            </>
-          )}
-          
-          <ThemeToggle />
-          
-          {user ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-9 w-9 rounded-full">
-                  <Avatar className="h-9 w-9">
-                    <AvatarImage src={user.profilePicture || ""} alt={user.email} />
-                    <AvatarFallback>{user.name?.charAt(0) || user.email?.charAt(0) || "U"}</AvatarFallback>
-                  </Avatar>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56" align="end" forceMount>
-                <DropdownMenuLabel>
-                  <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium leading-none">{user.name || "User"}</p>
-                    <p className="text-xs leading-none text-muted-foreground">
-                      {user.email}
-                    </p>
-                  </div>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => navigate("/profile")}>
-                  Profile
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate("/settings")}>
-                  Settings
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleSignOut}>
-                  Log out
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          ) : (
-            <Button onClick={() => navigate('/login')} size="sm">
-              Sign in
-            </Button>
-          )}
-        </div>
+      <div className="flex items-center gap-4">
+        <button
+          className="relative text-gray-600 hover:text-purple-600 transition-colors dark:text-gray-300 dark:hover:text-purple-400 bg-gray-100 dark:bg-gray-700 rounded-full p-2"
+          aria-label="Notifications"
+        >
+          <Bell className="w-5 h-5" />
+          <Badge className="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 px-1.5 min-w-[20px] h-5 text-xs">
+            3
+          </Badge>
+        </button>
+
+        <button
+          className="relative text-gray-600 hover:text-purple-600 transition-colors dark:text-gray-300 dark:hover:text-purple-400 bg-gray-100 dark:bg-gray-700 rounded-full p-2"
+          aria-label="Messages"
+        >
+          <MessageSquare className="w-5 h-5" />
+          <Badge className="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 px-1.5 min-w-[20px] h-5 text-xs">
+            5
+          </Badge>
+        </button>
+
+        <Link 
+          className="relative text-gray-600 hover:text-purple-600 transition-colors dark:text-gray-300 dark:hover:text-purple-400 bg-gray-100 dark:bg-gray-700 rounded-full p-2"
+          to="/basket"
+        >
+          <ShoppingCart className="w-5 h-5" />
+          <Badge className="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 px-1.5 min-w-[20px] h-5 text-xs">
+            3
+          </Badge>
+        </Link>
+
+        <button 
+          className="flex items-center gap-2 text-gray-800 hover:text-purple-600 transition-colors dark:text-gray-300 dark:hover:text-purple-400"
+          aria-label="Profile"
+        >
+          <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center overflow-hidden dark:bg-purple-900">
+            {user?.profilePicture ? (
+              <img src={user.profilePicture} alt="Profile" className="w-full h-full object-cover" />
+            ) : (
+              <span className="font-medium text-purple-600 dark:text-purple-300">
+                {user?.name?.charAt(0) || user?.email?.charAt(0) || "M"}
+              </span>
+            )}
+          </div>
+          <span className="font-medium hidden md:block dark:text-white">
+            {user?.name || "Mark W Sims"}
+          </span>
+        </button>
       </div>
     </header>
   );

@@ -3,7 +3,7 @@ import { Bell, MessageSquare, Search, ShoppingCart } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/auth/AuthProvider";
 import { Badge } from "@/components/ui/badge";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "@/contexts/ThemeContext";
 import Banner from "./Banner";
@@ -12,6 +12,7 @@ const Header = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { theme } = useTheme();
+  const [bannerVisible, setBannerVisible] = useState(false);
 
   // Log user navigation
   useEffect(() => {
@@ -21,6 +22,23 @@ const Header = () => {
     };
 
     logActivity();
+
+    // Check if banner is visible
+    const checkBanner = () => {
+      const bannerElement = document.querySelector('[class*="bg-purple-600"], [class*="bg-blue-600"], [class*="bg-green-600"], [class*="bg-red-600"], [class*="bg-orange-600"]');
+      setBannerVisible(!!bannerElement);
+    };
+
+    // Initial check
+    checkBanner();
+
+    // Set up a mutation observer to detect when banner appears or disappears
+    const observer = new MutationObserver(checkBanner);
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    return () => {
+      observer.disconnect();
+    };
   }, []);
 
   const handleIconClick = (destination: string, name: string) => {
@@ -42,7 +60,9 @@ const Header = () => {
           position: 'fixed',
           left: 'var(--sidebar-width, 280px)', 
           right: '0',
-          width: 'calc(100% - var(--sidebar-width, 280px))'
+          width: 'calc(100% - var(--sidebar-width, 280px))',
+          top: bannerVisible ? '40px' : '0',
+          transition: 'top 0.3s ease-in-out'
         }}
       >
         <div className="flex-1 max-w-md">

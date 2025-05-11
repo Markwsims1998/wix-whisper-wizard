@@ -9,6 +9,8 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Sidebar from "@/components/Sidebar";
+import Header from "@/components/Header";
+import Footer from "@/components/Footer";
 import { formatDistanceToNow } from "date-fns";
 import { useAuth } from "@/contexts/auth/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,8 +20,28 @@ const Winks = () => {
   const [sentWinks, setSentWinks] = useState<Wink[]>([]);
   const [activeTab, setActiveTab] = useState("received");
   const [isLoading, setIsLoading] = useState(true);
+  const [bannerVisible, setBannerVisible] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
+
+  // Check if banner is visible
+  useEffect(() => {
+    const checkBanner = () => {
+      const bannerElement = document.querySelector('[class*="bg-purple-600"], [class*="bg-blue-600"], [class*="bg-green-600"], [class*="bg-red-600"], [class*="bg-orange-600"]');
+      setBannerVisible(!!bannerElement);
+    };
+
+    // Initial check
+    checkBanner();
+
+    // Set up a mutation observer to detect when banner appears or disappears
+    const observer = new MutationObserver(checkBanner);
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
 
   const loadWinks = async () => {
     setIsLoading(true);
@@ -113,10 +135,17 @@ const Winks = () => {
   };
 
   return (
-    <div className="flex">
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex flex-col">
       <Sidebar />
+      <Header />
       
-      <div className="flex-1 w-full md:ml-[280px] p-4">
+      <div 
+        className="pl-[280px] pt-16 pr-4 pb-36 md:pb-10 transition-all duration-300 flex-grow" 
+        style={{ 
+          paddingLeft: 'var(--sidebar-width, 280px)', 
+          marginTop: bannerVisible ? '40px' : '0'
+        }}
+      >
         <div className="max-w-4xl mx-auto">
           <div className="flex items-center justify-between mb-6">
             <div>
@@ -246,6 +275,8 @@ const Winks = () => {
           </Tabs>
         </div>
       </div>
+      
+      <Footer />
     </div>
   );
 };

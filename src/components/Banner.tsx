@@ -104,7 +104,7 @@ const Banner = () => {
   };
   
   return (
-    <div className={`${getBannerColorClass()} text-white py-2 px-4 relative w-full`}>
+    <div className={`${getBannerColorClass()} text-white py-2 px-4 fixed top-0 z-30 w-full`}>
       <div className="container mx-auto flex items-center justify-center gap-2">
         <Megaphone className="w-4 h-4 flex-shrink-0" />
         <span className="text-sm">

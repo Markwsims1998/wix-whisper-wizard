@@ -32,7 +32,7 @@ const Index = () => {
   const [uploadType, setUploadType] = useState<'photo' | 'video'>('photo');
   const [tagSuggestions, setTagSuggestions] = useState<boolean>(false);
   const [selectedGif, setSelectedGif] = useState<string | null>(null);
-  const [showBanner, setShowBanner] = useState(true);
+  const [bannerVisible, setBannerVisible] = useState(false);
   const [activeFriends, setActiveFriends] = useState<FriendProfile[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isPostLoading, setIsPostLoading] = useState(false);
@@ -54,12 +54,23 @@ const Index = () => {
     }
   }, [user, navigate]);
 
-  // Load banner state from localStorage on component mount
+  // Check if banner is visible
   useEffect(() => {
-    const bannerState = localStorage.getItem('bannerHidden');
-    if (bannerState === 'true') {
-      setShowBanner(false);
-    }
+    const checkBanner = () => {
+      const bannerElement = document.querySelector('[class*="bg-purple-600"], [class*="bg-blue-600"], [class*="bg-green-600"], [class*="bg-red-600"], [class*="bg-orange-600"]');
+      setBannerVisible(!!bannerElement);
+    };
+
+    // Initial check
+    checkBanner();
+
+    // Set up a mutation observer to detect when banner appears or disappears
+    const observer = new MutationObserver(checkBanner);
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    return () => {
+      observer.disconnect();
+    };
   }, []);
 
   // Update header position based on sidebar width - run once on mount and when showBanner changes
@@ -91,7 +102,7 @@ const Index = () => {
     return () => {
       if (sidebar) observer.unobserve(sidebar);
     };
-  }, [showBanner, user]);
+  }, [bannerVisible, user]);
 
   // Memoize the loadActiveFriends function
   const loadActiveFriends = useCallback(async () => {
@@ -225,7 +236,7 @@ const Index = () => {
         className="pl-[280px] pt-16 pr-4 pb-36 md:pb-10 transition-all duration-300 flex-grow" 
         style={{ 
           paddingLeft: 'var(--sidebar-width, 280px)', 
-          marginTop: showBanner ? '40px' : '0'
+          marginTop: bannerVisible ? '40px' : '0'
         }}
       >
         {/* Rest of the content */}

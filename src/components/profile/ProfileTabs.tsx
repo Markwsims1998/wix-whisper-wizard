@@ -31,17 +31,23 @@ const ProfileTabs: React.FC<ProfileTabsProps> = ({ userId }) => {
       setIsLoading(true);
       
       try {
+        console.log("Fetching content for user ID:", userId);
         // Fetch posts
         const { data: postsData, error: postsError } = await supabase
           .from('posts')
           .select(`
             *,
-            author:user_id (id, full_name, username, avatar_url, subscription_tier)
+            author:profiles!posts_user_id_fkey (id, full_name, username, avatar_url, subscription_tier)
           `)
           .eq('user_id', userId)
           .order('created_at', { ascending: false });
           
-        if (postsError) throw postsError;
+        if (postsError) {
+          console.error("Error fetching posts:", postsError);
+          throw postsError;
+        }
+        
+        console.log("Posts data:", postsData);
         
         // Fetch photos (media with content_type = photo)
         const { data: photosData, error: photosError } = await supabase
@@ -51,7 +57,12 @@ const ProfileTabs: React.FC<ProfileTabsProps> = ({ userId }) => {
           .eq('content_type', 'photo')
           .order('created_at', { ascending: false });
           
-        if (photosError) throw photosError;
+        if (photosError) {
+          console.error("Error fetching photos:", photosError);
+          throw photosError;
+        }
+        
+        console.log("Photos data:", photosData);
         
         // Fetch videos (media with content_type = video)
         const { data: videosData, error: videosError } = await supabase
@@ -61,7 +72,12 @@ const ProfileTabs: React.FC<ProfileTabsProps> = ({ userId }) => {
           .eq('content_type', 'video')
           .order('created_at', { ascending: false });
           
-        if (videosError) throw videosError;
+        if (videosError) {
+          console.error("Error fetching videos:", videosError);
+          throw videosError;
+        }
+        
+        console.log("Videos data:", videosData);
         
         // Fetch likes by the user
         const { data: likesData, error: likesError } = await supabase
@@ -70,13 +86,18 @@ const ProfileTabs: React.FC<ProfileTabsProps> = ({ userId }) => {
             *,
             post:post_id (
               *,
-              author:user_id (id, full_name, username, avatar_url)
+              author:profiles!posts_user_id_fkey (id, full_name, username, avatar_url)
             )
           `)
           .eq('user_id', userId)
           .order('created_at', { ascending: false });
           
-        if (likesError) throw likesError;
+        if (likesError) {
+          console.error("Error fetching likes:", likesError);
+          throw likesError;
+        }
+        
+        console.log("Likes data:", likesData);
         
         // Update state with fetched data
         setPosts(postsData || []);

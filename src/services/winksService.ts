@@ -34,7 +34,7 @@ export const sendWink = async (recipientId: string): Promise<{ success: boolean;
       .from('winks')
       .select('id, status')
       .match({ sender_id: user.id, recipient_id: recipientId })
-      .single();
+      .maybeSingle();
 
     if (existingWink) {
       return {
@@ -94,6 +94,7 @@ export const getReceivedWinks = async (): Promise<Wink[]> => {
       return [];
     }
 
+    console.log('Received winks data:', data);
     // Cast the result to our Wink interface
     return (data as unknown as Wink[]) || [];
   } catch (error) {
@@ -126,6 +127,7 @@ export const getSentWinks = async (): Promise<Wink[]> => {
       return [];
     }
 
+    console.log('Sent winks data:', data);
     // Cast the result to our Wink interface
     return (data as unknown as Wink[]) || [];
   } catch (error) {

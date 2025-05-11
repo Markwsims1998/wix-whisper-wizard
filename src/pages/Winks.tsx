@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -68,9 +69,12 @@ const WinksPage = () => {
   return (
     <div className="flex min-h-screen bg-gray-100 dark:bg-gray-900">
       <Sidebar />
-      <div className="flex-1 pl-[280px]">
+      <div className="flex-1">
         <Header />
-        <div className="container mx-auto p-6 mt-16">
+        <div className="container mx-auto p-4 md:p-6 mt-16" style={{ 
+          paddingLeft: 'max(1rem, calc(var(--sidebar-width, 280px) - 280px + 1rem))',
+          transition: 'padding-left 0.3s ease-in-out' 
+        }}>
           <Card className="border bg-white dark:bg-gray-800 shadow-sm">
             <CardHeader>
               <CardTitle>Winks</CardTitle>

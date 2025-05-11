@@ -42,8 +42,12 @@ const Header = () => {
   useEffect(() => {
     if (user) {
       const fetchWinksCount = async () => {
-        const count = await countPendingWinks();
-        setPendingWinks(count);
+        try {
+          const count = await countPendingWinks();
+          setPendingWinks(count);
+        } catch (error) {
+          console.error("Error fetching winks count:", error);
+        }
       };
       
       fetchWinksCount();

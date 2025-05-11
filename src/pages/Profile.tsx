@@ -11,6 +11,7 @@ import { supabase } from "@/lib/supabaseClient";
 // Import any additional components you need
 import ProfileHeader from "@/components/profile/ProfileHeader";
 import ProfileTabs from "@/components/profile/ProfileTabs";
+import Footer from "@/components/Footer";
 
 // Fix the ProfileParams interface to satisfy the required constraints
 interface ProfileParams {
@@ -34,14 +35,19 @@ const Profile = () => {
       if (!profileId) return;
       
       try {
+        console.log("Fetching profile for user ID:", profileId);
         const { data, error } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', profileId)
           .single();
           
-        if (error) throw error;
+        if (error) {
+          console.error("Error fetching profile:", error);
+          throw error;
+        }
         
+        console.log("Profile data:", data);
         setProfileData(data);
         setIsMyProfile(user?.id === profileId);
       } catch (err) {
@@ -103,7 +109,9 @@ const Profile = () => {
       <Sidebar />
       <Header />
       
-      <div className="pl-[280px] pt-16 pb-10 pr-4 transition-all duration-300" style={{ paddingLeft: 'var(--sidebar-width, 280px)' }}>
+      <div className="pt-16 pb-10 pr-4 transition-all duration-300" style={{
+        paddingLeft: 'max(1rem, var(--sidebar-width, 280px))'
+      }}>
         {isLoading ? (
           <div className="max-w-4xl mx-auto p-4">
             <Skeleton className="h-64 w-full mb-6" />
@@ -132,9 +140,9 @@ const Profile = () => {
                   {/* Profile Picture */}
                   <div className="flex-shrink-0">
                     <div className="w-32 h-32 rounded-full bg-white dark:bg-gray-800 p-1 border-4 border-white dark:border-gray-800 overflow-hidden">
-                      {profileData?.avatar_url ? (
+                      {profileData?.avatar_url || profileData?.profile_picture_url ? (
                         <img 
-                          src={profileData.avatar_url} 
+                          src={profileData.avatar_url || profileData.profile_picture_url} 
                           alt={profileData.full_name || "Profile"} 
                           className="rounded-full w-full h-full object-cover"
                         />
@@ -197,6 +205,7 @@ const Profile = () => {
           </div>
         )}
       </div>
+      <Footer />
     </div>
   );
 };

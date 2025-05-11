@@ -41,8 +41,10 @@ const CommentsPage = () => {
       
       setIsLoading(true);
       try {
+        console.log("Loading post:", postId);
         const fetchedPost = await getPostById(postId);
         if (fetchedPost) {
+          console.log("Fetched post:", fetchedPost);
           setPost(fetchedPost);
           setIsLiked(!!fetchedPost.is_liked);
           setLikesCount(fetchedPost.likes_count || 0);
@@ -128,11 +130,7 @@ const CommentsPage = () => {
 
   // Generate the correct profile URL using username if available, otherwise ID
   const getProfileUrl = (userId: string, username?: string) => {
-    if (username) {
-      return `/profile?name=${username}`;
-    } else {
-      return `/profile?id=${userId}`;
-    }
+    return username ? `/profile/${userId}` : `/profile/${userId}`;
   };
 
   // Display users who liked the post, limited to 50 by default
@@ -162,7 +160,9 @@ const CommentsPage = () => {
       <div className="flex-1 flex flex-col">
         <Header />
         <div className="flex-grow bg-gray-100 dark:bg-gray-900">
-          <div className="max-w-3xl mx-auto pt-20 px-4 pb-10">
+          <div className="max-w-3xl mx-auto pt-20 px-4 pb-10" style={{
+            paddingLeft: 'max(1rem, calc(var(--sidebar-width, 280px) - 280px + 1rem))'
+          }}>
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-5 mb-4">
               {isLoading ? (
                 <div className="animate-pulse">

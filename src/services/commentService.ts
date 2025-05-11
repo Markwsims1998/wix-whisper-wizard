@@ -57,7 +57,7 @@ export const fetchComments = async (postId: string): Promise<Comment[]> => {
 };
 
 // Create a new comment
-export const createComment = async (content: string, postId: string, userId: string): Promise<Comment | null> => {
+export const createComment = async (content: string, postId: string, userId: string): Promise<{success: boolean, error?: string, data?: Comment}> => {
   try {
     const { data, error } = await supabase
       .from('comments')
@@ -85,18 +85,24 @@ export const createComment = async (content: string, postId: string, userId: str
     if (error) throw error;
     
     return {
-      ...data,
-      author: data.profiles
+      success: true,
+      data: {
+        ...data,
+        author: data.profiles
+      }
     };
     
   } catch (error) {
     console.error('Error creating comment:', error);
-    return null;
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    };
   }
 };
 
 // Delete a comment
-export const deleteComment = async (commentId: string): Promise<boolean> => {
+export const deleteComment = async (commentId: string): Promise<{success: boolean, error?: string}> => {
   try {
     const { error } = await supabase
       .from('comments')
@@ -104,9 +110,15 @@ export const deleteComment = async (commentId: string): Promise<boolean> => {
       .eq('id', commentId);
     
     if (error) throw error;
-    return true;
+    return { success: true };
   } catch (error) {
     console.error('Error deleting comment:', error);
-    return false;
+    return { 
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    };
   }
 };
+
+// Alias for fetchComments to match the import in CommentList.tsx
+export const getPostComments = fetchComments;

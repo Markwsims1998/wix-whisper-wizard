@@ -34,9 +34,9 @@ const CommentInput = ({ postId, onCommentAdded }: CommentInputProps) => {
     
     setIsSubmitting(true);
     try {
-      const { success, error } = await createComment(content, postId, user.id);
+      const result = await createComment(content, postId, user.id);
       
-      if (success) {
+      if (result.success) {
         setContent("");
         toast({ description: "Comment added successfully" });
         if (onCommentAdded) {
@@ -46,7 +46,7 @@ const CommentInput = ({ postId, onCommentAdded }: CommentInputProps) => {
         toast({
           variant: "destructive",
           title: "Error",
-          description: error || "Failed to add comment"
+          description: result.error || "Failed to add comment"
         });
       }
     } catch (error) {

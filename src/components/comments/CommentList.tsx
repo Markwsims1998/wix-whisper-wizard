@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { Comment, getPostComments, deleteComment } from "@/services/commentService";
+import { Comment, fetchComments, deleteComment } from "@/services/commentService";
 import CommentItem from "./CommentItem";
 import { useAuth } from "@/contexts/auth/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
@@ -25,7 +25,7 @@ const CommentList = ({
   const loadComments = async () => {
     setIsLoading(true);
     try {
-      const fetchedComments = await getPostComments(postId);
+      const fetchedComments = await fetchComments(postId);
       // Sort comments by created_at in descending order (newest first)
       const sortedComments = fetchedComments.sort((a, b) => 
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
@@ -52,9 +52,9 @@ const CommentList = ({
   const handleDeleteComment = async (commentId: string) => {
     if (!user) return;
     
-    const { success, error } = await deleteComment(commentId, user.id);
+    const result = await deleteComment(commentId);
     
-    if (success) {
+    if (result.success) {
       setComments(prev => prev.filter(comment => comment.id !== commentId));
       toast({ description: "Comment deleted successfully" });
       if (onCommentDeleted) {
@@ -64,7 +64,7 @@ const CommentList = ({
       toast({
         variant: "destructive",
         title: "Error",
-        description: error || "Failed to delete comment"
+        description: result.error || "Failed to delete comment"
       });
     }
   };

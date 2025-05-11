@@ -4,6 +4,7 @@ import { Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { checkIfWinked, sendWink } from '@/services/winksService';
+import { useAuth } from '@/contexts/auth/AuthProvider';
 
 interface WinkButtonProps {
   recipientId: string;
@@ -15,6 +16,12 @@ const WinkButton: React.FC<WinkButtonProps> = ({ recipientId, className = '' }) 
   const [isLoading, setIsLoading] = useState(true);
   const [winkStatus, setWinkStatus] = useState<'pending' | 'accepted' | 'rejected' | undefined>();
   const { toast } = useToast();
+  const { user } = useAuth();
+
+  // Don't show button if this is the current user's profile
+  if (user?.id === recipientId) {
+    return null;
+  }
 
   useEffect(() => {
     const checkWinkStatus = async () => {

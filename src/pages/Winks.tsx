@@ -9,6 +9,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Sidebar from "@/components/Sidebar";
+import Header from "@/components/Header";
 import { formatDistanceToNow } from "date-fns";
 import { useAuth } from "@/contexts/auth/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
@@ -113,10 +114,11 @@ const Winks = () => {
   };
 
   return (
-    <div className="flex">
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
       <Sidebar />
+      <Header />
       
-      <div className="flex-1 w-full md:ml-[280px] p-4">
+      <div className="pl-[280px] pt-16 pr-4 pb-10 transition-all duration-300" style={{ paddingLeft: 'var(--sidebar-width, 280px)' }}>
         <div className="max-w-4xl mx-auto">
           <div className="flex items-center justify-between mb-6">
             <div>

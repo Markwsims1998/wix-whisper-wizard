@@ -27,7 +27,7 @@ export const getUserActivities = async (userId: string): Promise<Activity[]> => 
       .from('activities')
       .select(`
         *,
-        actor:actor_id(id, full_name, username, avatar_url)
+        actor:profiles!actor_id(id, full_name, username, avatar_url)
       `)
       .eq('user_id', userId)
       .order('created_at', { ascending: false });

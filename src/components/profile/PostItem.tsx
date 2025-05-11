@@ -94,21 +94,10 @@ const PostItem = ({ post, handleLikePost }: PostItemProps) => {
     return "#";
   };
 
-  // Improved function to get avatar URL with better logging for debugging
+  // Get avatar URL using the same approach as in PostFeed.tsx
   const getAvatarUrl = () => {
     if (!post.author) return null;
-    
-    // First check profile_picture_url
-    if (post.author.profile_picture_url) {
-      return post.author.profile_picture_url;
-    }
-    
-    // Then check avatar_url
-    if (post.author.avatar_url) {
-      return post.author.avatar_url;
-    }
-    
-    return null;
+    return post.author.profile_picture_url || post.author.avatar_url || null;
   };
   
   const avatarUrl = getAvatarUrl();
@@ -125,21 +114,17 @@ const PostItem = ({ post, handleLikePost }: PostItemProps) => {
           to={getProfileUrl()} 
           className="flex-shrink-0"
         >
-          <Avatar className="h-10 w-10 bg-purple-100 dark:bg-purple-900">
+          <div className="h-10 w-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center overflow-hidden cursor-pointer">
             {avatarUrl ? (
-              <AvatarImage 
+              <img 
                 src={avatarUrl} 
-                alt={authorName}
-                onError={(e) => {
-                  console.log("Image failed to load:", e);
-                  (e.target as HTMLImageElement).style.display = 'none';
-                }}
+                alt={authorName} 
+                className="h-full w-full object-cover"
               />
-            ) : null}
-            <AvatarFallback className="text-purple-600 dark:text-purple-300">
-              {authorInitial}
-            </AvatarFallback>
-          </Avatar>
+            ) : (
+              <User className="h-5 w-5 text-gray-500" />
+            )}
+          </div>
         </Link>
         <div>
           <Link 

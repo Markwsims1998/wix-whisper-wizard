@@ -24,7 +24,7 @@ import Banner from "./components/Banner";
 
 function App() {
   return (
-    <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+    <ThemeProvider>
       <Banner />
       <Routes>
         <Route path="/" element={<Index />} />

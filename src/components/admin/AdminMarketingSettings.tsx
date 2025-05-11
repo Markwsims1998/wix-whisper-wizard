@@ -44,16 +44,16 @@ const AdminMarketingSettings = () => {
   useEffect(() => {
     const checkBannerTable = async () => {
       try {
-        const { data, error } = await getBannerSettings();
-        
-        if (error && error.message && error.message.includes('does not exist')) {
+        // Fixed: Don't try to access data and error properties from getBannerSettings
+        await getBannerSettings();
+        setTableError(null);
+      } catch (error: any) {
+        console.error("Error checking banner table:", error);
+        if (error.message && error.message.includes('does not exist')) {
           setTableError("The banner_settings table doesn't exist in your database. Please create it first.");
         } else {
-          setTableError(null);
+          setTableError("Failed to verify banner settings database. Database tables might be missing.");
         }
-      } catch (error) {
-        console.error("Error checking banner table:", error);
-        setTableError("Failed to verify banner settings database. Database tables might be missing.");
       }
     };
     

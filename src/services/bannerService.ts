@@ -38,7 +38,7 @@ export const getBannerSettings = async (): Promise<BannerSettings> => {
 
     if (error) {
       console.error('Error fetching banner settings:', error);
-      return defaultBannerSettings;
+      throw error;
     }
 
     // If no data found
@@ -84,7 +84,7 @@ export const getBannerSettings = async (): Promise<BannerSettings> => {
     };
   } catch (error) {
     console.error('Unexpected error fetching banner settings:', error);
-    return defaultBannerSettings;
+    throw error;
   }
 };
 
@@ -116,9 +116,9 @@ export const saveBannerSettings = async (settings: BannerSettings): Promise<bool
       console.error('Error checking banner_settings table:', tableCheckError);
       if (tableCheckError.message.includes('does not exist')) {
         console.error('The banner_settings table does not exist. Please create it first.');
-        return false;
+        throw new Error('The banner_settings table does not exist. Please create it first.');
       }
-      return false;
+      throw tableCheckError;
     }
     
     // Insert the new banner settings - our trigger will handle deactivating others
@@ -128,13 +128,13 @@ export const saveBannerSettings = async (settings: BannerSettings): Promise<bool
 
     if (error) {
       console.error('Error saving banner settings:', error);
-      return false;
+      throw error;
     }
 
     console.log("Banner settings saved successfully");
     return true;
   } catch (error) {
     console.error('Unexpected error saving banner settings:', error);
-    return false;
+    throw error;
   }
 };

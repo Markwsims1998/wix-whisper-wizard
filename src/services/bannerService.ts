@@ -84,7 +84,11 @@ export const getBannerSettings = async (): Promise<BannerSettings> => {
     };
   } catch (error) {
     console.error('Unexpected error fetching banner settings:', error);
-    throw error;
+    // Return default settings on error, but not for table-not-exists errors
+    if (error instanceof Error && error.message.includes('does not exist')) {
+      throw error;
+    }
+    return defaultBannerSettings;
   }
 };
 
@@ -106,20 +110,6 @@ export const saveBannerSettings = async (settings: BannerSettings): Promise<bool
     };
     
     console.log("Formatted banner data:", bannerData);
-    
-    // Check if the banner_settings table exists
-    const { error: tableCheckError } = await supabase
-      .from('banner_settings')
-      .select('count(*)', { count: 'exact', head: true });
-      
-    if (tableCheckError) {
-      console.error('Error checking banner_settings table:', tableCheckError);
-      if (tableCheckError.message.includes('does not exist')) {
-        console.error('The banner_settings table does not exist. Please create it first.');
-        throw new Error('The banner_settings table does not exist. Please create it first.');
-      }
-      throw tableCheckError;
-    }
     
     // Insert the new banner settings - our trigger will handle deactivating others
     const { error } = await supabase

@@ -44,7 +44,6 @@ const AdminMarketingSettings = () => {
   useEffect(() => {
     const checkBannerTable = async () => {
       try {
-        // Fixed: Don't try to access data and error properties from getBannerSettings
         await getBannerSettings();
         setTableError(null);
       } catch (error: any) {
@@ -137,7 +136,7 @@ const AdminMarketingSettings = () => {
 
       console.log("Preparing to save banner with active:", bannerActive);
       
-      const success = await saveBannerSettings({
+      await saveBannerSettings({
         active: bannerActive,
         text: bannerText,
         link: bannerLink || "",
@@ -148,22 +147,14 @@ const AdminMarketingSettings = () => {
         endDate: bannerEndDate ? bannerEndDate.toISOString() : null
       });
       
-      if (success) {
-        toast({
-          title: "Banner Settings Saved",
-          description: "Your banner configuration has been updated and will be displayed to users.",
-        });
-        
-        // Force reload of banner throughout the site
-        const event = new CustomEvent('banner-updated');
-        window.dispatchEvent(event);
-      } else {
-        toast({
-          title: "Failed to Save",
-          description: "There was a problem saving your banner settings. Please check console for details.",
-          variant: "destructive",
-        });
-      }
+      toast({
+        title: "Banner Settings Saved",
+        description: "Your banner configuration has been updated and will be displayed to users.",
+      });
+      
+      // Force reload of banner throughout the site
+      const event = new CustomEvent('banner-updated');
+      window.dispatchEvent(event);
     } catch (error) {
       console.error("Error saving banner settings:", error);
       toast({

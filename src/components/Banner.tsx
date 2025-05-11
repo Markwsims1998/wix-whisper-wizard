@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 import { BannerSettings, getBannerSettings } from "@/services/bannerService";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/auth/AuthProvider";
+import { useToast } from "@/hooks/use-toast";
 
 const Banner = () => {
   const [banner, setBanner] = useState<BannerSettings | null>(null);
@@ -12,13 +13,10 @@ const Banner = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const { isAuthenticated } = useAuth();
+  const { toast } = useToast();
   
   useEffect(() => {
-    // Only load banner for authenticated users
-    if (!isAuthenticated) {
-      setIsLoading(false);
-      return;
-    }
+    let isMounted = true;
     
     const loadBanner = async () => {
       try {
@@ -26,13 +24,20 @@ const Banner = () => {
         setHasError(false);
         const settings = await getBannerSettings();
         console.log("Banner settings loaded:", settings);
-        setBanner(settings);
+        
+        if (isMounted) {
+          setBanner(settings);
+        }
       } catch (error) {
         console.error('Error loading banner:', error);
-        setHasError(true);
-        setBanner(null);
+        if (isMounted) {
+          setHasError(true);
+          setBanner(null);
+        }
       } finally {
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     };
     
@@ -64,14 +69,15 @@ const Banner = () => {
     window.addEventListener('banner-updated', handleBannerUpdated);
     
     return () => {
+      isMounted = false;
       clearInterval(interval);
       supabase.removeChannel(channel);
       window.removeEventListener('banner-updated', handleBannerUpdated);
     };
-  }, [isAuthenticated]);
+  }, []);
   
-  // If error, loading, no banner, not authenticated, banner not active, or not visible, return null
-  if (hasError || isLoading || !banner || !isAuthenticated || !banner.active || !isVisible) {
+  // If error, loading, no banner, banner not active, or not visible, return null
+  if (hasError || isLoading || !banner || !banner.active || !isVisible) {
     return null;
   }
   

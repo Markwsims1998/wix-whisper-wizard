@@ -1,286 +1,336 @@
 
+import { useEffect, useState } from "react";
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
-import { useEffect, useState } from "react";
-import { Bell, User, MessageCircle } from "lucide-react";
-import { Separator } from "@/components/ui/separator";
+import { Bell, UserPlus, Check, X, MessageSquare, ThumbsUp, MessageCircle, Loader2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/components/ui/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth/AuthProvider";
-import { formatDistanceToNow } from "date-fns";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import AdDisplay from "@/components/AdDisplay";
-
-type NotificationType = 'like' | 'comment' | 'follow' | 'system';
-
-type Notification = {
-  id: string;
-  type: NotificationType;
-  content: string;
-  timestamp: string;
-  user?: {
-    name: string;
-    avatar?: string;
-  };
-  read: boolean;
-};
+import { ActivityWithAction, getActivitiesWithActions, markAllActivitiesAsRead } from "@/services/activityService";
+import { acceptFriendRequest, rejectFriendRequest } from "@/services/friendService";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { supabase } from "@/integrations/supabase/client";
 
 const Notifications = () => {
-  const { toast } = useToast();
-  const { user } = useAuth();
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [activities, setActivities] = useState<ActivityWithAction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  
-  // Update header position based on sidebar width
+  const { toast } = useToast();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+
   useEffect(() => {
-    const updateHeaderPosition = () => {
-      const sidebar = document.querySelector('div[class*="bg-[#2B2A33]"]');
-      if (sidebar) {
-        const width = sidebar.getBoundingClientRect().width;
-        document.documentElement.style.setProperty('--sidebar-width', `${width}px`);
-      }
-    };
-
-    // Initial update
-    updateHeaderPosition();
-
-    // Set up observer to detect sidebar width changes
-    const observer = new ResizeObserver(updateHeaderPosition);
-    const sidebar = document.querySelector('div[class*="bg-[#2B2A33]"]');
-    if (sidebar) {
-      observer.observe(sidebar);
-    }
-
-    return () => {
-      if (sidebar) observer.unobserve(sidebar);
-    };
-  }, []);
-
-  // Fetch notifications from Supabase
-  useEffect(() => {
-    const fetchNotifications = async () => {
-      if (!user) return;
-      
-      setIsLoading(true);
+    const loadActivities = async () => {
+      if (!user?.id) return;
       
       try {
-        // Modified query with explicit field hints for the actor_id relationship
-        const { data, error } = await supabase
-          .from('activities')
-          .select(`
-            id,
-            activity_type,
-            content,
-            created_at,
-            read,
-            actor:profiles!actor_id(
-              id,
-              full_name,
-              avatar_url
-            )
-          `)
-          .eq('user_id', user.id)
-          .in('activity_type', ['like', 'comment', 'follow', 'system'])
-          .order('created_at', { ascending: false });
-          
-        if (error) {
-          console.error('Error fetching notifications:', error);
-          toast({
-            title: 'Error',
-            description: 'Failed to load notifications',
-            variant: 'destructive',
-          });
-          return;
-        }
+        setIsLoading(true);
         
-        // Transform Supabase data to our Notification format
-        if (data) {
-          const transformedData: Notification[] = data.map(item => {
-            // Map activity_type to NotificationType
-            let type: NotificationType = 'system';
-            if (item.activity_type === 'like') type = 'like';
-            else if (item.activity_type === 'comment') type = 'comment';
-            else if (item.activity_type === 'follow') type = 'follow';
-            
-            return {
-              id: item.id,
-              type: type,
-              content: item.content || '',
-              timestamp: formatTimeAgo(item.created_at),
-              user: item.actor ? {
-                name: item.actor.full_name || 'Unknown User',
-                avatar: item.actor.avatar_url
-              } : undefined,
-              read: item.read || false
-            };
-          });
-          
-          setNotifications(transformedData);
-        }
-      } catch (err) {
-        console.error('Unexpected error:', err);
+        const activitiesWithActions = await getActivitiesWithActions(
+          user.id,
+          handleAcceptFriend,
+          handleRejectFriend,
+          handleViewItem
+        );
+        
+        setActivities(activitiesWithActions);
+      } catch (error) {
+        console.error("Error loading activities:", error);
+        toast({
+          title: "Failed to load notifications",
+          description: "There was a problem retrieving your notifications. Please try again.",
+          variant: "destructive",
+        });
       } finally {
         setIsLoading(false);
       }
     };
     
-    fetchNotifications();
-  }, [user, toast]);
-
-  // Format timestamps
-  const formatTimeAgo = (timestamp: string) => {
-    try {
-      return formatDistanceToNow(new Date(timestamp), { addSuffix: true });
-    } catch (e) {
-      return 'unknown time';
+    loadActivities();
+    
+    // Set up realtime subscription for new activities
+    if (user?.id) {
+      const channel = supabase
+        .channel('activities-changes')
+        .on('postgres_changes', {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'activities',
+          filter: `user_id=eq.${user.id}`,
+        }, () => {
+          loadActivities();
+        })
+        .subscribe();
+        
+      return () => {
+        supabase.removeChannel(channel);
+      };
     }
-  };
+  }, [user?.id, toast]);
 
   const handleMarkAllAsRead = async () => {
-    if (!user) return;
+    if (!user?.id) return;
     
     try {
-      const { error } = await supabase
-        .from('activities')
-        .update({ read: true })
-        .eq('user_id', user.id)
-        .eq('read', false);
+      const success = await markAllActivitiesAsRead(user.id);
+      
+      if (success) {
+        // Update local state
+        setActivities(prev => prev.map(activity => ({ ...activity, read: true })));
         
-      if (error) {
-        console.error('Error marking all notifications as read:', error);
         toast({
-          title: 'Error',
-          description: 'Failed to mark notifications as read',
-          variant: 'destructive',
+          title: "Notifications marked as read",
+          description: "All notifications have been marked as read.",
         });
-        return;
+      } else {
+        toast({
+          title: "Failed to mark notifications as read",
+          description: "There was a problem marking your notifications as read. Please try again.",
+          variant: "destructive",
+        });
       }
-      
-      // Update local state
-      setNotifications(prev => 
-        prev.map(notification => ({ ...notification, read: true }))
-      );
-      
+    } catch (error) {
+      console.error("Error marking all as read:", error);
       toast({
-        title: 'Success',
-        description: 'All notifications marked as read',
+        title: "Failed to mark notifications as read",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
       });
-    } catch (err) {
-      console.error('Unexpected error:', err);
     }
   };
 
-  const handleMarkAsRead = async (id: string) => {
-    if (!user) return;
-    
+  const handleAcceptFriend = async (actorId: string) => {
     try {
-      const { error } = await supabase
-        .from('activities')
-        .update({ read: true })
-        .eq('id', id)
-        .eq('user_id', user.id);
-        
-      if (error) {
-        console.error('Error marking notification as read:', error);
-        return;
-      }
+      const success = await acceptFriendRequest(user?.id || '', actorId);
       
-      // Update local state
-      setNotifications(prev => 
-        prev.map(notification => 
-          notification.id === id ? { ...notification, read: true } : notification
-        )
-      );
-    } catch (err) {
-      console.error('Unexpected error:', err);
+      if (success) {
+        toast({
+          title: "Friend request accepted",
+          description: "You are now friends with this user.",
+        });
+        
+        // Refresh activities list
+        const updatedActivities = await getActivitiesWithActions(
+          user?.id || '',
+          handleAcceptFriend,
+          handleRejectFriend,
+          handleViewItem
+        );
+        setActivities(updatedActivities);
+      } else {
+        toast({
+          title: "Failed to accept friend request",
+          description: "There was a problem accepting the friend request. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error accepting friend request:", error);
+      toast({
+        title: "Failed to accept friend request",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
     }
   };
-  
-  // Count unread notifications
-  const unreadCount = notifications.filter(n => !n.read).length;
+
+  const handleRejectFriend = async (actorId: string) => {
+    try {
+      const success = await rejectFriendRequest(user?.id || '', actorId);
+      
+      if (success) {
+        toast({
+          title: "Friend request rejected",
+          description: "The friend request has been rejected.",
+        });
+        
+        // Refresh activities list
+        const updatedActivities = await getActivitiesWithActions(
+          user?.id || '',
+          handleAcceptFriend,
+          handleRejectFriend,
+          handleViewItem
+        );
+        setActivities(updatedActivities);
+      } else {
+        toast({
+          title: "Failed to reject friend request",
+          description: "There was a problem rejecting the friend request. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error rejecting friend request:", error);
+      toast({
+        title: "Failed to reject friend request",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleViewItem = (activityType: string, itemId?: string) => {
+    switch (activityType) {
+      case 'new_message':
+        // Navigate to messages with the specific conversation open
+        navigate('/messages');
+        break;
+      case 'post_like':
+        // Navigate to the post
+        if (itemId) navigate(`/posts/${itemId}`);
+        else navigate('/');
+        break;
+      case 'comment_like':
+      case 'new_comment':
+        // Navigate to comments
+        navigate('/comments');
+        break;
+      default:
+        // For other activity types, do nothing specific
+        break;
+    }
+  };
+
+  // Get the appropriate icon for an activity type
+  const getActivityIcon = (activityType: string) => {
+    switch (activityType) {
+      case 'friend_request':
+        return <UserPlus className="w-5 h-5 text-blue-500" />;
+      case 'friend_request_accepted':
+        return <Check className="w-5 h-5 text-green-500" />;
+      case 'new_message':
+        return <MessageSquare className="w-5 h-5 text-purple-500" />;
+      case 'post_like':
+      case 'comment_like':
+        return <ThumbsUp className="w-5 h-5 text-red-500" />;
+      case 'new_comment':
+        return <MessageCircle className="w-5 h-5 text-amber-500" />;
+      default:
+        return <Bell className="w-5 h-5 text-gray-500" />;
+    }
+  };
+
+  // Format the time string
+  const formatTime = (dateString: string): string => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / (1000 * 60));
+    
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) return `${diffHours}h ago`;
+    
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays < 7) return `${diffDays}d ago`;
+    
+    return date.toLocaleDateString();
+  };
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
       <Sidebar />
       <Header />
       
       <div className="pl-[280px] pt-16 pr-4 pb-10 transition-all duration-300" style={{ paddingLeft: 'var(--sidebar-width, 280px)' }}>
-        <div className="max-w-screen-xl mx-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 bg-white rounded-lg p-6">
-              <div className="flex justify-between items-center mb-6">
-                <div>
-                  <h1 className="text-2xl font-semibold">Notifications</h1>
-                  <div className="border-b-2 border-purple-500 w-16 mt-1"></div>
-                </div>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={handleMarkAllAsRead}
-                  disabled={unreadCount === 0}
-                >
-                  Mark All as Read
-                </Button>
-              </div>
-              
-              {isLoading ? (
-                <div className="flex justify-center py-12">
-                  <LoadingSpinner />
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {notifications.length === 0 ? (
-                    <div className="text-center py-8">
-                      <Bell className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                      <p className="text-gray-500">No notifications to display</p>
-                    </div>
-                  ) : (
-                    notifications.map((notification, index) => (
-                      <div key={notification.id}>
-                        <div 
-                          className={`p-3 rounded-lg ${!notification.read ? 'bg-purple-50' : ''} hover:bg-gray-50 transition-colors cursor-pointer`}
-                          onClick={() => handleMarkAsRead(notification.id)}
-                        >
-                          <div className="flex items-center gap-3">
-                            {notification.type !== 'system' ? (
-                              <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
-                                {notification.user?.avatar ? (
-                                  <img src={notification.user.avatar} alt={notification.user.name} className="h-full w-full object-cover" />
-                                ) : (
-                                  <User className="h-5 w-5 text-gray-500" />
-                                )}
-                              </div>
-                            ) : (
-                              <div className="h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center">
-                                <Bell className="h-5 w-5 text-purple-600" />
-                              </div>
-                            )}
-                            <div className="flex-1">
-                              <div className="flex flex-wrap gap-1">
-                                {notification.user && (
-                                  <span className="font-medium">{notification.user.name}</span>
-                                )}
-                                <span>{notification.content}</span>
-                              </div>
-                              <p className="text-xs text-gray-500 mt-1">{notification.timestamp}</p>
-                            </div>
-                            {!notification.read && (
-                              <div className="h-2 w-2 rounded-full bg-purple-600"></div>
-                            )}
-                          </div>
-                        </div>
-                        {index < notifications.length - 1 && <Separator className="my-2" />}
-                      </div>
-                    ))
-                  )}
-                </div>
-              )}
+        <div className="max-w-4xl mx-auto">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
+            <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
+              <h1 className="text-xl font-semibold dark:text-white">Notifications</h1>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleMarkAllAsRead}
+                disabled={isLoading || activities.every(a => a.read)}
+              >
+                Mark all as read
+              </Button>
             </div>
             
-            <div className="space-y-6">
-              <AdDisplay className="h-auto" />
-              {/* Additional sidebar content can be added here */}
+            <div className="divide-y divide-gray-100 dark:divide-gray-700">
+              {isLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
+                </div>
+              ) : activities.length > 0 ? (
+                activities.map((activity) => (
+                  <div 
+                    key={activity.id} 
+                    className={`p-4 flex items-start gap-3 ${activity.read ? 'bg-white dark:bg-gray-800' : 'bg-blue-50 dark:bg-blue-900/20'}`}
+                  >
+                    <div className="mt-1">
+                      {getActivityIcon(activity.activity_type)}
+                    </div>
+                    
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-2 mb-1">
+                          {activity.actor && (
+                            <Avatar className="w-6 h-6">
+                              <AvatarImage 
+                                src={activity.actor.avatar_url || undefined} 
+                                alt={activity.actor.username}
+                              />
+                              <AvatarFallback>
+                                {activity.actor.username.charAt(0).toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                          )}
+                          <span className="font-medium text-sm dark:text-white">
+                            {activity.actor ? activity.actor.username : 'System'}
+                          </span>
+                        </div>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                          {formatTime(activity.created_at)}
+                        </span>
+                      </div>
+                      
+                      <p className="text-sm text-gray-600 dark:text-gray-300">{activity.content}</p>
+                      
+                      {/* Action buttons for specific activity types */}
+                      {activity.activity_type === 'friend_request' && activity.actions && (
+                        <div className="mt-2 flex gap-2">
+                          <Button 
+                            size="sm" 
+                            onClick={() => activity.actions?.accept?.()}
+                            className="bg-purple-600 hover:bg-purple-700"
+                          >
+                            Accept
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            onClick={() => activity.actions?.reject?.()}
+                          >
+                            Decline
+                          </Button>
+                        </div>
+                      )}
+                      
+                      {/* View button for viewable activities */}
+                      {(['new_message', 'post_like', 'comment_like', 'new_comment'].includes(activity.activity_type)) && (
+                        <div className="mt-2">
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            onClick={() => activity.actions?.view?.()}
+                          >
+                            View
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="py-12 text-center">
+                  <Bell className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+                  <p className="text-gray-500 dark:text-gray-400">No notifications to display</p>
+                  <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">You'll see notifications here when there's activity</p>
+                </div>
+              )}
             </div>
           </div>
         </div>

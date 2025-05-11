@@ -2,25 +2,49 @@
 import { useEffect, useState } from "react";
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
-import { MessageSquare, User, Search, Phone, Video, Image as ImageIcon, Paperclip, Send, Info, X, Loader2 } from "lucide-react";
+import { MessageSquare, User, Search, Phone, Video, Image as ImageIcon, Paperclip, Send, Info, X, Loader2, UserPlus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import MediaViewer from "@/components/media/MediaViewer";
-import { Message } from "@/components/MessageTypes"; 
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useAuth } from "@/contexts/auth/AuthProvider";
+import { Message, getChatPreviews, getMessages, markMessageAsRead, sendMessage } from "@/services/messageService";
+import { checkFriendshipStatus, getPendingFriendRequests, sendFriendRequest } from "@/services/friendService";
+import { FriendProfile, getActiveFriends } from "@/services/userService";
+import { supabase } from "@/integrations/supabase/client";
+
+interface ChatPreview {
+  id: number;
+  userId: string;
+  name: string;
+  avatar?: string;
+  message: string;
+  time: string;
+  unread: number;
+  subscribed: boolean;
+  tier?: string;
+}
 
 const Messages = () => {
-  const [selectedChat, setSelectedChat] = useState<number | null>(1);
+  const [selectedChat, setSelectedChat] = useState<string | null>(null);
+  const [selectedChatName, setSelectedChatName] = useState<string>("");
   const [messageInput, setMessageInput] = useState("");
   const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
   const [selectedImage, setSelectedImage] = useState<any | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [chats, setChats] = useState<ChatPreview[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [isMessagesLoading, setIsMessagesLoading] = useState(false);
+  const [friendStatus, setFriendStatus] = useState<'none' | 'pending' | 'friends'>('none');
+  const [friendProfiles, setFriendProfiles] = useState<FriendProfile[]>([]);
+  const [showAddFriendButton, setShowAddFriendButton] = useState(false);
   const { subscriptionTier, subscriptionDetails, consumeMessage } = useSubscription();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const isGoldMember = subscriptionTier === 'gold';
   
   // Update header position based on sidebar width
@@ -48,16 +72,23 @@ const Messages = () => {
     };
   }, []);
 
-  // Load messages data
+  // Load chat previews
   useEffect(() => {
-    const loadMessages = async () => {
+    const loadChats = async () => {
+      if (!user?.id) return;
+      
       try {
         setIsLoading(true);
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 800));
+        const chatPreviews = await getChatPreviews(user.id);
+        setChats(chatPreviews);
+
+        // Also load available friends to message
+        const friends = await getActiveFriends(user.id);
+        setFriendProfiles(friends);
+        
         setIsLoading(false);
       } catch (error) {
-        console.error("Error loading messages:", error);
+        console.error("Error loading chats:", error);
         toast({
           title: "Failed to load messages",
           description: "There was a problem retrieving your messages. Please try again.",
@@ -67,27 +98,75 @@ const Messages = () => {
       }
     };
     
-    loadMessages();
-  }, [toast]);
+    loadChats();
 
-  const chats = [
-    { id: 1, name: 'Sephiroth', message: 'Hey, how are you?', time: '2m ago', unread: 2, subscribed: true, tier: 'gold' },
-    { id: 2, name: 'Linda Lohan', message: 'The event was amazing!', time: '1h ago', unread: 0, subscribed: true, tier: 'silver' },
-    { id: 3, name: 'Irina Petrova', message: 'Did you see the latest post?', time: '3h ago', unread: 1, subscribed: false },
-    { id: 4, name: 'Robert Cook', message: 'Thanks for the help!', time: '1d ago', unread: 0, subscribed: true, tier: 'bronze' },
-    { id: 5, name: 'Jennie Ferguson', message: 'Let me know when you\'re free', time: '2d ago', unread: 0, subscribed: false }
-  ];
+    // Set up real-time subscription for new messages
+    if (user?.id) {
+      const channel = supabase
+        .channel('messages-changes')
+        .on('postgres_changes', {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+          filter: `recipient_id=eq.${user.id}`,
+        }, () => {
+          // Reload chat previews and messages if needed
+          loadChats();
+          if (selectedChat) {
+            loadMessages(selectedChat);
+          }
+        })
+        .subscribe();
+        
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
+  }, [user?.id, toast]);
 
-  const [messages, setMessages] = useState<Message[]>([
-    { id: 1, sender: 'Sephiroth', text: 'Hey, how are you doing today?', time: '2:30 PM', isMine: false },
-    { id: 2, sender: 'me', text: 'I\'m good! Just working on some new features for the site.', time: '2:32 PM', isMine: true },
-    { id: 3, sender: 'Sephiroth', text: 'That sounds great! Can\'t wait to see what you come up with.', time: '2:33 PM', isMine: false },
-    { id: 4, sender: 'me', text: 'I\'ll keep you posted! How about you?', time: '2:35 PM', isMine: true },
-    { id: 5, sender: 'Sephiroth', text: 'Just preparing for the meetup next week. Will you be there?', time: '2:36 PM', isMine: false }
-  ]);
+  // Load messages when a chat is selected
+  const loadMessages = async (userId: string) => {
+    if (!user?.id) return;
+    
+    setIsMessagesLoading(true);
+    try {
+      const messagesList = await getMessages(user.id, userId);
+      
+      // Mark unread messages as read
+      for (const msg of messagesList) {
+        if (msg.recipient_id === user.id && !msg.read) {
+          await markMessageAsRead(msg.id);
+        }
+      }
 
-  const handleSendMessage = () => {
+      setMessages(messagesList);
+
+      // Check friendship status
+      const status = await checkFriendshipStatus(user.id, userId);
+      setFriendStatus(status);
+      setShowAddFriendButton(status === 'none');
+      
+    } catch (error) {
+      console.error("Error loading messages:", error);
+      toast({
+        title: "Failed to load conversation",
+        description: "There was a problem retrieving your conversation. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsMessagesLoading(false);
+    }
+  };
+
+  const handleChatSelect = (chatUserId: string, name: string) => {
+    setSelectedChat(chatUserId);
+    setSelectedChatName(name);
+    loadMessages(chatUserId);
+  };
+
+  const handleSendMessage = async () => {
     if (!messageInput.trim() && !selectedImage) return;
+    if (!user?.id || !selectedChat) return;
 
     // Check if user can send more messages
     if (subscriptionDetails.messagesRemaining <= 0) {
@@ -101,59 +180,59 @@ const Messages = () => {
 
     // Consume a message from the quota
     if (consumeMessage()) {
-      const now = new Date();
-      const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      
-      let newMessage: Message = {
-        id: messages.length + 1,
-        sender: 'me',
-        text: messageInput.trim() ? messageInput : "",
-        time: timeString,
-        isMine: true
-      };
-
-      // Check if there's a message, image, or both
-      if (selectedImage) {
-        newMessage.image = selectedImage;
-      }
-      
-      setMessages(prevMessages => [...prevMessages, newMessage]);
-      setMessageInput("");
-      setSelectedImage(null);
-      
-      // Show confirmation toast
-      toast({
-        title: "Message sent",
-        description: subscriptionDetails.messagesRemaining <= 5 ? 
-          `Message sent successfully. ${subscriptionDetails.messagesRemaining} messages remaining.` :
-          "Message sent successfully.",
-      });
-      
-      // Simulate a reply after a delay
-      setTimeout(() => {
-        const replyTime = new Date();
-        const replyTimeString = replyTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      try {
+        // Send the message
+        const success = await sendMessage(user.id, selectedChat, messageInput.trim());
         
-        const replies = [
-          "That's interesting!",
-          "I see what you mean.",
-          "Thanks for letting me know.",
-          "I'll think about it and get back to you.",
-          "That sounds great!"
-        ];
+        if (!success) {
+          toast({
+            title: "Failed to send message",
+            description: "There was a problem sending your message. Please try again.",
+            variant: "destructive",
+          });
+          return;
+        }
         
-        const randomReply = replies[Math.floor(Math.random() * replies.length)];
-        
-        const replyMessage = {
-          id: messages.length + 2,
-          sender: chats.find(c => c.id === selectedChat)?.name || 'Unknown',
-          text: randomReply,
-          time: replyTimeString,
-          isMine: false
+        // Add message locally for immediate display
+        const now = new Date();
+        const newMsg: Message = {
+          id: `temp-${now.getTime()}`,
+          sender_id: user.id,
+          recipient_id: selectedChat,
+          content: messageInput.trim(),
+          created_at: now.toISOString(),
+          read: false,
+          sender: {
+            username: user.name || 'You',
+            full_name: user.name || 'You',
+            avatar_url: user.profilePicture
+          }
         };
         
-        setMessages(prevMessages => [...prevMessages, replyMessage]);
-      }, 2000);
+        setMessages(prevMessages => [...prevMessages, newMsg]);
+        setMessageInput("");
+        setSelectedImage(null);
+        
+        // Refresh messages to get the proper ID
+        setTimeout(() => {
+          loadMessages(selectedChat);
+        }, 500);
+        
+        // Show confirmation toast
+        toast({
+          title: "Message sent",
+          description: subscriptionDetails.messagesRemaining <= 5 ? 
+            `Message sent successfully. ${subscriptionDetails.messagesRemaining} messages remaining.` :
+            "Message sent successfully.",
+        });
+      } catch (error) {
+        console.error("Error sending message:", error);
+        toast({
+          title: "Failed to send message",
+          description: "There was a problem sending your message. Please try again.",
+          variant: "destructive",
+        });
+      }
     } else {
       toast({
         title: "Message not sent",
@@ -177,8 +256,9 @@ const Messages = () => {
   
   // Function to navigate to a user's profile
   const navigateToProfile = (name: string) => {
-    // In a real app, this would navigate to the user profile
-    navigate(`/profile?name=${name}`);
+    if (selectedChat) {
+      navigate(`/profile?id=${selectedChat}`);
+    }
   };
 
   // Handle photo attachment
@@ -200,6 +280,36 @@ const Messages = () => {
 
   const handleViewImage = (image: any) => {
     setSelectedImage(image);
+  };
+
+  const handleSendFriendRequest = async () => {
+    if (!user?.id || !selectedChat) return;
+    
+    try {
+      const success = await sendFriendRequest(user.id, selectedChat);
+      
+      if (success) {
+        toast({
+          title: "Friend request sent",
+          description: "Your friend request has been sent successfully.",
+        });
+        setFriendStatus('pending');
+        setShowAddFriendButton(false);
+      } else {
+        toast({
+          title: "Failed to send friend request",
+          description: "There was a problem sending your friend request. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error sending friend request:", error);
+      toast({
+        title: "Failed to send friend request",
+        description: "There was a problem sending your friend request. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const getGoldBadge = (chat: any) => {
@@ -232,6 +342,11 @@ const Messages = () => {
       e.preventDefault();
       handleSendMessage();
     }
+  };
+
+  // Start a new chat with a friend
+  const startNewChat = (friend: FriendProfile) => {
+    handleChatSelect(friend.id, friend.full_name || friend.username);
   };
 
   return (
@@ -286,46 +401,97 @@ const Messages = () => {
                 ) : (
                   <ScrollArea className="h-[calc(100vh-16rem)]">
                     <div className="space-y-2 pr-3">
-                      {chats.map(chat => (
-                        <div 
-                          key={chat.id} 
-                          className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer ${
-                            selectedChat === chat.id ? 'bg-purple-50 dark:bg-purple-900/20' : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'
-                          }`}
-                          onClick={() => setSelectedChat(chat.id)}
-                        >
-                          <div 
-                            className="w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-800 flex items-center justify-center cursor-pointer"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              navigateToProfile(chat.name);
-                            }}
-                          >
-                            <User className="w-5 h-5 text-purple-600 dark:text-purple-300" />
+                      {/* Your friends who you can message */}
+                      {friendProfiles.length > 0 && (
+                        <div className="mb-4">
+                          <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Friends</h3>
+                          <div className="space-y-2">
+                            {friendProfiles.map(friend => {
+                              // Skip if already in chat list
+                              const existsInChats = chats.some(chat => chat.userId === friend.id);
+                              if (existsInChats) return null;
+                              
+                              return (
+                                <div 
+                                  key={friend.id} 
+                                  className="flex items-center gap-3 p-3 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                                  onClick={() => startNewChat(friend)}
+                                >
+                                  <div className="w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-800 flex items-center justify-center overflow-hidden">
+                                    {friend.avatar_url ? (
+                                      <img 
+                                        src={friend.avatar_url} 
+                                        alt={friend.username} 
+                                        className="w-full h-full object-cover"
+                                      />
+                                    ) : (
+                                      <User className="w-5 h-5 text-purple-600 dark:text-purple-300" />
+                                    )}
+                                  </div>
+                                  <div className="flex-1">
+                                    <div className="flex items-center">
+                                      <h3 className="font-medium text-sm dark:text-white">
+                                        {friend.full_name || friend.username}
+                                      </h3>
+                                      {friend.status === 'online' && (
+                                        <span className="w-2 h-2 bg-green-500 rounded-full ml-2"></span>
+                                      )}
+                                    </div>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                                      Start a conversation
+                                    </p>
+                                  </div>
+                                </div>
+                              );
+                            })}
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex justify-between">
-                              <h3 
-                                className="font-medium text-sm hover:underline cursor-pointer flex items-center dark:text-white"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  navigateToProfile(chat.name);
-                                }}
-                              >
-                                {chat.name}
-                                {getGoldBadge(chat)}
-                              </h3>
-                              <span className="text-xs text-gray-500 dark:text-gray-400">{chat.time}</span>
-                            </div>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{chat.message}</p>
-                          </div>
-                          {chat.unread > 0 && (
-                            <div className="w-5 h-5 rounded-full bg-purple-600 flex items-center justify-center">
-                              <span className="text-xs text-white">{chat.unread}</span>
-                            </div>
-                          )}
                         </div>
-                      ))}
+                      )}
+
+                      {/* Recent chats */}
+                      <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Recent</h3>
+                      {chats.length > 0 ? (
+                        chats.map(chat => (
+                          <div 
+                            key={chat.id} 
+                            className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer ${
+                              selectedChat === chat.userId ? 'bg-purple-50 dark:bg-purple-900/20' : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                            }`}
+                            onClick={() => handleChatSelect(chat.userId, chat.name)}
+                          >
+                            <div className="w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-800 flex items-center justify-center overflow-hidden">
+                              {chat.avatar ? (
+                                <img 
+                                  src={chat.avatar} 
+                                  alt={chat.name} 
+                                  className="w-full h-full object-cover" 
+                                />
+                              ) : (
+                                <User className="w-5 h-5 text-purple-600 dark:text-purple-300" />
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex justify-between">
+                                <h3 className="font-medium text-sm hover:underline cursor-pointer flex items-center dark:text-white">
+                                  {chat.name}
+                                  {getGoldBadge(chat)}
+                                </h3>
+                                <span className="text-xs text-gray-500 dark:text-gray-400">{chat.time}</span>
+                              </div>
+                              <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{chat.message}</p>
+                            </div>
+                            {chat.unread > 0 && (
+                              <div className="w-5 h-5 rounded-full bg-purple-600 flex items-center justify-center">
+                                <span className="text-xs text-white">{chat.unread}</span>
+                              </div>
+                            )}
+                          </div>
+                        ))
+                      ) : (
+                        <div className="text-center py-4 text-gray-500 dark:text-gray-400 text-sm">
+                          No recent conversations
+                        </div>
+                      )}
                     </div>
                   </ScrollArea>
                 )}
@@ -346,22 +512,38 @@ const Messages = () => {
                     <div className="flex items-center gap-3">
                       <div 
                         className="w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-800 flex items-center justify-center cursor-pointer"
-                        onClick={() => navigateToProfile(chats.find(chat => chat.id === selectedChat)?.name || "")}
+                        onClick={() => navigateToProfile(selectedChatName)}
                       >
                         <User className="w-5 h-5 text-purple-600 dark:text-purple-300" />
                       </div>
                       <div>
                         <h3 
                           className="font-medium cursor-pointer hover:underline flex items-center dark:text-white"
-                          onClick={() => navigateToProfile(chats.find(chat => chat.id === selectedChat)?.name || "")}
+                          onClick={() => navigateToProfile(selectedChatName)}
                         >
-                          {chats.find(chat => chat.id === selectedChat)?.name}
-                          {getGoldBadge(chats.find(chat => chat.id === selectedChat))}
+                          {selectedChatName}
+                          {/* Get gold badge for the selected chat */}
+                          {chats.find(c => c.userId === selectedChat)?.tier && (
+                            getGoldBadge(chats.find(c => c.userId === selectedChat))
+                          )}
                         </h3>
-                        <p className="text-xs text-green-500">Online</p>
+                        <p className="text-xs text-green-500">
+                          {friendStatus === 'friends' ? 'Friends' : 
+                           friendStatus === 'pending' ? 'Friend request pending' : 'Not friends'}
+                        </p>
                       </div>
                     </div>
                     <div className="flex gap-3">
+                      {showAddFriendButton && (
+                        <button
+                          className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-purple-600"
+                          onClick={handleSendFriendRequest}
+                          aria-label="Add friend"
+                          title="Send friend request"
+                        >
+                          <UserPlus className="w-5 h-5" />
+                        </button>
+                      )}
                       <button 
                         className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
                         aria-label="Start voice call"
@@ -379,42 +561,61 @@ const Messages = () => {
 
                   {/* Messages */}
                   <ScrollArea className="flex-1 p-4">
-                    <div className="space-y-4">
-                      {messages.map((message) => (
-                        <div 
-                          key={message.id} 
-                          className={`flex ${message.isMine ? 'justify-end' : 'justify-start'}`}
-                        >
-                          <div className={`max-w-[70%] ${message.isMine ? 'bg-purple-500 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100'} rounded-lg p-3`}>
-                            {message.text && <p className="text-sm">{message.text}</p>}
-                            
-                            {message.image && (
-                              <div className="mt-2 mb-2 relative">
-                                <div 
-                                  className="relative cursor-pointer"
-                                  onClick={() => handleViewImage(message.image)}
-                                >
-                                  <img 
-                                    src={getImageUrl(message.image)} 
-                                    alt="Shared image" 
-                                    className="rounded-md max-h-52 w-auto" 
-                                    loading="lazy"
-                                  />
-                                  {/* Watermark for non-gold users */}
-                                  {!isGoldMember && message.isMine && (
-                                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-30">
-                                      <h1 className="text-white text-2xl font-bold transform -rotate-30">HappyKinks</h1>
+                    {isMessagesLoading ? (
+                      <div className="flex flex-col items-center justify-center h-full">
+                        <Loader2 className="h-6 w-6 animate-spin text-purple-500 mb-2" />
+                        <p className="text-sm text-gray-500 dark:text-gray-400">Loading messages...</p>
+                      </div>
+                    ) : messages.length > 0 ? (
+                      <div className="space-y-4">
+                        {messages.map((message) => {
+                          const isMine = message.sender_id === user?.id;
+                          
+                          return (
+                            <div 
+                              key={message.id} 
+                              className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}
+                            >
+                              <div className={`max-w-[70%] ${isMine ? 'bg-purple-500 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100'} rounded-lg p-3`}>
+                                <p className="text-sm">{message.content}</p>
+                                
+                                {message.image && (
+                                  <div className="mt-2 mb-2 relative">
+                                    <div 
+                                      className="relative cursor-pointer"
+                                      onClick={() => handleViewImage(message.image)}
+                                    >
+                                      <img 
+                                        src={getImageUrl(message.image)} 
+                                        alt="Shared image" 
+                                        className="rounded-md max-h-52 w-auto" 
+                                        loading="lazy"
+                                      />
+                                      {/* Watermark for non-gold users */}
+                                      {!isGoldMember && isMine && (
+                                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-30">
+                                          <h1 className="text-white text-2xl font-bold transform -rotate-30">HappyKinks</h1>
+                                        </div>
+                                      )}
                                     </div>
-                                  )}
-                                </div>
+                                  </div>
+                                )}
+                                
+                                <p className="text-xs mt-1 opacity-70">
+                                  {new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </p>
                               </div>
-                            )}
-                            
-                            <p className="text-xs mt-1 opacity-70">{message.time}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center h-full text-gray-500 dark:text-gray-400">
+                        <MessageSquare className="w-12 h-12 mb-2 text-gray-300 dark:text-gray-600" />
+                        <p>No messages yet</p>
+                        <p className="text-sm mt-1">Send a message to start the conversation</p>
+                      </div>
+                    )}
                   </ScrollArea>
 
                   {/* Message Input */}
@@ -496,20 +697,28 @@ const Messages = () => {
                           value={messageInput}
                           onChange={(e) => setMessageInput(e.target.value)}
                           onKeyPress={handleKeyPress}
-                          disabled={subscriptionDetails.messagesRemaining <= 0}
+                          disabled={subscriptionDetails.messagesRemaining <= 0 || friendStatus !== 'friends'}
                           aria-label="Message input"
                         />
                         <button 
                           className={`p-2 rounded-full text-white ${
-                            subscriptionDetails.messagesRemaining <= 0 ? 'bg-gray-400 dark:bg-gray-600' : 'bg-purple-600 hover:bg-purple-700'
+                            subscriptionDetails.messagesRemaining <= 0 || friendStatus !== 'friends' ? 'bg-gray-400 dark:bg-gray-600' : 'bg-purple-600 hover:bg-purple-700'
                           }`}
                           onClick={handleSendMessage}
-                          disabled={subscriptionDetails.messagesRemaining <= 0}
+                          disabled={subscriptionDetails.messagesRemaining <= 0 || friendStatus !== 'friends'}
                           aria-label="Send message"
                         >
                           <Send className="w-5 h-5" />
                         </button>
                       </div>
+                      
+                      {friendStatus !== 'friends' && (
+                        <div className="text-xs text-amber-600 dark:text-amber-400 mt-2 text-center">
+                          {friendStatus === 'pending' ? 
+                            "Friend request pending. You'll be able to send messages when they accept." : 
+                            "You need to be friends to message this user."}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

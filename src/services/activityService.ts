@@ -20,6 +20,14 @@ export interface Activity {
   };
 }
 
+export interface ActivityWithAction extends Activity {
+  actions?: {
+    accept?: () => Promise<void>;
+    reject?: () => Promise<void>;
+    view?: () => void;
+  }
+}
+
 // Get all activities for a user
 export const getUserActivities = async (userId: string): Promise<Activity[]> => {
   try {
@@ -139,5 +147,69 @@ export const getUnreadActivityCount = async (userId: string): Promise<number> =>
   } catch (error) {
     console.error('Unexpected error counting unread activities:', error);
     return 0;
+  }
+};
+
+// Get activities with action handlers for specific activity types
+export const getActivitiesWithActions = async (
+  userId: string, 
+  handleAcceptFriend: (actorId: string) => Promise<void>,
+  handleRejectFriend: (actorId: string) => Promise<void>,
+  handleViewItem: (activityType: string, itemId?: string) => void
+): Promise<ActivityWithAction[]> => {
+  const activities = await getUserActivities(userId);
+  
+  return activities.map(activity => {
+    const activityWithAction: ActivityWithAction = { ...activity, actions: {} };
+    
+    // Add appropriate actions based on activity type
+    if (activity.activity_type === 'friend_request' && activity.actor_id) {
+      activityWithAction.actions = {
+        accept: async () => {
+          await handleAcceptFriend(activity.actor_id as string);
+          await markActivityAsRead(activity.id);
+        },
+        reject: async () => {
+          await handleRejectFriend(activity.actor_id as string);
+          await markActivityAsRead(activity.id);
+        }
+      };
+    } else if (['new_message', 'post_like', 'comment_like', 'new_comment'].includes(activity.activity_type)) {
+      let itemId: string | undefined;
+      
+      if (activity.activity_type === 'new_message') itemId = activity.message_id || undefined;
+      else if (activity.activity_type === 'new_comment' || activity.activity_type === 'comment_like') 
+        itemId = activity.comment_id || undefined;
+      else if (activity.activity_type === 'post_like') itemId = activity.post_id || undefined;
+      
+      activityWithAction.actions = {
+        view: () => {
+          handleViewItem(activity.activity_type, itemId);
+          markActivityAsRead(activity.id);
+        }
+      };
+    }
+    
+    return activityWithAction;
+  });
+};
+
+// Delete an activity
+export const deleteActivity = async (activityId: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('activities')
+      .delete()
+      .eq('id', activityId);
+
+    if (error) {
+      console.error('Error deleting activity:', error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Unexpected error deleting activity:', error);
+    return false;
   }
 };

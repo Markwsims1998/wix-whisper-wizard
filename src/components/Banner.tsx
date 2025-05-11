@@ -4,6 +4,7 @@ import { Megaphone, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import { BannerSettings, getBannerSettings } from "@/services/bannerService";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/auth/AuthProvider";
 
 // Export the Banner component to be used in the Header
 const Banner = () => {
@@ -11,14 +12,21 @@ const Banner = () => {
   const [isVisible, setIsVisible] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
+  const { isAuthenticated } = useAuth();
   
   useEffect(() => {
+    // Only load banner for authenticated users
+    if (!isAuthenticated) {
+      setIsLoading(false);
+      return;
+    }
+    
     const loadBanner = async () => {
       try {
         setIsLoading(true);
         setHasError(false);
         const settings = await getBannerSettings();
-        setBanner(settings); // Always set banner settings, even if inactive
+        setBanner(settings);
       } catch (error) {
         console.error('Error loading banner:', error);
         setHasError(true);
@@ -38,21 +46,22 @@ const Banner = () => {
         schema: 'public',
         table: 'banner_settings'
       }, () => {
+        console.log('Banner settings changed, reloading...');
         loadBanner();
       })
       .subscribe();
     
-    // Load banner every 5 minutes
+    // Load banner every 5 minutes to catch any missed real-time updates
     const interval = setInterval(loadBanner, 5 * 60 * 1000);
     
     return () => {
       clearInterval(interval);
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [isAuthenticated]);
   
-  // If error, loading, no banner, or not visible, return null
-  if (hasError || isLoading || !banner || !banner.active || !isVisible) return null;
+  // If error, loading, no banner, not authenticated, banner not active, or not visible, return null
+  if (hasError || isLoading || !banner || !isAuthenticated || !banner.active || !isVisible) return null;
   
   // Determine banner color class based on the color setting
   const getBannerColorClass = () => {
@@ -67,7 +76,7 @@ const Banner = () => {
   };
   
   return (
-    <div className={`${getBannerColorClass()} text-white py-2 px-4 flex items-center justify-center relative w-full`}>
+    <div className={`${getBannerColorClass()} text-white py-2 px-4 relative w-full`}>
       <div className="container mx-auto flex items-center justify-center gap-2">
         <Megaphone className="w-4 h-4 flex-shrink-0" />
         <span className="text-sm">

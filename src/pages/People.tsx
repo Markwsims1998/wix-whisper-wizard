@@ -24,6 +24,7 @@ interface ProfileData {
   is_hotlist?: boolean;
   subscription_tier?: 'free' | 'bronze' | 'silver' | 'gold';
   role?: string;
+  profile_picture_url?: string;
 }
 
 const People = () => {
@@ -105,7 +106,7 @@ const People = () => {
         // Fetch profiles from database
         const { data: profilesData, error: profilesError } = await supabase
           .from('profiles')
-          .select('id, username, full_name, avatar_url, location, relationship_status, subscription_tier, role, last_sign_in_at')
+          .select('id, username, full_name, avatar_url, location, relationship_status, subscription_tier, role, last_sign_in_at, profile_picture_url')
           .eq('status', 'active')
           .order('last_sign_in_at', { ascending: false });
           
@@ -150,7 +151,8 @@ const People = () => {
             is_local: isLocal,
             is_hotlist: isHotlist,
             subscription_tier: profile.subscription_tier as 'free' | 'bronze' | 'silver' | 'gold',
-            role: profile.role
+            role: profile.role,
+            profile_picture_url: profile.profile_picture_url
           };
         });
         
@@ -432,6 +434,13 @@ const MemberCard = ({ member, isFriendRequested, isFriend, onFriendAction, onVie
         return null;
     }
   };
+
+  // Get avatar URL (prioritizing profile_picture_url)
+  const getAvatarUrl = () => {
+    return member.profile_picture_url || member.avatar_url || null;
+  };
+  
+  const avatarUrl = getAvatarUrl();
   
   return (
     <div className="bg-gray-50 dark:bg-gray-700 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition p-4">
@@ -440,8 +449,8 @@ const MemberCard = ({ member, isFriendRequested, isFriend, onFriendAction, onVie
           className="h-16 w-16 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center overflow-hidden mb-3 cursor-pointer"
           onClick={() => onViewProfile(member.id)}
         >
-          {member.avatar_url ? (
-            <img src={member.avatar_url} alt={member.full_name} className="h-full w-full object-cover" />
+          {avatarUrl ? (
+            <img src={avatarUrl} alt={member.full_name} className="h-full w-full object-cover" />
           ) : (
             <div className="h-full w-full flex items-center justify-center bg-purple-100 dark:bg-purple-900">
               <span className="text-xl font-medium text-purple-600 dark:text-purple-300">

@@ -93,10 +93,13 @@ const PostItem = ({ post, handleLikePost }: PostItemProps) => {
   // Get avatar URL from multiple possible sources
   const getAvatarUrl = () => {
     if (!post.author) return null;
-    return post.author.avatar_url || post.author.profile_picture_url || null;
+    // First try profile_picture_url, then avatar_url
+    return post.author.profile_picture_url || post.author.avatar_url || null;
   };
   
   const avatarUrl = getAvatarUrl();
+  console.log("Post author:", post.author);
+  console.log("Avatar URL:", avatarUrl);
   
   return (
     <div className="mb-6 pb-6 border-b border-gray-100 last:border-0 last:mb-0 last:pb-0 dark:border-gray-700 transition-all hover:bg-gray-50 dark:hover:bg-gray-800/50 p-4 rounded-lg -mx-4">

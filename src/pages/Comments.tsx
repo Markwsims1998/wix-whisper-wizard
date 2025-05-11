@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { Heart, User } from "lucide-react";
@@ -75,6 +74,12 @@ const CommentsPage = () => {
 
     loadPost();
   }, [postId, toast]);
+
+  // Get avatar URL from multiple possible sources
+  const getAvatarUrl = (author: any) => {
+    if (!author) return null;
+    return author.profile_picture_url || author.avatar_url || null;
+  };
 
   // Check like status when component mounts if user is logged in
   useEffect(() => {
@@ -193,10 +198,10 @@ const CommentsPage = () => {
                     to={getProfileUrl(post.author?.id || '', post.author?.username)}
                     className="h-10 w-10 rounded-full bg-purple-100 dark:bg-purple-900 flex items-center justify-center overflow-hidden"
                   >
-                    {post.author?.avatar_url ? (
+                    {getAvatarUrl(post.author) ? (
                       <img 
-                        src={post.author.avatar_url} 
-                        alt={post.author.full_name} 
+                        src={getAvatarUrl(post.author)} 
+                        alt={post.author?.full_name || "User"} 
                         className="h-full w-full object-cover"
                       />
                     ) : (
@@ -301,8 +306,8 @@ const CommentsPage = () => {
                         title={user.full_name}
                       >
                         <Avatar className="h-8 w-8 border-2 border-white dark:border-gray-800">
-                          {user.avatar_url ? (
-                            <AvatarImage src={user.avatar_url} alt={user.full_name} />
+                          {getAvatarUrl(user) ? (
+                            <AvatarImage src={getAvatarUrl(user)} alt={user.full_name} />
                           ) : (
                             <AvatarFallback className="bg-purple-100 text-purple-600 dark:bg-purple-900 dark:text-purple-300">
                               {user.full_name.charAt(0)}

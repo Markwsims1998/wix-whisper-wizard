@@ -95,6 +95,8 @@ const MembersList = () => {
         console.error("Error fetching friends:", error);
         // Fallback to empty list
         setFriendMembers([]);
+      } finally {
+        setLoading(false);
       }
     };
     
@@ -118,7 +120,8 @@ const MembersList = () => {
 
   // Helper function to get avatar url from multiple possible sources
   const getAvatarUrl = (member: Member) => {
-    return member.avatar || member.profilePicture || null;
+    // First try profilePicture, then avatar
+    return member.profilePicture || member.avatar || null;
   };
 
   return (

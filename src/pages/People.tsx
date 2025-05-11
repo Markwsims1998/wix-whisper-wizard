@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
@@ -42,14 +43,20 @@ const People = () => {
           
         if (error) throw error;
         
-        // Ensure the data includes a gender field (which might be null)
-        // This satisfies the TypeScript constraint
-        const profilesWithGender = data?.map(profile => ({
-          ...profile,
-          gender: profile.gender || null
-        })) || [];
+        // Map the database profiles to our Profile interface
+        // Ensuring all required fields are present
+        const mappedProfiles: Profile[] = (data || []).map(profile => ({
+          id: profile.id,
+          username: profile.username || '',
+          full_name: profile.full_name,
+          avatar_url: profile.avatar_url,
+          bio: profile.bio,
+          location: profile.location,
+          gender: profile.gender || null,
+          relationship_status: profile.relationship_status
+        }));
         
-        setProfiles(profilesWithGender);
+        setProfiles(mappedProfiles);
       } catch (error) {
         console.error('Error fetching profiles:', error);
       } finally {

@@ -7,6 +7,10 @@ import { getReceivedWinks, getSentWinks, updateWinkStatus, Wink } from "@/servic
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
 import Footer from "@/components/Footer";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { User } from "lucide-react";
+import { format, formatDistance } from "date-fns";
+import { Link } from "react-router-dom";
 
 const WinksPage = () => {
   const [activeTab, setActiveTab] = useState("received");
@@ -66,6 +70,52 @@ const WinksPage = () => {
       });
     }
   };
+  
+  // Get profile URL for a user
+  const getProfileUrl = (user: any) => {
+    if (!user) return "#";
+    
+    if (user.username) {
+      return `/profile?name=${user.username}`;
+    } else if (user.id) {
+      return `/profile?id=${user.id}`;
+    }
+    
+    return "#";
+  };
+  
+  // Get avatar image source
+  const getAvatarImage = (profile: any) => {
+    if (!profile) return null;
+    
+    return profile.profile_picture_url || profile.avatar_url || null;
+  };
+  
+  // Format date with time ago
+  const formatTimeAgo = (dateStr: string) => {
+    try {
+      const date = new Date(dateStr);
+      return formatDistance(date, new Date(), { addSuffix: true });
+    } catch (e) {
+      return "Unknown time";
+    }
+  };
+  
+  // Calculate when a new wink can be sent (7 days after previous one)
+  const canSendNewWink = (createdAt: string) => {
+    try {
+      const winkDate = new Date(createdAt);
+      const sevenDaysLater = new Date(winkDate);
+      sevenDaysLater.setDate(winkDate.getDate() + 7);
+      
+      return {
+        canSend: new Date() >= sevenDaysLater,
+        resetDate: sevenDaysLater
+      };
+    } catch (e) {
+      return { canSend: false, resetDate: new Date() };
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
@@ -95,59 +145,66 @@ const WinksPage = () => {
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      {winks.map((wink) => (
-                        <div
-                          key={wink.id}
-                          className="flex items-center justify-between p-4 border rounded-lg bg-white dark:bg-gray-800"
-                        >
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
-                              {wink.sender?.avatar_url ? (
-                                <img
-                                  src={wink.sender.avatar_url}
-                                  alt={wink.sender.full_name || wink.sender.username || "User"}
-                                  className="w-full h-full object-cover"
-                                />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center text-gray-500">
-                                  {(wink.sender?.full_name || wink.sender?.username || "U").charAt(0)}
+                      {winks.map((wink) => {
+                        const avatarSrc = getAvatarImage(wink.sender);
+                        const profileUrl = getProfileUrl(wink.sender);
+                        const displayName = wink.sender?.full_name || wink.sender?.username || "Unknown User";
+                        const initial = (displayName).charAt(0).toUpperCase();
+                        
+                        return (
+                          <div
+                            key={wink.id}
+                            className="flex items-center justify-between p-4 border rounded-lg bg-white dark:bg-gray-800"
+                          >
+                            <div className="flex items-center gap-3">
+                              <Link to={profileUrl} className="flex-shrink-0">
+                                <Avatar className="h-10 w-10">
+                                  {avatarSrc ? (
+                                    <AvatarImage src={avatarSrc} alt={displayName} />
+                                  ) : (
+                                    <AvatarFallback className="bg-gray-200 dark:bg-gray-700">
+                                      {initial}
+                                    </AvatarFallback>
+                                  )}
+                                </Avatar>
+                              </Link>
+                              <div>
+                                <Link to={profileUrl} className="font-medium hover:text-purple-600 transition-colors">
+                                  {displayName}
+                                </Link>
+                                <div className="text-sm text-gray-500">
+                                  {formatTimeAgo(wink.created_at)}
                                 </div>
-                              )}
-                            </div>
-                            <div>
-                              <div className="font-medium">{wink.sender?.full_name || wink.sender?.username || "Unknown User"}</div>
-                              <div className="text-sm text-gray-500">
-                                {new Date(wink.created_at).toLocaleDateString()}
                               </div>
                             </div>
-                          </div>
 
-                          {wink.status === "pending" ? (
-                            <div className="flex gap-2">
-                              <button
-                                className="px-4 py-1 text-sm bg-purple-600 text-white rounded hover:bg-purple-700"
-                                onClick={() => handleWinkAction(wink.id, "accept")}
-                              >
-                                Accept
-                              </button>
-                              <button
-                                className="px-4 py-1 text-sm bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
-                                onClick={() => handleWinkAction(wink.id, "reject")}
-                              >
-                                Decline
-                              </button>
-                            </div>
-                          ) : (
-                            <div className="text-sm font-medium">
-                              {wink.status === "accepted" ? (
-                                <span className="text-green-500">Accepted</span>
-                              ) : (
-                                <span className="text-gray-500">Declined</span>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      ))}
+                            {wink.status === "pending" ? (
+                              <div className="flex gap-2">
+                                <button
+                                  className="px-4 py-1 text-sm bg-purple-600 text-white rounded hover:bg-purple-700"
+                                  onClick={() => handleWinkAction(wink.id, "accept")}
+                                >
+                                  Accept
+                                </button>
+                                <button
+                                  className="px-4 py-1 text-sm bg-gray-200 text-gray-700 rounded hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+                                  onClick={() => handleWinkAction(wink.id, "reject")}
+                                >
+                                  Decline
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="text-sm font-medium">
+                                {wink.status === "accepted" ? (
+                                  <span className="text-green-500">Accepted</span>
+                                ) : (
+                                  <span className="text-gray-500">Declined</span>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </TabsContent>
@@ -160,44 +217,60 @@ const WinksPage = () => {
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      {winks.map((wink) => (
-                        <div
-                          key={wink.id}
-                          className="flex items-center justify-between p-4 border rounded-lg bg-white dark:bg-gray-800"
-                        >
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
-                              {wink.recipient?.avatar_url ? (
-                                <img
-                                  src={wink.recipient.avatar_url}
-                                  alt={wink.recipient.full_name || wink.recipient.username || "User"}
-                                  className="w-full h-full object-cover"
-                                />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center text-gray-500">
-                                  {(wink.recipient?.full_name || wink.recipient?.username || "U").charAt(0)}
+                      {winks.map((wink) => {
+                        const avatarSrc = getAvatarImage(wink.recipient);
+                        const profileUrl = getProfileUrl(wink.recipient);
+                        const displayName = wink.recipient?.full_name || wink.recipient?.username || "Unknown User";
+                        const initial = (displayName).charAt(0).toUpperCase();
+                        const { canSend, resetDate } = canSendNewWink(wink.created_at);
+                        
+                        return (
+                          <div
+                            key={wink.id}
+                            className="flex items-center justify-between p-4 border rounded-lg bg-white dark:bg-gray-800"
+                          >
+                            <div className="flex items-center gap-3">
+                              <Link to={profileUrl} className="flex-shrink-0">
+                                <Avatar className="h-10 w-10">
+                                  {avatarSrc ? (
+                                    <AvatarImage src={avatarSrc} alt={displayName} />
+                                  ) : (
+                                    <AvatarFallback className="bg-gray-200 dark:bg-gray-700">
+                                      {initial}
+                                    </AvatarFallback>
+                                  )}
+                                </Avatar>
+                              </Link>
+                              <div>
+                                <Link to={profileUrl} className="font-medium hover:text-purple-600 transition-colors">
+                                  {displayName}
+                                </Link>
+                                <div className="text-sm text-gray-500">
+                                  {formatTimeAgo(wink.created_at)}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex flex-col items-end">
+                              <div className="text-sm font-medium">
+                                {wink.status === "pending" ? (
+                                  <span className="text-yellow-500">Pending</span>
+                                ) : wink.status === "accepted" ? (
+                                  <span className="text-green-500">Accepted</span>
+                                ) : (
+                                  <span className="text-gray-500">Declined</span>
+                                )}
+                              </div>
+                              
+                              {!canSend && (
+                                <div className="text-xs text-gray-500 mt-1">
+                                  Can send new wink {format(resetDate, 'MMM d')}
                                 </div>
                               )}
                             </div>
-                            <div>
-                              <div className="font-medium">{wink.recipient?.full_name || wink.recipient?.username || "Unknown User"}</div>
-                              <div className="text-sm text-gray-500">
-                                {new Date(wink.created_at).toLocaleDateString()}
-                              </div>
-                            </div>
                           </div>
-
-                          <div className="text-sm font-medium">
-                            {wink.status === "pending" ? (
-                              <span className="text-yellow-500">Pending</span>
-                            ) : wink.status === "accepted" ? (
-                              <span className="text-green-500">Accepted</span>
-                            ) : (
-                              <span className="text-gray-500">Declined</span>
-                            )}
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </TabsContent>

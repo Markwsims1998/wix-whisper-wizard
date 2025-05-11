@@ -13,11 +13,13 @@ export interface Wink {
     username?: string;
     full_name?: string;
     avatar_url?: string;
+    profile_picture_url?: string;
   };
   recipient?: {
     username?: string;
     full_name?: string;
     avatar_url?: string;
+    profile_picture_url?: string;
   };
 }
 
@@ -29,19 +31,31 @@ export const sendWink = async (recipientId: string): Promise<{ success: boolean;
       return { success: false, message: 'User not authenticated' };
     }
 
-    // Check if this user has already sent a wink to this recipient
-    const { data: existingWink } = await supabase
+    // Calculate date 7 days ago
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    
+    // Check for any winks to this recipient in the last 7 days
+    const { data: recentWinks } = await supabase
       .from('winks')
-      .select('id, status')
+      .select('id, status, created_at')
       .match({ sender_id: user.id, recipient_id: recipientId })
-      .maybeSingle();
-
-    if (existingWink) {
-      return {
-        success: false,
-        message: `You have already sent a wink to this user (status: ${existingWink.status})`,
-        winkId: existingWink.id
-      };
+      .gte('created_at', sevenDaysAgo.toISOString())
+      .order('created_at', { ascending: false });
+      
+    if (recentWinks && recentWinks.length > 0) {
+      // There's a recent wink - check if it's eligible for reset
+      const mostRecentWink = recentWinks[0];
+      const winkDate = new Date(mostRecentWink.created_at);
+      const daysSinceWink = Math.floor((Date.now() - winkDate.getTime()) / (1000 * 60 * 60 * 24));
+      
+      if (daysSinceWink < 7) {
+        return {
+          success: false,
+          message: `You can send another wink to this user in ${7 - daysSinceWink} days`,
+          winkId: mostRecentWink.id
+        };
+      }
     }
 
     // Insert new wink
@@ -81,9 +95,11 @@ export const getReceivedWinks = async (): Promise<Wink[]> => {
       .select(`
         *,
         sender:profiles!winks_sender_id_fkey (
+          id,
           username,
           full_name,
-          avatar_url
+          avatar_url,
+          profile_picture_url
         )
       `)
       .eq('recipient_id', user.id)
@@ -112,9 +128,11 @@ export const getSentWinks = async (): Promise<Wink[]> => {
       .select(`
         *,
         recipient:profiles!winks_recipient_id_fkey (
+          id,
           username,
           full_name,
-          avatar_url
+          avatar_url,
+          profile_picture_url
         )
       `)
       .eq('sender_id', user.id)
@@ -133,33 +151,47 @@ export const getSentWinks = async (): Promise<Wink[]> => {
 };
 
 // Check if current user has sent a wink to another user
-export const checkIfWinked = async (recipientId: string): Promise<{ winked: boolean; winkId?: string; status?: 'pending' | 'accepted' | 'rejected' }> => {
+export const checkIfWinked = async (recipientId: string): Promise<{ winked: boolean; winkId?: string; status?: 'pending' | 'accepted' | 'rejected'; canSendNewWink: boolean }> => {
   try {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { winked: false };
+    if (!user) return { winked: false, canSendNewWink: true };
+    
+    // Calculate date 7 days ago
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
     const { data, error } = await supabase
       .from('winks')
-      .select('id, status')
+      .select('id, status, created_at')
       .match({ 
         sender_id: user.id, 
         recipient_id: recipientId 
       })
-      .maybeSingle();
+      .order('created_at', { ascending: false })
+      .limit(1);
 
     if (error) {
       console.error('Error checking wink status:', error);
-      return { winked: false };
+      return { winked: false, canSendNewWink: true };
     }
-
+    
+    if (!data || data.length === 0) {
+      return { winked: false, canSendNewWink: true };
+    }
+    
+    // Check if most recent wink is older than 7 days
+    const winkDate = new Date(data[0].created_at);
+    const canSendNewWink = (Date.now() - winkDate.getTime()) > (7 * 24 * 60 * 60 * 1000);
+    
     return {
       winked: !!data,
-      winkId: data?.id,
-      status: data?.status as 'pending' | 'accepted' | 'rejected'
+      winkId: data[0]?.id,
+      status: data[0]?.status as 'pending' | 'accepted' | 'rejected',
+      canSendNewWink
     };
   } catch (error) {
     console.error('Unexpected error checking wink status:', error);
-    return { winked: false };
+    return { winked: false, canSendNewWink: true };
   }
 };
 

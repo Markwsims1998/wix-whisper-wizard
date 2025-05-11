@@ -34,8 +34,13 @@ export const getBannerSettings = async (): Promise<BannerSettings> => {
       .limit(1)
       .maybeSingle(); // Using maybeSingle instead of single to avoid errors
 
-    if (error || !data) {
+    if (error) {
       console.error('Error fetching banner settings:', error);
+      return defaultBannerSettings;
+    }
+
+    // If no data found
+    if (!data) {
       return defaultBannerSettings;
     }
 
@@ -47,7 +52,17 @@ export const getBannerSettings = async (): Promise<BannerSettings> => {
       
       // If current date is outside the scheduled range, return inactive banner
       if (now < startDate || now > endDate) {
-        return { ...defaultBannerSettings, active: false };
+        return { 
+          ...data,
+          active: false,
+          text: data.text || defaultBannerSettings.text,
+          link: data.link || '',
+          linkText: data.link_text || '',
+          color: data.color || 'purple',
+          scheduled: data.scheduled,
+          startDate: data.start_date,
+          endDate: data.end_date
+        };
       }
     }
 

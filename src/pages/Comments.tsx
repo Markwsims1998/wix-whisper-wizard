@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { Heart, User } from "lucide-react";
@@ -14,6 +13,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import Sidebar from "@/components/Sidebar";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"; 
+import { supabase } from "@/integrations/supabase/client";
 
 interface LikeUser {
   id: string;
@@ -72,6 +72,29 @@ const CommentsPage = () => {
 
     loadPost();
   }, [postId, toast]);
+
+  // Check like status when component mounts if user is logged in
+  useEffect(() => {
+    if (user?.id && postId && post) {
+      const checkIfUserLiked = async () => {
+        try {
+          const { data } = await supabase
+            .from('likes')
+            .select('id')
+            .eq('post_id', postId)
+            .eq('user_id', user.id)
+            .single();
+            
+          setIsLiked(!!data);
+        } catch (error) {
+          // If no like found, error is expected
+          setIsLiked(false);
+        }
+      };
+      
+      checkIfUserLiked();
+    }
+  }, [user?.id, postId, post]);
 
   const onLikeClick = async () => {
     if (!post || !user) return;

@@ -259,9 +259,9 @@ const AdminMarketingSettings = () => {
               
               <div className="p-4 border rounded-md bg-gray-50 dark:bg-gray-800">
                 <h4 className="font-medium mb-2">Banner Preview</h4>
-                <div className={`bg-${bannerColor}-700 dark:bg-${bannerColor}-900 text-white py-2 px-4 rounded flex items-center justify-center shadow-sm`}>
+                <div className={`bg-${bannerColor}-600 text-white py-2 px-4 rounded flex items-center justify-center shadow-sm`}>
                   <Megaphone className="w-4 h-4 mr-2" />
-                  <span className="text-sm">{bannerText} <span className="underline font-medium">{bannerLinkText}</span></span>
+                  <span className="text-sm">{bannerText} {bannerLinkText && <span className="underline font-medium">{bannerLinkText}</span>}</span>
                 </div>
               </div>
             </CardContent>

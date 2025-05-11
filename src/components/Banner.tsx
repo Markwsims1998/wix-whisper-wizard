@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Megaphone, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import { BannerSettings, getBannerSettings } from "@/services/bannerService";
+import { supabase } from "@/integrations/supabase/client";
 
 // Export the Banner component to be used in the Header
 const Banner = () => {
@@ -17,11 +18,7 @@ const Banner = () => {
         setIsLoading(true);
         setHasError(false);
         const settings = await getBannerSettings();
-        if (settings && settings.active) {
-          setBanner(settings);
-        } else {
-          setBanner(null);
-        }
+        setBanner(settings); // Always set banner settings, even if inactive
       } catch (error) {
         console.error('Error loading banner:', error);
         setHasError(true);
@@ -33,14 +30,29 @@ const Banner = () => {
     
     loadBanner();
     
-    // Poll for banner updates every 5 minutes
+    // Listen for real-time banner updates
+    const channel = supabase
+      .channel('banner-changes')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'banner_settings'
+      }, () => {
+        loadBanner();
+      })
+      .subscribe();
+    
+    // Load banner every 5 minutes
     const interval = setInterval(loadBanner, 5 * 60 * 1000);
     
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      supabase.removeChannel(channel);
+    };
   }, []);
   
   // If error, loading, no banner, or not visible, return null
-  if (hasError || isLoading || !banner || !isVisible) return null;
+  if (hasError || isLoading || !banner || !banner.active || !isVisible) return null;
   
   // Determine banner color class based on the color setting
   const getBannerColorClass = () => {

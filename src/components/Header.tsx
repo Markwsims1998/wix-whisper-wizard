@@ -90,7 +90,7 @@ export default function Header() {
               </Button>
               
               <Link to="/" className="flex items-center">
-                <span className="text-xl font-bold text-purple-600 dark:text-purple-400">Lovable App</span>
+                {/* Removed the "Lovable App" text here */}
               </Link>
             </div>
             

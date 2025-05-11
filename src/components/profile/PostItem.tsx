@@ -24,6 +24,7 @@ const PostItem = ({ post, handleLikePost }: PostItemProps) => {
   useEffect(() => {
     if (user?.id && post.id) {
       checkLikeStatus();
+      fetchCommentCount();
     }
   }, [user?.id, post.id]);
 
@@ -31,8 +32,7 @@ const PostItem = ({ post, handleLikePost }: PostItemProps) => {
   useEffect(() => {
     setIsLiked(!!post.is_liked);
     setLikesCount(post.likes_count || 0);
-    setCommentsCount(post.comments_count || 0);
-  }, [post.is_liked, post.likes_count, post.comments_count]);
+  }, [post.is_liked, post.likes_count]);
 
   // Check if the current user has liked this post
   const checkLikeStatus = async () => {
@@ -50,6 +50,22 @@ const PostItem = ({ post, handleLikePost }: PostItemProps) => {
     } catch (error) {
       // If no like found, error is expected
       setIsLiked(false);
+    }
+  };
+  
+  // Fetch comment count separately to avoid resetting during like operations
+  const fetchCommentCount = async () => {
+    try {
+      const { count } = await supabase
+        .from('comments')
+        .select('id', { count: 'exact', head: true })
+        .eq('post_id', post.id);
+        
+      if (count !== null) {
+        setCommentsCount(count);
+      }
+    } catch (error) {
+      console.error('Error fetching comment count:', error);
     }
   };
   
@@ -72,26 +88,6 @@ const PostItem = ({ post, handleLikePost }: PostItemProps) => {
     }
     return "#";
   };
-  
-  // Fetch current comment count
-  useEffect(() => {
-    const fetchCommentCount = async () => {
-      try {
-        const { count } = await supabase
-          .from('comments')
-          .select('id', { count: 'exact', head: true })
-          .eq('post_id', post.id);
-          
-        if (count !== null) {
-          setCommentsCount(count);
-        }
-      } catch (error) {
-        console.error('Error fetching comment count:', error);
-      }
-    };
-    
-    fetchCommentCount();
-  }, [post.id]);
   
   return (
     <div className="mb-6 pb-6 border-b border-gray-100 last:border-0 last:mb-0 last:pb-0 dark:border-gray-700 transition-all hover:bg-gray-50 dark:hover:bg-gray-800/50 p-4 rounded-lg -mx-4">

@@ -1,4 +1,3 @@
-
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Activity, Image, Play, User, Users, ShoppingBag, Bell, Home, Settings, ChevronLeft, LogOut, MessageSquare, Shield } from "lucide-react";
 import { useState, useEffect } from "react";
@@ -99,13 +98,14 @@ const Sidebar = () => {
   // Handle item navigation
   const handleNavItemClick = (path: string) => {
     navigate(path);
+    // If mobile drawer is open, close it
+    if (isDrawerOpen) {
+      setIsDrawerOpen(false);
+    }
   };
 
   // Check if user is admin
   const isAdmin = user?.role === 'admin';
-
-  console.log("Current user role:", user?.role);
-  console.log("Is admin:", isAdmin);
 
   return (
     <>
@@ -227,18 +227,32 @@ const Sidebar = () => {
               </div>
 
               <div className="grid grid-cols-4 gap-4 mb-6">
-                <MobileNavItem icon={<Home className="w-6 h-6" />} label="Home" to="/home" />
-                <MobileNavItem icon={<Activity className="w-6 h-6" />} label="Activity" to="/activity" />
-                <MobileNavItem icon={<Image className="w-6 h-6" />} label="Photos" to="/photos" />
-                <MobileNavItem icon={<Play className="w-6 h-6" />} label="Videos" to="/videos" />
-                <MobileNavItem icon={<Users className="w-6 h-6" />} label="People" to="/people" />
-                <MobileNavItem icon={<Bell className="w-6 h-6" />} label="Notifications" to="/notifications" />
-                <MobileNavItem icon={<ShoppingBag className="w-6 h-6" />} label="Shop" to="/shop" />
-                <MobileNavItem icon={<Settings className="w-6 h-6" />} label="Settings" to="/settings" />
-                {/* Admin item - only visible for admin users */}
-                {isAdmin && (
-                  <MobileNavItem icon={<Shield className="w-6 h-6" />} label="Admin" to="/admin" />
-                )}
+                {[
+                  { icon: <Home className="w-6 h-6" />, label: "Home", path: "/home" },
+                  { icon: <Activity className="w-6 h-6" />, label: "Activity", path: "/activity" },
+                  { icon: <Image className="w-6 h-6" />, label: "Photos", path: "/photos" },
+                  { icon: <Play className="w-6 h-6" />, label: "Videos", path: "/videos" },
+                  { icon: <Users className="w-6 h-6" />, label: "People", path: "/people" },
+                  { icon: <Bell className="w-6 h-6" />, label: "Notifications", path: "/notifications" },
+                  { icon: <ShoppingBag className="w-6 h-6" />, label: "Shop", path: "/shop" },
+                  { icon: <Settings className="w-6 h-6" />, label: "Settings", path: "/settings" },
+                  ...(isAdmin ? [{ icon: <Shield className="w-6 h-6" />, label: "Admin", path: "/admin" }] : [])
+                ].map((item, index) => (
+                  <button
+                    key={index}
+                    className="flex flex-col items-center gap-1 p-2"
+                    onClick={() => handleNavItemClick(item.path)}
+                  >
+                    <div className={`w-12 h-12 rounded-lg ${location.pathname === item.path ? 'bg-purple-900/50' : 'bg-gray-800/50'} flex items-center justify-center`}>
+                      <div className={`${location.pathname === item.path ? 'text-purple-400' : 'text-gray-400'}`}>
+                        {item.icon}
+                      </div>
+                    </div>
+                    <span className={`text-xs ${location.pathname === item.path ? 'text-purple-400' : 'text-gray-400'}`}>
+                      {item.label}
+                    </span>
+                  </button>
+                ))}
               </div>
 
               <Separator className="my-4 bg-gray-700" />
@@ -246,18 +260,21 @@ const Sidebar = () => {
               <h3 className="text-sm font-medium mb-4 text-gray-300">Bottom Navigation</h3>
               <p className="text-xs text-gray-400 mb-4">You can customize this in Settings</p>
               
-              <Link 
-                to="/settings?tab=appearance" 
-                className="flex items-center justify-center gap-2 bg-purple-900/30 border border-purple-800/30 p-3 rounded-lg mb-4 hover:bg-purple-900/50 transition-colors"
+              <button
+                onClick={() => handleNavItemClick("/settings?tab=appearance")}
+                className="flex items-center justify-center gap-2 bg-purple-900/30 border border-purple-800/30 p-3 rounded-lg mb-4 hover:bg-purple-900/50 transition-colors w-full"
               >
                 <Settings className="h-4 w-4" />
                 <span className="text-sm">Customize Navigation</span>
-              </Link>
+              </button>
 
               <Separator className="my-4 bg-gray-700" />
 
               <div className="flex justify-between">
-                <Link to="/profile" className="flex-1 flex flex-col items-center gap-1 text-gray-400 hover:text-white p-2">
+                <button 
+                  onClick={() => handleNavItemClick("/profile")} 
+                  className="flex-1 flex flex-col items-center gap-1 text-gray-400 hover:text-white p-2"
+                >
                   <div className="w-10 h-10 rounded-full bg-purple-900/30 flex items-center justify-center overflow-hidden">
                     {user?.profilePicture ? (
                       <img src={user.profilePicture} alt="Profile" className="w-full h-full object-cover" />
@@ -266,15 +283,21 @@ const Sidebar = () => {
                     )}
                   </div>
                   <span className="text-xs">Profile</span>
-                </Link>
-                <Link to="/messages" className="flex-1 flex flex-col items-center gap-1 text-gray-400 hover:text-white p-2">
+                </button>
+                <button 
+                  onClick={() => handleNavItemClick("/messages")}
+                  className="flex-1 flex flex-col items-center gap-1 text-gray-400 hover:text-white p-2"
+                >
                   <div className="w-10 h-10 rounded-full bg-purple-900/30 flex items-center justify-center">
                     <MessageSquare className="w-6 h-6 text-purple-300" />
                   </div>
                   <span className="text-xs">Messages</span>
-                </Link>
+                </button>
                 <button 
-                  onClick={logout} 
+                  onClick={() => {
+                    logout();
+                    setIsDrawerOpen(false);
+                  }} 
                   className="flex-1 flex flex-col items-center gap-1 text-gray-400 hover:text-white p-2"
                 >
                   <div className="w-10 h-10 rounded-full bg-purple-900/30 flex items-center justify-center">
@@ -288,15 +311,15 @@ const Sidebar = () => {
         </Drawer>
       </div>
 
-      {/* Improved Mobile Bottom Navigation Bar */}
+      {/* Mobile Bottom Navigation Bar */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 bg-[#2B2A33] border-t border-gray-800 flex justify-around items-center py-2 px-4 z-40 pb-safe shadow-lg">
         {bottomNavItems.map((item, index) => {
           const isActive = currentPath === item.path;
           return (
-            <Link 
+            <button 
               key={index} 
-              to={item.path} 
               className="flex-1"
+              onClick={() => handleNavItemClick(item.path)}
             >
               <div className={`flex flex-col items-center py-1 ${isActive ? 'text-purple-400' : 'text-gray-400'}`}>
                 <div className={`p-1 rounded-full ${isActive ? 'bg-purple-900/30' : ''}`}>
@@ -304,7 +327,7 @@ const Sidebar = () => {
                 </div>
                 <span className="text-xs mt-1">{item.label}</span>
               </div>
-            </Link>
+            </button>
           );
         })}
       </div>
@@ -320,21 +343,5 @@ const NavItem = ({ icon, label, isActive = false, collapsed = false, to }: { ico
     {!collapsed && <span className={`text-xs ${isActive ? 'text-[#8B5CF6]' : 'text-gray-400'}`}>{label}</span>}
   </Link>
 );
-
-const MobileNavItem = ({ icon, label, to }: { icon: React.ReactNode; label: string; to: string }) => {
-  const location = useLocation();
-  const isActive = location.pathname === to;
-  
-  return (
-    <Link to={to} className="flex flex-col items-center gap-1 p-2">
-      <div className={`w-12 h-12 rounded-lg ${isActive ? 'bg-purple-900/50' : 'bg-gray-800/50'} flex items-center justify-center`}>
-        <div className={`${isActive ? 'text-purple-400' : 'text-gray-400'}`}>
-          {icon}
-        </div>
-      </div>
-      <span className={`text-xs ${isActive ? 'text-purple-400' : 'text-gray-400'}`}>{label}</span>
-    </Link>
-  );
-};
 
 export default Sidebar;

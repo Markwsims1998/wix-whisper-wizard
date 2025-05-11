@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 import { createActivity } from "./activityService";
@@ -261,14 +260,14 @@ export const likePost = async (postId: string, userId: string): Promise<{ succes
   }
 };
 
-// Get the users who liked a post
+// Get the users who liked a post - updated to include profile_picture_url
 export const getLikesForPost = async (postId: string) => {
   try {
     const { data, error } = await supabase
       .from('likes')
       .select(`
         user_id,
-        user:user_id(id, username, full_name, avatar_url)
+        user:user_id(id, username, full_name, avatar_url, profile_picture_url)
       `)
       .eq('post_id', postId);
 

@@ -20,6 +20,7 @@ interface LikeUser {
   username: string;
   full_name: string;
   avatar_url: string | null;
+  profile_picture_url?: string | null;
 }
 
 const CommentsPage = () => {
@@ -75,7 +76,7 @@ const CommentsPage = () => {
     loadPost();
   }, [postId, toast]);
 
-  // Get avatar URL from multiple possible sources
+  // Updated getAvatarUrl function to check profile_picture_url first
   const getAvatarUrl = (author: any) => {
     if (!author) return null;
     return author.profile_picture_url || author.avatar_url || null;
@@ -121,7 +122,8 @@ const CommentsPage = () => {
           id: user.id,
           username: user.username || '',
           full_name: user.name || '',
-          avatar_url: user.profilePicture || null
+          avatar_url: user.profilePicture || null,
+          profile_picture_url: user.profilePicture || null
         };
         setLikeUsers(prev => [currentUser, ...prev]);
       } else {
@@ -196,17 +198,20 @@ const CommentsPage = () => {
                 <div className="flex items-start gap-3 mb-4">
                   <Link 
                     to={getProfileUrl(post.author?.id || '', post.author?.username)}
-                    className="h-10 w-10 rounded-full bg-purple-100 dark:bg-purple-900 flex items-center justify-center overflow-hidden"
+                    className="flex-shrink-0"
                   >
-                    {getAvatarUrl(post.author) ? (
-                      <img 
-                        src={getAvatarUrl(post.author)} 
-                        alt={post.author?.full_name || "User"} 
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      <User className="h-5 w-5 text-purple-600 dark:text-purple-300" />
-                    )}
+                    <Avatar className="h-10 w-10 bg-purple-100 dark:bg-purple-900">
+                      {getAvatarUrl(post.author) ? (
+                        <AvatarImage 
+                          src={getAvatarUrl(post.author)} 
+                          alt={post.author?.full_name || "User"} 
+                        />
+                      ) : (
+                        <AvatarFallback className="text-purple-600 dark:text-purple-300">
+                          {(post.author?.full_name || post.author?.username || "U").charAt(0)}
+                        </AvatarFallback>
+                      )}
+                    </Avatar>
                   </Link>
                   <div>
                     <Link 
@@ -294,7 +299,7 @@ const CommentsPage = () => {
                 />
               </div>
               
-              {/* Who Loved Section */}
+              {/* Who Loved Section - Updated to display profile pictures correctly */}
               {likesCount > 0 && (
                 <div className="mt-8">
                   <h3 className="text-md font-medium mb-3">Who loved this ({likesCount})</h3>
@@ -306,8 +311,11 @@ const CommentsPage = () => {
                         title={user.full_name}
                       >
                         <Avatar className="h-8 w-8 border-2 border-white dark:border-gray-800">
-                          {getAvatarUrl(user) ? (
-                            <AvatarImage src={getAvatarUrl(user)} alt={user.full_name} />
+                          {user.profile_picture_url || user.avatar_url ? (
+                            <AvatarImage 
+                              src={user.profile_picture_url || user.avatar_url} 
+                              alt={user.full_name} 
+                            />
                           ) : (
                             <AvatarFallback className="bg-purple-100 text-purple-600 dark:bg-purple-900 dark:text-purple-300">
                               {user.full_name.charAt(0)}

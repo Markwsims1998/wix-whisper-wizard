@@ -35,10 +35,9 @@ const CommentItem = ({ comment, onDelete }: CommentItemProps) => {
     }
   };
 
-  // Get the appropriate avatar URL - ensuring we check all possible locations
+  // Get the appropriate avatar URL - prioritizing profile_picture_url
   const getAvatarUrl = () => {
     if (!comment.author) return null;
-    // First check profile_picture_url, then avatar_url
     return comment.author.profile_picture_url || comment.author.avatar_url || null;
   };
 

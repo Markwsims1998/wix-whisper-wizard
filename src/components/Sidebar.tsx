@@ -1,5 +1,6 @@
+
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Activity, Image, Play, User, Users, ShoppingBag, Bell, Home, Settings, ChevronLeft, LogOut, MessageSquare, Shield } from "lucide-react";
+import { Activity, Image, Play, User, Users, ShoppingBag, Bell, Home, Settings, ChevronLeft, LogOut, MessageSquare, Shield, Heart } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/auth/AuthProvider";
 import { useToast } from "@/components/ui/use-toast";
@@ -11,6 +12,9 @@ import {
   DrawerTrigger,
   DrawerClose
 } from "@/components/ui/drawer";
+import { countPendingWinks } from "@/services/winksService";
+import { supabase } from "@/integrations/supabase/client";
+import { Badge } from "@/components/ui/badge";
 
 // Define a type for the navigation items
 interface NavItem {
@@ -32,11 +36,40 @@ const Sidebar = () => {
   const [collapsed, setCollapsed] = useState(false);
   const [bottomNavItems, setBottomNavItems] = useState<NavItem[]>(defaultBottomNavItems);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [pendingWinksCount, setPendingWinksCount] = useState(0);
   const location = useLocation();
   const navigate = useNavigate();
   const { toast } = useToast();
   const currentPath = location.pathname;
   const { user, logout } = useAuth();
+  
+  // Get pending winks count and set up realtime subscription
+  useEffect(() => {
+    const fetchPendingWinksCount = async () => {
+      if (!user?.id) return;
+      const count = await countPendingWinks();
+      setPendingWinksCount(count);
+    };
+    
+    fetchPendingWinksCount();
+    
+    // Subscribe to winks changes
+    const channel = supabase
+      .channel('sidebar-winks-updates')
+      .on('postgres_changes', {
+        event: '*', 
+        schema: 'public',
+        table: 'winks',
+        filter: `recipient_id=eq.${user?.id}`
+      }, () => {
+        fetchPendingWinksCount();
+      })
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id]);
   
   // Get user's custom navigation preferences from localStorage
   useEffect(() => {
@@ -142,6 +175,14 @@ const Sidebar = () => {
             <NavItem icon={<Image className="w-5 h-5" />} label="Photos" isActive={currentPath === "/photos"} to="/photos" collapsed={collapsed} />
             <NavItem icon={<Play className="w-5 h-5" />} label="Videos" isActive={currentPath === "/videos"} to="/videos" collapsed={collapsed} />
             <NavItem icon={<Users className="w-5 h-5" />} label="People" isActive={currentPath === "/people"} to="/people" collapsed={collapsed} />
+            <NavItem 
+              icon={<Heart className="w-5 h-5" />} 
+              label="Winks" 
+              isActive={currentPath === "/winks"} 
+              to="/winks" 
+              collapsed={collapsed} 
+              notificationCount={pendingWinksCount}
+            />
             <NavItem icon={<Bell className="w-5 h-5" />} label="Notifications" isActive={currentPath === "/notifications"} to="/notifications" collapsed={collapsed} />
             <NavItem icon={<ShoppingBag className="w-5 h-5" />} label="Shop" isActive={currentPath === "/shop"} to="/shop" collapsed={collapsed} />
             <NavItem icon={<Settings className="w-5 h-5" />} label="Settings" isActive={currentPath === "/settings"} to="/settings" collapsed={collapsed} />
@@ -233,6 +274,12 @@ const Sidebar = () => {
                   { icon: <Image className="w-6 h-6" />, label: "Photos", path: "/photos" },
                   { icon: <Play className="w-6 h-6" />, label: "Videos", path: "/videos" },
                   { icon: <Users className="w-6 h-6" />, label: "People", path: "/people" },
+                  { 
+                    icon: <Heart className="w-6 h-6" />, 
+                    label: "Winks", 
+                    path: "/winks",
+                    badge: pendingWinksCount > 0 ? pendingWinksCount : undefined
+                  },
                   { icon: <Bell className="w-6 h-6" />, label: "Notifications", path: "/notifications" },
                   { icon: <ShoppingBag className="w-6 h-6" />, label: "Shop", path: "/shop" },
                   { icon: <Settings className="w-6 h-6" />, label: "Settings", path: "/settings" },
@@ -243,10 +290,15 @@ const Sidebar = () => {
                     className="flex flex-col items-center gap-1 p-2"
                     onClick={() => handleNavItemClick(item.path)}
                   >
-                    <div className={`w-12 h-12 rounded-lg ${location.pathname === item.path ? 'bg-purple-900/50' : 'bg-gray-800/50'} flex items-center justify-center`}>
+                    <div className={`w-12 h-12 rounded-lg ${location.pathname === item.path ? 'bg-purple-900/50' : 'bg-gray-800/50'} flex items-center justify-center relative`}>
                       <div className={`${location.pathname === item.path ? 'text-purple-400' : 'text-gray-400'}`}>
                         {item.icon}
                       </div>
+                      {item.badge && (
+                        <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                          {item.badge > 9 ? '9+' : item.badge}
+                        </span>
+                      )}
                     </div>
                     <span className={`text-xs ${location.pathname === item.path ? 'text-purple-400' : 'text-gray-400'}`}>
                       {item.label}
@@ -335,11 +387,30 @@ const Sidebar = () => {
   );
 };
 
-const NavItem = ({ icon, label, isActive = false, collapsed = false, to }: { icon: React.ReactNode; label: string; isActive?: boolean; collapsed?: boolean; to: string }) => (
-  <Link to={to} className={`flex ${collapsed ? 'justify-center py-3' : 'flex-col items-center py-3'} text-xs`}>
+const NavItem = ({ 
+  icon, 
+  label, 
+  isActive = false, 
+  collapsed = false, 
+  to,
+  notificationCount = 0
+}: { 
+  icon: React.ReactNode; 
+  label: string; 
+  isActive?: boolean; 
+  collapsed?: boolean; 
+  to: string;
+  notificationCount?: number;
+}) => (
+  <Link to={to} className={`flex ${collapsed ? 'justify-center py-3' : 'flex-col items-center py-3'} text-xs relative`}>
     <div className={`flex justify-center items-center mb-1 ${isActive ? 'text-[#8B5CF6]' : 'text-gray-400'}`}>
       {icon}
     </div>
+    {notificationCount > 0 && (
+      <div className={`absolute ${collapsed ? '-top-1 -right-1' : 'top-0 right-0'} bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center`}>
+        {notificationCount > 9 ? '9+' : notificationCount}
+      </div>
+    )}
     {!collapsed && <span className={`text-xs ${isActive ? 'text-[#8B5CF6]' : 'text-gray-400'}`}>{label}</span>}
   </Link>
 );

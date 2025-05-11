@@ -88,22 +88,13 @@ export const getBannerSettings = async (): Promise<BannerSettings> => {
   }
 };
 
-// Save banner settings - deactivate old banners and create a new one
+// Save banner settings - the trigger will handle deactivating other banners
 export const saveBannerSettings = async (settings: BannerSettings): Promise<boolean> => {
   try {
-    // First deactivate all existing banners
-    const { error: deactivateError } = await supabase
-      .from('banner_settings')
-      .update({ active: false })
-      .neq('id', 'placeholder'); // This will affect all rows
-
-    if (deactivateError) {
-      console.error('Error deactivating existing banners:', deactivateError);
-      return false;
-    }
-
-    // Then insert the new banner settings
-    const { error } = await supabase
+    console.log("Saving new banner settings:", settings);
+    
+    // Insert the new banner settings - our trigger will handle deactivating others
+    const { error, data } = await supabase
       .from('banner_settings')
       .insert({
         active: settings.active,
@@ -114,13 +105,15 @@ export const saveBannerSettings = async (settings: BannerSettings): Promise<bool
         scheduled: settings.scheduled,
         start_date: settings.startDate,
         end_date: settings.endDate
-      });
+      })
+      .select();
 
     if (error) {
       console.error('Error saving banner settings:', error);
       return false;
     }
 
+    console.log("Banner settings saved successfully:", data);
     return true;
   } catch (error) {
     console.error('Unexpected error saving banner settings:', error);

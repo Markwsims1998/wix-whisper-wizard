@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,7 +18,6 @@ const AdminMarketingSettings = () => {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("banner");
   const [isLoading, setIsLoading] = useState(false);
-  const [savedBannerId, setSavedBannerId] = useState<string | null>(null);
   
   // Banner state
   const [bannerActive, setBannerActive] = useState(true);
@@ -112,6 +110,8 @@ const AdminMarketingSettings = () => {
           return;
         }
       }
+
+      console.log("Preparing to save banner with active:", bannerActive);
       
       const success = await saveBannerSettings({
         active: bannerActive,

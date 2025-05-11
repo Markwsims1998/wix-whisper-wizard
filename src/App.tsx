@@ -20,6 +20,7 @@ import Watch from "./pages/Watch";
 import Basket from "./pages/Basket";
 import Notifications from "./pages/Notifications";
 import Feedback from "./pages/Feedback";
+import Winks from "./pages/Winks";
 import { useAuth } from "@/contexts/auth/AuthProvider";
 
 function App() {
@@ -57,6 +58,7 @@ function App() {
         <Route path="/watch" element={isAuthenticated ? <Watch /> : <Navigate to="/login" replace />} />
         <Route path="/basket" element={isAuthenticated ? <Basket /> : <Navigate to="/login" replace />} />
         <Route path="/notifications" element={isAuthenticated ? <Notifications /> : <Navigate to="/login" replace />} />
+        <Route path="/winks" element={isAuthenticated ? <Winks /> : <Navigate to="/login" replace />} />
         
         {/* Public routes */}
         <Route path="/login" element={isAuthenticated ? <Navigate to="/" replace /> : <Login />} />

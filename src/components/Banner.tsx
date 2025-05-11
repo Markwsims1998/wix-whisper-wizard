@@ -55,22 +55,39 @@ const Banner = () => {
     // Load banner every 5 minutes to catch any missed real-time updates
     const interval = setInterval(loadBanner, 5 * 60 * 1000);
     
+    // Custom event listener for when banner is updated through admin panel
+    const handleBannerUpdated = () => {
+      console.log("Banner updated event received");
+      loadBanner();
+    };
+    window.addEventListener('banner-updated', handleBannerUpdated);
+    
     return () => {
       clearInterval(interval);
       supabase.removeChannel(channel);
+      window.removeEventListener('banner-updated', handleBannerUpdated);
     };
   }, [isAuthenticated]);
   
+  // Debugging what's preventing the banner from showing
+  useEffect(() => {
+    if (!banner?.active && banner !== null) {
+      console.log("Banner is not active:", banner);
+    }
+  }, [banner]);
+  
   // If error, loading, no banner, not authenticated, banner not active, or not visible, return null
   if (hasError || isLoading || !banner || !isAuthenticated || !banner.active || !isVisible) {
-    console.log("Banner not showing because:", { 
-      hasError, 
-      isLoading, 
-      bannerExists: !!banner, 
-      isAuthenticated, 
-      bannerActive: banner?.active,
-      isVisible
-    });
+    if (!isLoading) {
+      console.log("Banner not showing because:", { 
+        hasError, 
+        isLoading, 
+        bannerExists: !!banner, 
+        isAuthenticated, 
+        bannerActive: banner?.active,
+        isVisible
+      });
+    }
     return null;
   }
   

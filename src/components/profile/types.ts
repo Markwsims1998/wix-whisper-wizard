@@ -23,3 +23,10 @@ export interface Post {
     subscription_tier?: string;
   };
 }
+
+export interface RelationshipStatus {
+  id: string;
+  name: string;
+  isActive: boolean;
+  createdAt: string;
+}

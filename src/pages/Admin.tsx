@@ -15,7 +15,6 @@ import AdminContent from "@/components/admin/AdminContent";
 import AdminReports from "@/components/admin/AdminReports";
 import AdminSettings from "@/components/admin/AdminSettings";
 import AdminSubscriptions from "@/components/admin/AdminSubscriptions";
-import AdminMarketingSettings from "@/components/admin/AdminMarketingSettings";
 
 // Add CSS variables for the admin sidebar
 const initAdminStyles = () => {
@@ -223,7 +222,12 @@ const Admin = () => {
             </TabsContent>
 
             <TabsContent value="marketing">
-              <AdminMarketingSettings />
+              {/* Removed reference to AdminMarketingSettings */}
+              <div className="text-center py-10">
+                <Megaphone className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                <h2 className="text-xl font-bold mb-2">Marketing Settings</h2>
+                <p className="text-gray-500 mb-4">This section is currently unavailable</p>
+              </div>
             </TabsContent>
             
             <TabsContent value="reports">

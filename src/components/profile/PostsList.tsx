@@ -63,8 +63,45 @@ const PostsList = ({
         
         console.log("Fetched profile posts:", fetchedPosts);
         
+        if (!fetchedPosts) {
+          setPosts([]);
+          setLoading(false);
+          return;
+        }
+        
+        // Process the fetched posts to match our Post interface
+        const processedPosts = fetchedPosts.map((post: any) => {
+          // Transform likes_count from array to number
+          let likesCount = 0;
+          if (post.likes_count) {
+            if (Array.isArray(post.likes_count) && post.likes_count.length > 0) {
+              const countObj = post.likes_count[0];
+              likesCount = countObj && typeof countObj === 'object' ? (countObj.count || 0) : post.likes_count.length;
+            } else if (typeof post.likes_count === 'number') {
+              likesCount = post.likes_count;
+            }
+          }
+          
+          // Transform comments_count from array to number
+          let commentsCount = 0;
+          if (post.comments_count) {
+            if (Array.isArray(post.comments_count) && post.comments_count.length > 0) {
+              const countObj = post.comments_count[0];
+              commentsCount = countObj && typeof countObj === 'object' ? (countObj.count || 0) : post.comments_count.length;
+            } else if (typeof post.comments_count === 'number') {
+              commentsCount = post.comments_count;
+            }
+          }
+          
+          return {
+            ...post,
+            likes_count: likesCount,
+            comments_count: commentsCount
+          };
+        });
+        
         // Check if current user has liked any of these posts
-        const transformedPosts = await checkUserLikes(fetchedPosts);
+        const transformedPosts = await checkUserLikes(processedPosts);
         setPosts(transformedPosts);
       } catch (err) {
         console.error("Failed to fetch profile posts:", err);
@@ -91,34 +128,10 @@ const PostsList = ({
       if (likedPosts) {
         const likedPostIds = new Set(likedPosts.map(like => like.post_id));
         
-        return fetchedPosts.map(post => {
-          // Transform the data - handle different response formats for counts
-          let likesCount = 0;
-          if (post.likes_count) {
-            if (typeof post.likes_count === 'number') {
-              likesCount = post.likes_count;
-            } else if (Array.isArray(post.likes_count)) {
-              if (post.likes_count.length > 0) {
-                const firstItem = post.likes_count[0];
-                if (firstItem && typeof firstItem === 'object' && firstItem !== null) {
-                  const countObj = firstItem as unknown as { count?: number };
-                  likesCount = countObj?.count ?? 0;
-                } else {
-                  likesCount = post.likes_count.length || 0;
-                }
-              }
-            } else if (typeof post.likes_count === 'object' && post.likes_count !== null) {
-              const countObj = post.likes_count as unknown as { count?: number };
-              likesCount = countObj?.count ?? 0;
-            }
-          }
-          
-          return {
-            ...post,
-            likes_count: likesCount,
-            is_liked: likedPostIds.has(post.id)
-          };
-        });
+        return fetchedPosts.map(post => ({
+          ...post,
+          is_liked: likedPostIds.has(post.id)
+        }));
       }
     } catch (error) {
       console.error("Error checking likes:", error);

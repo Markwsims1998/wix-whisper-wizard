@@ -12,7 +12,7 @@ export interface BannerSettings {
   endDate: string | null;
 }
 
-// Default banner settings if nothing is in the database
+// Default banner settings if nothing is in the database or there's an error
 const defaultBannerSettings: BannerSettings = {
   active: false,
   text: "Welcome to our platform!",
@@ -32,9 +32,9 @@ export const getBannerSettings = async (): Promise<BannerSettings> => {
       .select('*')
       .order('created_at', { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle(); // Using maybeSingle instead of single to avoid errors
 
-    if (error) {
+    if (error || !data) {
       console.error('Error fetching banner settings:', error);
       return defaultBannerSettings;
     }
@@ -52,12 +52,12 @@ export const getBannerSettings = async (): Promise<BannerSettings> => {
     }
 
     return {
-      active: data.active,
-      text: data.text,
-      link: data.link,
-      linkText: data.link_text,
-      color: data.color,
-      scheduled: data.scheduled,
+      active: data.active ?? false,
+      text: data.text || defaultBannerSettings.text,
+      link: data.link || '',
+      linkText: data.link_text || '',
+      color: data.color || 'purple',
+      scheduled: data.scheduled ?? false,
       startDate: data.start_date,
       endDate: data.end_date
     };

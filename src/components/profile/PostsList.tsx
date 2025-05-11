@@ -3,6 +3,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Post } from "@/components/profile/types";
 import PostItem from "./PostItem";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 type PostsListProps = {
   posts: Post[];
@@ -20,9 +21,23 @@ const PostsList = ({
   return (
     <div className="mt-6">
       <div className="bg-white rounded-lg shadow p-4 dark:bg-gray-800">
-        <h2 className="text-xl font-semibold mb-4">
-          {isMyProfile ? "Your Recent Posts" : `${profile?.name}'s Recent Posts`}
-        </h2>
+        <div className="flex items-center gap-3 mb-4">
+          <Avatar className="h-10 w-10 bg-purple-100 dark:bg-purple-900">
+            {profile?.avatar_url || profile?.profile_picture_url ? (
+              <AvatarImage 
+                src={profile?.profile_picture_url || profile?.avatar_url} 
+                alt={profile?.full_name || "User"} 
+              />
+            ) : (
+              <AvatarFallback className="text-purple-600 dark:text-purple-300">
+                {(profile?.full_name || profile?.username || "U").charAt(0)}
+              </AvatarFallback>
+            )}
+          </Avatar>
+          <h2 className="text-xl font-semibold">
+            {isMyProfile ? "Your Recent Posts" : `${profile?.full_name || profile?.username}'s Recent Posts`}
+          </h2>
+        </div>
         <Separator className="mb-4" />
         
         {/* Posts */}

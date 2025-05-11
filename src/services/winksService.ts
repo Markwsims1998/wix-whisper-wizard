@@ -94,18 +94,10 @@ export const getReceivedWinks = async (): Promise<Wink[]> => {
 
     console.log("Fetching received winks for user ID:", user.id);
 
-    const { data, error } = await supabase
+    // First fetch the winks
+    const { data: winks, error } = await supabase
       .from('winks')
-      .select(`
-        *,
-        sender:profiles!winks_sender_id_fkey (
-          id,
-          username,
-          full_name,
-          avatar_url,
-          profile_picture_url
-        )
-      `)
+      .select('*')
       .eq('recipient_id', user.id)
       .order('created_at', { ascending: false });
 
@@ -114,8 +106,29 @@ export const getReceivedWinks = async (): Promise<Wink[]> => {
       return [];
     }
 
-    console.log('Received winks data:', data);
-    return data as Wink[] || [];
+    // Now fetch the sender profiles for these winks
+    const senderIds = winks.map(wink => wink.sender_id);
+    const { data: profiles, error: profilesError } = await supabase
+      .from('profiles')
+      .select('id, username, full_name, avatar_url, profile_picture_url')
+      .in('id', senderIds);
+    
+    if (profilesError) {
+      console.error('Error fetching sender profiles:', profilesError);
+      return winks;
+    }
+
+    // Map the profiles to the winks
+    const winksWithProfiles = winks.map(wink => {
+      const senderProfile = profiles.find(profile => profile.id === wink.sender_id);
+      return {
+        ...wink,
+        sender: senderProfile
+      };
+    });
+
+    console.log('Received winks data:', winksWithProfiles);
+    return winksWithProfiles as Wink[];
   } catch (error) {
     console.error('Unexpected error fetching received winks:', error);
     return [];
@@ -130,18 +143,10 @@ export const getSentWinks = async (): Promise<Wink[]> => {
 
     console.log("Fetching sent winks for user ID:", user.id);
 
-    const { data, error } = await supabase
+    // First fetch the winks
+    const { data: winks, error } = await supabase
       .from('winks')
-      .select(`
-        *,
-        recipient:profiles!winks_recipient_id_fkey (
-          id,
-          username,
-          full_name,
-          avatar_url,
-          profile_picture_url
-        )
-      `)
+      .select('*')
       .eq('sender_id', user.id)
       .order('created_at', { ascending: false });
 
@@ -150,8 +155,29 @@ export const getSentWinks = async (): Promise<Wink[]> => {
       return [];
     }
 
-    console.log('Sent winks data:', data);
-    return data as Wink[] || [];
+    // Now fetch the recipient profiles for these winks
+    const recipientIds = winks.map(wink => wink.recipient_id);
+    const { data: profiles, error: profilesError } = await supabase
+      .from('profiles')
+      .select('id, username, full_name, avatar_url, profile_picture_url')
+      .in('id', recipientIds);
+    
+    if (profilesError) {
+      console.error('Error fetching recipient profiles:', profilesError);
+      return winks;
+    }
+
+    // Map the profiles to the winks
+    const winksWithProfiles = winks.map(wink => {
+      const recipientProfile = profiles.find(profile => profile.id === wink.recipient_id);
+      return {
+        ...wink,
+        recipient: recipientProfile
+      };
+    });
+
+    console.log('Sent winks data:', winksWithProfiles);
+    return winksWithProfiles as Wink[];
   } catch (error) {
     console.error('Unexpected error fetching sent winks:', error);
     return [];

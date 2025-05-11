@@ -8,8 +8,7 @@ import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
 import Footer from "@/components/Footer";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { User } from "lucide-react";
-import { format, formatDistance } from "date-fns";
+import { formatDistance } from "date-fns";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/auth/AuthContext";
 
@@ -276,7 +275,7 @@ const WinksPage = () => {
                               
                               {!canSend && (
                                 <div className="text-xs text-gray-500 mt-1">
-                                  Can send new wink {format(resetDate, 'MMM d')}
+                                  Can send new wink on {resetDate.toLocaleDateString()}
                                 </div>
                               )}
                             </div>

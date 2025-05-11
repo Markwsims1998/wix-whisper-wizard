@@ -443,7 +443,11 @@ const MemberCard = ({ member, isFriendRequested, isFriend, onFriendAction, onVie
           {member.avatar_url ? (
             <img src={member.avatar_url} alt={member.full_name} className="h-full w-full object-cover" />
           ) : (
-            <User className="h-8 w-8 text-gray-500 dark:text-gray-400" />
+            <div className="h-full w-full flex items-center justify-center bg-purple-100 dark:bg-purple-900">
+              <span className="text-xl font-medium text-purple-600 dark:text-purple-300">
+                {member.full_name.charAt(0)}
+              </span>
+            </div>
           )}
         </div>
         <h3 

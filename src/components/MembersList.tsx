@@ -4,6 +4,7 @@ import { User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/auth/AuthProvider";
 import { Link } from "react-router-dom";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 type Member = {
   id: string;
@@ -122,14 +123,16 @@ const MembersList = () => {
           <div className="text-sm text-gray-500 dark:text-gray-400 py-2">Loading friends...</div>
         ) : friendMembers.length > 0 ? (
           friendMembers.map((member) => (
-            <Link to={`/profile?id=${member.id}`} key={member.id} className="flex items-center gap-3 hover:bg-gray-50 p-2 rounded-md transition-colors dark:hover:bg-gray-700">
-              <div className="h-10 w-10 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center overflow-hidden">
+            <Link to={`/profile/${member.id}`} key={member.id} className="flex items-center gap-3 hover:bg-gray-50 p-2 rounded-md transition-colors dark:hover:bg-gray-700">
+              <Avatar className="h-10 w-10 bg-gray-200 dark:bg-gray-600">
                 {member.avatar ? (
-                  <img src={member.avatar} alt={member.name} className="h-full w-full object-cover" />
+                  <AvatarImage src={member.avatar} alt={member.name} />
                 ) : (
-                  <User className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+                  <AvatarFallback className="bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-300">
+                    {member.name.charAt(0)}
+                  </AvatarFallback>
                 )}
-              </div>
+              </Avatar>
               <div>
                 <h3 className="text-sm font-medium dark:text-white">{member.name}</h3>
                 <p className="text-xs text-gray-500 dark:text-gray-400">{member.timeAgo}</p>

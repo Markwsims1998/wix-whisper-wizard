@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Comment } from "@/services/commentService";
 import { useAuth } from "@/contexts/auth/AuthProvider";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 interface CommentItemProps {
   comment: Comment;
@@ -37,17 +38,18 @@ const CommentItem = ({ comment, onDelete }: CommentItemProps) => {
   return (
     <div className="flex gap-3 pt-2">
       <Link to={`/profile/${comment.author?.id}`} className="flex-shrink-0">
-        <div className="h-8 w-8 rounded-full bg-purple-100 dark:bg-purple-900 flex items-center justify-center overflow-hidden">
+        <Avatar className="h-8 w-8 bg-purple-100 dark:bg-purple-900">
           {comment.author?.avatar_url ? (
-            <img 
+            <AvatarImage 
               src={comment.author.avatar_url} 
               alt={comment.author.full_name || "User"}
-              className="h-full w-full object-cover" 
             />
           ) : (
-            <User className="h-4 w-4 text-purple-600 dark:text-purple-300" />
+            <AvatarFallback className="text-purple-600 dark:text-purple-300">
+              {(comment.author?.full_name || comment.author?.username || "U").charAt(0)}
+            </AvatarFallback>
           )}
-        </div>
+        </Avatar>
       </Link>
       
       <div className="flex-1">

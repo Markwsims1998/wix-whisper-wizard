@@ -1,4 +1,3 @@
-
 import { Heart, MessageCircle, User } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
@@ -8,6 +7,7 @@ import { Post } from "./types";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/auth/AuthProvider";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 type PostItemProps = {
   post: Post;
@@ -94,17 +94,20 @@ const PostItem = ({ post, handleLikePost }: PostItemProps) => {
       <div className="flex items-center gap-3 mb-3">
         <Link 
           to={getProfileUrl()} 
-          className="h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center overflow-hidden dark:bg-purple-900 transition-transform hover:scale-105"
+          className="flex-shrink-0"
         >
-          {post.author?.avatar_url ? (
-            <img 
-              src={post.author.avatar_url} 
-              alt={post.author.full_name} 
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <User className="w-6 h-6 text-purple-600 dark:text-purple-300" />
-          )}
+          <Avatar className="h-10 w-10 bg-purple-100 dark:bg-purple-900">
+            {post.author?.avatar_url ? (
+              <AvatarImage 
+                src={post.author.avatar_url} 
+                alt={post.author.full_name || "User"} 
+              />
+            ) : (
+              <AvatarFallback className="text-purple-600 dark:text-purple-300">
+                {(post.author?.full_name || post.author?.username || "U").charAt(0)}
+              </AvatarFallback>
+            )}
+          </Avatar>
         </Link>
         <div>
           <Link 

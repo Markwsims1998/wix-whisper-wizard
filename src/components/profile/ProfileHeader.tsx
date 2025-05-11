@@ -6,23 +6,50 @@ import { MailIcon, Map, User, Heart } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/auth/AuthProvider";
 import WinkButton from "@/components/WinkButton";
+import { ProfileData } from "./types";
 
 interface ProfileHeaderProps {
-  user: any;
-  isCurrentUser: boolean;
+  user?: any;
+  profile?: ProfileData;
+  isCurrentUser?: boolean;
+  isMyProfile?: boolean;
   onEditProfile?: () => void;
   onEditRelationship?: () => void;
+  relationshipStatusText?: string;
+  handleAddFriend?: () => Promise<void>;
+  handleMessage?: () => void;
+  setEditRelationshipOpen?: (value: boolean) => void;
+  getSubscriptionBadge?: (tier: string | null) => React.ReactNode;
 }
 
 const ProfileHeader: React.FC<ProfileHeaderProps> = ({ 
-  user, 
-  isCurrentUser, 
+  user,
+  profile,
+  isCurrentUser,
+  isMyProfile,
   onEditProfile,
-  onEditRelationship
+  onEditRelationship,
+  relationshipStatusText,
+  handleAddFriend,
+  handleMessage,
+  setEditRelationshipOpen,
+  getSubscriptionBadge
 }) => {
   const { isAuthenticated } = useAuth();
-
-  if (!user) return null;
+  
+  // Determine which data to use - support both old and new prop patterns
+  const profileData = profile || user;
+  const isUserProfile = isMyProfile || isCurrentUser;
+  
+  if (!profileData) return null;
+  
+  const handleRelationshipClick = () => {
+    if (isUserProfile && setEditRelationshipOpen) {
+      setEditRelationshipOpen(true);
+    } else if (isUserProfile && onEditRelationship) {
+      onEditRelationship();
+    }
+  };
   
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
@@ -31,8 +58,8 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
       <div className="p-4">
         <div className="flex flex-col sm:flex-row sm:items-end -mt-16 mb-4">
           <Avatar className="h-24 w-24 border-4 border-white dark:border-gray-800">
-            {user.avatar_url ? (
-              <AvatarImage src={user.avatar_url} alt={user.username} />
+            {profileData.avatar_url || profileData.profilePicture ? (
+              <AvatarImage src={profileData.avatar_url || profileData.profilePicture} alt={profileData.username} />
             ) : (
               <AvatarFallback>
                 <User className="h-12 w-12" />
@@ -42,36 +69,47 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           
           <div className="mt-4 sm:mt-0 sm:ml-4 flex flex-col sm:flex-row sm:items-center sm:justify-between w-full">
             <div className="flex-1">
-              <h1 className="text-2xl font-bold">{user.full_name || user.username}</h1>
+              <h1 className="text-2xl font-bold">{profileData.full_name || profileData.name || profileData.username}</h1>
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-gray-600 dark:text-gray-400">@{user.username}</span>
+                <span className="text-gray-600 dark:text-gray-400">@{profileData.username}</span>
                 
-                {user.gender && (
-                  <Badge variant="outline" className="ml-1">{user.gender}</Badge>
+                {profileData.gender && (
+                  <Badge variant="outline" className="ml-1">{profileData.gender}</Badge>
                 )}
                 
-                {user.relationship_status && (
+                {(profileData.relationshipStatus || profileData.relationship_status) && (
                   <div className="flex items-center gap-1">
-                    <Badge variant="secondary" className="cursor-pointer" onClick={isCurrentUser ? onEditRelationship : undefined}>
+                    <Badge 
+                      variant="secondary" 
+                      className="cursor-pointer" 
+                      onClick={handleRelationshipClick}
+                    >
                       <Heart className="h-3 w-3 mr-1 inline" /> 
-                      {user.relationship_status}
+                      {relationshipStatusText || profileData.relationshipStatus || profileData.relationship_status}
                     </Badge>
                   </div>
                 )}
+                
+                {getSubscriptionBadge && profileData.tier && getSubscriptionBadge(profileData.tier)}
               </div>
             </div>
             
             {isAuthenticated && (
               <div className="mt-4 sm:mt-0 flex gap-2">
-                {isCurrentUser ? (
-                  <Button onClick={onEditProfile}>Edit Profile</Button>
+                {isUserProfile ? (
+                  <Button onClick={onEditProfile || (() => {})}>Edit Profile</Button>
                 ) : (
                   <>
-                    <Button className="flex items-center gap-1">
+                    <Button className="flex items-center gap-1" onClick={handleMessage}>
                       <MailIcon className="h-4 w-4" /> 
                       Message
                     </Button>
-                    <WinkButton recipientId={user.id} />
+                    {profileData.id && <WinkButton recipientId={profileData.id} />}
+                    {handleAddFriend && (
+                      <Button variant="outline" onClick={handleAddFriend}>
+                        Add Friend
+                      </Button>
+                    )}
                   </>
                 )}
               </div>
@@ -79,26 +117,29 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           </div>
         </div>
         
-        {user.bio && (
+        {profileData.bio && (
           <div className="mb-4">
             <h2 className="text-lg font-medium mb-1">About</h2>
-            <p className="text-gray-600 dark:text-gray-300">{user.bio}</p>
+            <p className="text-gray-600 dark:text-gray-300">{profileData.bio}</p>
           </div>
         )}
         
         <div className="flex flex-wrap gap-4 text-sm text-gray-600 dark:text-gray-400">
-          {user.location && (
+          {(profileData.location) && (
             <div className="flex items-center gap-1">
               <Map className="h-4 w-4" /> 
-              <span>{user.location}</span>
+              <span>{profileData.location}</span>
             </div>
           )}
           
-          {isCurrentUser && user.relationship_status && (
+          {isUserProfile && (profileData.relationshipStatus || profileData.relationship_status) && (
             <div className="flex items-center gap-1">
               <Heart className="h-4 w-4" /> 
-              <span className="cursor-pointer hover:underline" onClick={onEditRelationship}>
-                {user.relationship_status}
+              <span 
+                className="cursor-pointer hover:underline" 
+                onClick={handleRelationshipClick}
+              >
+                {relationshipStatusText || profileData.relationshipStatus || profileData.relationship_status}
               </span>
             </div>
           )}

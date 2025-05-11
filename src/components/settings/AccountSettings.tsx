@@ -25,17 +25,17 @@ const AccountSettings = () => {
   
   // Relationship status state
   const [relationshipDialogOpen, setRelationshipDialogOpen] = useState(false);
-  const [relationshipStatus, setRelationshipStatus] = useState(user?.relationship_status || null);
+  const [relationshipStatus, setRelationshipStatus] = useState(user?.relationshipStatus || null);
   const [relationshipPartners, setRelationshipPartners] = useState<string[]>(
-    user?.relationship_partners || []
+    user?.relationshipPartners || []
   );
   const [relationshipStatuses, setRelationshipStatuses] = useState<RelationshipStatus[]>([
-    { id: '1', name: 'Single', isActive: true },
-    { id: '2', name: 'In a relationship', isActive: true },
-    { id: '3', name: 'Engaged', isActive: true },
-    { id: '4', name: 'Married', isActive: true },
-    { id: '5', name: 'It\'s complicated', isActive: true },
-    { id: '6', name: 'Open relationship', isActive: true }
+    { id: '1', name: 'Single', isactive: true },
+    { id: '2', name: 'In a relationship', isactive: true },
+    { id: '3', name: 'Engaged', isactive: true },
+    { id: '4', name: 'Married', isactive: true },
+    { id: '5', name: 'It\'s complicated', isactive: true },
+    { id: '6', name: 'Open relationship', isactive: true }
   ]);
   const [availablePartners, setAvailablePartners] = useState<any[]>([]);
   const [partnerSearchOpen, setPartnerSearchOpen] = useState(false);
@@ -50,8 +50,8 @@ const AccountSettings = () => {
         email: user.email || ""
       });
       
-      setRelationshipStatus(user.relationship_status || null);
-      setRelationshipPartners(user.relationship_partners || []);
+      setRelationshipStatus(user.relationshipStatus || null);
+      setRelationshipPartners(user.relationshipPartners || []);
     }
   }, [user]);
 
@@ -111,8 +111,8 @@ const AccountSettings = () => {
     try {
       setLoading(true);
       const success = await updateUserProfile({
-        relationship_status: relationshipStatus,
-        relationship_partners: relationshipPartners
+        relationshipStatus: relationshipStatus,
+        relationshipPartners: relationshipPartners
       });
       
       if (success) {

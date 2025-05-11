@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
@@ -43,7 +42,14 @@ const People = () => {
           
         if (error) throw error;
         
-        setProfiles(data || []);
+        // Ensure the data includes a gender field (which might be null)
+        // This satisfies the TypeScript constraint
+        const profilesWithGender = data?.map(profile => ({
+          ...profile,
+          gender: profile.gender || null
+        })) || [];
+        
+        setProfiles(profilesWithGender);
       } catch (error) {
         console.error('Error fetching profiles:', error);
       } finally {

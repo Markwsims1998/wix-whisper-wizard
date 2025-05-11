@@ -11,8 +11,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import ProfileHeader from "@/components/profile/ProfileHeader";
 import ProfileTabs from "@/components/profile/ProfileTabs";
 
-export interface ProfileParams {
+// Fix the ProfileParams interface to satisfy the required constraints
+// by adding an index signature
+interface ProfileParams {
   userId?: string;
+  [key: string]: string | undefined;
 }
 
 const Profile = () => {
@@ -139,7 +142,7 @@ const Profile = () => {
             
             {/* Profile Content Tabs */}
             <div className="mt-6">
-              <ProfileTabs userId={profileId || ""} />
+              {profileId && <ProfileTabs userId={profileId} />}
             </div>
           </div>
         )}

@@ -94,9 +94,9 @@ const Header = () => {
           onClick={() => navigate('/profile')}
         >
           <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center overflow-hidden dark:bg-purple-900">
-            {user?.profilePicture || user?.avatar_url ? (
+            {user?.profilePicture ? (
               <img 
-                src={user.profilePicture || user.avatar_url} 
+                src={user.profilePicture} 
                 alt="Profile" 
                 className="w-full h-full object-cover" 
               />
@@ -107,7 +107,7 @@ const Header = () => {
             )}
           </div>
           <span className="font-medium hidden md:block dark:text-white">
-            {user?.name || user?.full_name || "Mark W Sims"}
+            {user?.name || "Mark W Sims"}
           </span>
         </button>
       </div>

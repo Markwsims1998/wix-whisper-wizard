@@ -13,7 +13,7 @@ interface WinkButtonProps {
 const WinkButton: React.FC<WinkButtonProps> = ({ recipientId, className = '' }) => {
   const [isWinked, setIsWinked] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [winkStatus, setWinkStatus] = useState<string | undefined>();
+  const [winkStatus, setWinkStatus] = useState<'pending' | 'accepted' | 'rejected' | undefined>();
   const { toast } = useToast();
 
   useEffect(() => {

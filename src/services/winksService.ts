@@ -24,11 +24,16 @@ export interface Wink {
 // Send a wink to another user
 export const sendWink = async (recipientId: string): Promise<{ success: boolean; message: string; winkId?: string }> => {
   try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return { success: false, message: 'User not authenticated' };
+    }
+
     // Check if this user has already sent a wink to this recipient
     const { data: existingWink } = await supabase
       .from('winks')
       .select('id, status')
-      .match({ sender_id: supabase.auth.user()?.id, recipient_id: recipientId })
+      .match({ sender_id: user.id, recipient_id: recipientId })
       .single();
 
     if (existingWink) {
@@ -43,7 +48,7 @@ export const sendWink = async (recipientId: string): Promise<{ success: boolean;
     const { data, error } = await supabase
       .from('winks')
       .insert({
-        sender_id: supabase.auth.user()?.id,
+        sender_id: user.id,
         recipient_id: recipientId,
         status: 'pending'
       })
@@ -68,17 +73,20 @@ export const sendWink = async (recipientId: string): Promise<{ success: boolean;
 // Get all winks received by the current user
 export const getReceivedWinks = async (): Promise<Wink[]> => {
   try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return [];
+
     const { data, error } = await supabase
       .from('winks')
       .select(`
         *,
-        sender:sender_id (
+        sender:profiles!winks_sender_id_fkey (
           username,
           full_name,
           avatar_url
         )
       `)
-      .eq('recipient_id', supabase.auth.user()?.id)
+      .eq('recipient_id', user.id)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -86,7 +94,8 @@ export const getReceivedWinks = async (): Promise<Wink[]> => {
       return [];
     }
 
-    return data || [];
+    // Cast the result to our Wink interface
+    return (data as unknown as Wink[]) || [];
   } catch (error) {
     console.error('Unexpected error fetching received winks:', error);
     return [];
@@ -96,17 +105,20 @@ export const getReceivedWinks = async (): Promise<Wink[]> => {
 // Get all winks sent by the current user
 export const getSentWinks = async (): Promise<Wink[]> => {
   try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return [];
+
     const { data, error } = await supabase
       .from('winks')
       .select(`
         *,
-        recipient:recipient_id (
+        recipient:profiles!winks_recipient_id_fkey (
           username,
           full_name,
           avatar_url
         )
       `)
-      .eq('sender_id', supabase.auth.user()?.id)
+      .eq('sender_id', user.id)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -114,7 +126,8 @@ export const getSentWinks = async (): Promise<Wink[]> => {
       return [];
     }
 
-    return data || [];
+    // Cast the result to our Wink interface
+    return (data as unknown as Wink[]) || [];
   } catch (error) {
     console.error('Unexpected error fetching sent winks:', error);
     return [];
@@ -122,13 +135,16 @@ export const getSentWinks = async (): Promise<Wink[]> => {
 };
 
 // Check if current user has sent a wink to another user
-export const checkIfWinked = async (recipientId: string): Promise<{ winked: boolean; winkId?: string; status?: string }> => {
+export const checkIfWinked = async (recipientId: string): Promise<{ winked: boolean; winkId?: string; status?: 'pending' | 'accepted' | 'rejected' }> => {
   try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { winked: false };
+
     const { data, error } = await supabase
       .from('winks')
       .select('id, status')
       .match({ 
-        sender_id: supabase.auth.user()?.id, 
+        sender_id: user.id, 
         recipient_id: recipientId 
       })
       .maybeSingle();
@@ -141,7 +157,7 @@ export const checkIfWinked = async (recipientId: string): Promise<{ winked: bool
     return {
       winked: !!data,
       winkId: data?.id,
-      status: data?.status
+      status: data?.status as 'pending' | 'accepted' | 'rejected'
     };
   } catch (error) {
     console.error('Unexpected error checking wink status:', error);
@@ -172,10 +188,13 @@ export const updateWinkStatus = async (winkId: string, status: 'accepted' | 'rej
 // Count unread (pending) winks
 export const countPendingWinks = async (): Promise<number> => {
   try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return 0;
+
     const { count, error } = await supabase
       .from('winks')
       .select('id', { count: 'exact', head: true })
-      .eq('recipient_id', supabase.auth.user()?.id)
+      .eq('recipient_id', user.id)
       .eq('status', 'pending');
 
     if (error) {

@@ -20,9 +20,8 @@ const PostsList = ({
   // Get profile name, ensuring it's not undefined
   const profileName = profile?.full_name || profile?.username || "User";
   
-  // Check if posts are coming with complete author data
+  console.log("Profile data in PostsList:", profile);
   console.log("Posts in PostsList:", posts);
-  console.log("First post author data:", posts[0]?.author);
   
   return (
     <div className="mt-6">
@@ -48,23 +47,31 @@ const PostsList = ({
           ) : (
             posts.map((post) => {
               // Ensure each post has proper author data with profile picture information
-              if (!post.author && profile) {
-                post = {
-                  ...post,
-                  author: {
-                    id: profile.id,
-                    username: profile.username,
-                    full_name: profile.full_name,
-                    avatar_url: profile.avatar_url,
-                    profile_picture_url: profile.profile_picture_url
-                  }
+              const updatedPost = { ...post };
+              
+              // If post is missing author data completely, add it from the profile
+              if (!updatedPost.author && profile) {
+                updatedPost.author = {
+                  id: profile.id,
+                  username: profile.username,
+                  full_name: profile.full_name,
+                  avatar_url: profile.avatar_url,
+                  profile_picture_url: profile.profile_picture_url
+                };
+              } 
+              // If post has author but missing profile picture, add it from the profile
+              else if (updatedPost.author && profile && profile.id === updatedPost.author.id) {
+                updatedPost.author = {
+                  ...updatedPost.author,
+                  profile_picture_url: profile.profile_picture_url || updatedPost.author.profile_picture_url,
+                  avatar_url: profile.avatar_url || updatedPost.author.avatar_url
                 };
               }
               
               return (
                 <PostItem 
-                  key={post.id} 
-                  post={post} 
+                  key={updatedPost.id} 
+                  post={updatedPost} 
                   handleLikePost={handleLikePost} 
                 />
               );

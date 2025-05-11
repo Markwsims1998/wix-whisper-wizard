@@ -1,3 +1,4 @@
+
 import { Heart, MessageCircle, User } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
@@ -16,7 +17,7 @@ type PostItemProps = {
 
 const PostItem = ({ post, handleLikePost }: PostItemProps) => {
   const { user } = useAuth();
-  const [isLiked, setIsLiked] = useState(!!post.is_liked);
+  const [isLiked, setIsLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(post.likes_count || 0);
   const [commentsCount, setCommentsCount] = useState(post.comments_count || 0);
   
@@ -30,9 +31,13 @@ const PostItem = ({ post, handleLikePost }: PostItemProps) => {
 
   // Update state when post prop changes
   useEffect(() => {
-    setIsLiked(!!post.is_liked);
     setLikesCount(post.likes_count || 0);
-  }, [post.is_liked, post.likes_count]);
+    
+    // Check like status again when post changes
+    if (user?.id && post.id) {
+      checkLikeStatus();
+    }
+  }, [post.id, post.likes_count, user?.id]);
 
   // Check if the current user has liked this post
   const checkLikeStatus = async () => {
@@ -97,10 +102,6 @@ const PostItem = ({ post, handleLikePost }: PostItemProps) => {
   };
   
   const avatarUrl = getAvatarUrl();
-  // Enhanced debug logging to help diagnose profile picture issues
-  console.log("Post author data in PostItem:", post.author);
-  console.log("Post author avatar URL in PostItem:", avatarUrl);
-  console.log("Full post data:", post);
   
   return (
     <div className="mb-6 pb-6 border-b border-gray-100 last:border-0 last:mb-0 last:pb-0 dark:border-gray-700 transition-all hover:bg-gray-50 dark:hover:bg-gray-800/50 p-4 rounded-lg -mx-4">
@@ -134,7 +135,6 @@ const PostItem = ({ post, handleLikePost }: PostItemProps) => {
           </p>
         </div>
       </div>
-      
       
       <p className="mb-3 text-gray-700 dark:text-gray-200">{post.content}</p>
       

@@ -94,14 +94,29 @@ const PostItem = ({ post, handleLikePost }: PostItemProps) => {
     return "#";
   };
 
-  // Get avatar URL - prioritize profile_picture_url over avatar_url
+  // Improved function to get avatar URL with better logging for debugging
   const getAvatarUrl = () => {
     if (!post.author) return null;
-    // First try profile_picture_url, then avatar_url
-    return post.author.profile_picture_url || post.author.avatar_url || null;
+    
+    // First check profile_picture_url
+    if (post.author.profile_picture_url) {
+      return post.author.profile_picture_url;
+    }
+    
+    // Then check avatar_url
+    if (post.author.avatar_url) {
+      return post.author.avatar_url;
+    }
+    
+    return null;
   };
   
   const avatarUrl = getAvatarUrl();
+  const authorName = post.author?.full_name || post.author?.username || "User";
+  const authorInitial = authorName.charAt(0).toUpperCase();
+  
+  console.log("Post author data:", post.author);
+  console.log("Avatar URL resolved:", avatarUrl);
   
   return (
     <div className="mb-6 pb-6 border-b border-gray-100 last:border-0 last:mb-0 last:pb-0 dark:border-gray-700 transition-all hover:bg-gray-50 dark:hover:bg-gray-800/50 p-4 rounded-lg -mx-4">
@@ -114,13 +129,16 @@ const PostItem = ({ post, handleLikePost }: PostItemProps) => {
             {avatarUrl ? (
               <AvatarImage 
                 src={avatarUrl} 
-                alt={post.author?.full_name || "User"} 
+                alt={authorName}
+                onError={(e) => {
+                  console.log("Image failed to load:", e);
+                  (e.target as HTMLImageElement).style.display = 'none';
+                }}
               />
-            ) : (
-              <AvatarFallback className="text-purple-600 dark:text-purple-300">
-                {(post.author?.full_name || post.author?.username || "U").charAt(0)}
-              </AvatarFallback>
-            )}
+            ) : null}
+            <AvatarFallback className="text-purple-600 dark:text-purple-300">
+              {authorInitial}
+            </AvatarFallback>
           </Avatar>
         </Link>
         <div>
@@ -128,7 +146,7 @@ const PostItem = ({ post, handleLikePost }: PostItemProps) => {
             to={getProfileUrl()} 
             className="font-medium hover:text-purple-600 transition-colors"
           >
-            {post.author?.full_name || post.author?.username || 'Unknown User'}
+            {authorName}
           </Link>
           <p className="text-xs text-gray-500 dark:text-gray-400">
             {post.created_at && format(new Date(post.created_at), 'MMM d, yyyy')}

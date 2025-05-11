@@ -98,8 +98,8 @@ export const getFeedPosts = async (
             // Check if the first item has a count property
             const firstItem = post.likes_count[0];
             if (firstItem && typeof firstItem === 'object' && firstItem !== null) {
-              // Using optional chaining and nullish coalescing to safely access count
-              likesCount = firstItem.count ?? 0;
+              // Using optional chaining and nullish coalescing for safe access
+              likesCount = firstItem?.count ?? 0;
             } else {
               // If it's just an array without count property
               likesCount = post.likes_count.length || 0;
@@ -107,7 +107,7 @@ export const getFeedPosts = async (
           }
         } else if (typeof post.likes_count === 'object' && post.likes_count !== null) {
           // Using optional chaining and nullish coalescing for safer access
-          likesCount = post.likes_count.count ?? 0;
+          likesCount = post.likes_count?.count ?? 0;
         }
       }
       
@@ -124,8 +124,8 @@ export const getFeedPosts = async (
             // Check if the first item has a count property
             const firstItem = post.comments_count[0];
             if (firstItem && typeof firstItem === 'object' && firstItem !== null) {
-              // Using optional chaining and nullish coalescing to safely access count
-              commentsCount = firstItem.count ?? 0;
+              // Using optional chaining and nullish coalescing for safe access
+              commentsCount = firstItem?.count ?? 0;
             } else {
               // If it's just an array without count property
               commentsCount = post.comments_count.length || 0;
@@ -133,7 +133,7 @@ export const getFeedPosts = async (
           }
         } else if (typeof post.comments_count === 'object' && post.comments_count !== null) {
           // Using optional chaining and nullish coalescing for safer access
-          commentsCount = post.comments_count.count ?? 0;
+          commentsCount = post.comments_count?.count ?? 0;
         }
       }
       
@@ -215,8 +215,8 @@ export const getPostById = async (postId: string): Promise<Post | null> => {
           // Check if the first item has a count property
           const firstItem = data.likes_count[0];
           if (firstItem && typeof firstItem === 'object' && firstItem !== null) {
-            // Using optional chaining and nullish coalescing to safely access count
-            likesCount = firstItem.count ?? 0;
+            // Using optional chaining and nullish coalescing for safe access
+            likesCount = firstItem?.count ?? 0;
           } else {
             // If it's just an array without count property
             likesCount = data.likes_count.length || 0;
@@ -224,7 +224,7 @@ export const getPostById = async (postId: string): Promise<Post | null> => {
         }
       } else if (typeof data.likes_count === 'object' && data.likes_count !== null) {
         // Using optional chaining and nullish coalescing for safer access
-        likesCount = data.likes_count.count ?? 0;
+        likesCount = data.likes_count?.count ?? 0;
       }
     }
     
@@ -240,8 +240,8 @@ export const getPostById = async (postId: string): Promise<Post | null> => {
           // Check if the first item has a count property
           const firstItem = data.comments_count[0];
           if (firstItem && typeof firstItem === 'object' && firstItem !== null) {
-            // Using optional chaining and nullish coalescing to safely access count
-            commentsCount = firstItem.count ?? 0;
+            // Using optional chaining and nullish coalescing for safe access
+            commentsCount = firstItem?.count ?? 0;
           } else {
             // If it's just an array without count property
             commentsCount = data.comments_count.length || 0;
@@ -249,7 +249,7 @@ export const getPostById = async (postId: string): Promise<Post | null> => {
         }
       } else if (typeof data.comments_count === 'object' && data.comments_count !== null) {
         // Using optional chaining and nullish coalescing for safer access
-        commentsCount = data.comments_count.count ?? 0;
+        commentsCount = data.comments_count?.count ?? 0;
       }
     }
 
@@ -261,78 +261,6 @@ export const getPostById = async (postId: string): Promise<Post | null> => {
   } catch (error) {
     console.error('Error in getPostById:', error);
     return null;
-  }
-};
-
-export const likePost = async (postId: string, userId: string): Promise<{ success: boolean; error?: string }> => {
-  try {
-    // Check if the user has already liked this post
-    const { data: existingLike } = await supabase
-      .from('likes')
-      .select('id')
-      .eq('post_id', postId)
-      .eq('user_id', userId)
-      .maybeSingle();
-    
-    if (existingLike) {
-      // Unlike the post
-      const { error } = await supabase
-        .from('likes')
-        .delete()
-        .eq('id', existingLike.id);
-      
-      if (error) {
-        return { success: false, error: error.message };
-      }
-    } else {
-      // Like the post
-      const { error } = await supabase
-        .from('likes')
-        .insert({ post_id: postId, user_id: userId });
-      
-      if (error) {
-        return { success: false, error: error.message };
-      }
-    }
-    
-    return { success: true };
-  } catch (error: any) {
-    return { success: false, error: error.message };
-  }
-};
-
-export const getLikesForPost = async (postId: string) => {
-  try {
-    const { data, error } = await supabase
-      .from('likes')
-      .select(`
-        user_id,
-        user:user_id(
-          id, 
-          username, 
-          full_name, 
-          avatar_url,
-          profile_picture_url
-        )
-      `)
-      .eq('post_id', postId);
-    
-    if (error) {
-      console.error('Error fetching likes:', error);
-      return [];
-    }
-
-    // Transform data to expected format
-    return data.map(like => ({
-      id: like.user.id,
-      username: like.user.username,
-      full_name: like.user.full_name,
-      avatar_url: like.user.avatar_url,
-      profile_picture_url: like.user.profile_picture_url
-    }));
-  } catch (error) {
-    console.error('Error in getLikesForPost:', error);
-    return [];
   }
 };
 
@@ -418,8 +346,8 @@ export const createPost = async (
           // Check if the first item has a count property
           const firstItem = completePost.likes_count[0];
           if (firstItem && typeof firstItem === 'object' && firstItem !== null) {
-            // Using optional chaining and nullish coalescing to safely access count
-            likesCount = firstItem.count ?? 0;
+            // Using optional chaining and nullish coalescing for safe access
+            likesCount = firstItem?.count ?? 0;
           } else {
             // If it's just an array without count property
             likesCount = completePost.likes_count.length || 0;
@@ -427,7 +355,7 @@ export const createPost = async (
         }
       } else if (typeof completePost.likes_count === 'object' && completePost.likes_count !== null) {
         // Using optional chaining and nullish coalescing for safer access
-        likesCount = completePost.likes_count.count ?? 0;
+        likesCount = completePost.likes_count?.count ?? 0;
       }
     }
     
@@ -443,8 +371,8 @@ export const createPost = async (
           // Check if the first item has a count property
           const firstItem = completePost.comments_count[0];
           if (firstItem && typeof firstItem === 'object' && firstItem !== null) {
-            // Using optional chaining and nullish coalescing to safely access count
-            commentsCount = firstItem.count ?? 0;
+            // Using optional chaining and nullish coalescing for safe access
+            commentsCount = firstItem?.count ?? 0;
           } else {
             // If it's just an array without count property
             commentsCount = completePost.comments_count.length || 0;
@@ -452,7 +380,7 @@ export const createPost = async (
         }
       } else if (typeof completePost.comments_count === 'object' && completePost.comments_count !== null) {
         // Using optional chaining and nullish coalescing for safer access
-        commentsCount = completePost.comments_count.count ?? 0;
+        commentsCount = completePost.comments_count?.count ?? 0;
       }
     }
     

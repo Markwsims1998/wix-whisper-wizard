@@ -20,7 +20,6 @@ import Watch from "./pages/Watch";
 import Basket from "./pages/Basket";
 import Notifications from "./pages/Notifications";
 import Feedback from "./pages/Feedback";
-import Banner from "./components/Banner";
 import { useAuth } from "@/contexts/auth/AuthProvider";
 
 function App() {
@@ -37,7 +36,6 @@ function App() {
 
   return (
     <ThemeProvider>
-      <Banner />
       <Routes>
         {/* Redirect root based on authentication status */}
         <Route path="/" element={isAuthenticated ? <Index /> : <Navigate to="/home" replace />} />

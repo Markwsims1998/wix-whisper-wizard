@@ -4,6 +4,7 @@ import { Megaphone, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import { BannerSettings, getBannerSettings } from "@/services/bannerService";
 
+// Export the Banner component to be used in the Header
 const Banner = () => {
   const [banner, setBanner] = useState<BannerSettings | null>(null);
   const [isVisible, setIsVisible] = useState(true);
@@ -54,7 +55,7 @@ const Banner = () => {
   };
   
   return (
-    <div className={`${getBannerColorClass()} text-white py-2 px-4 flex items-center justify-center relative`}>
+    <div className={`${getBannerColorClass()} text-white py-2 px-4 flex items-center justify-center relative w-full`}>
       <div className="container mx-auto flex items-center justify-center gap-2">
         <Megaphone className="w-4 h-4 flex-shrink-0" />
         <span className="text-sm">

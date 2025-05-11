@@ -1,25 +1,17 @@
 
-import { Bell, MessageSquare, Search, ShoppingCart, Megaphone, X } from "lucide-react";
+import { Bell, MessageSquare, Search, ShoppingCart } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/auth/AuthProvider";
 import { Badge } from "@/components/ui/badge";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "@/contexts/ThemeContext";
+import Banner from "./Banner";
 
 const Header = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { theme } = useTheme();
-  const [showBanner, setShowBanner] = useState(true);
-
-  // Load banner state from localStorage on component mount
-  useEffect(() => {
-    const bannerState = localStorage.getItem('bannerHidden');
-    if (bannerState === 'true') {
-      setShowBanner(false);
-    }
-  }, []);
 
   // Log user navigation
   useEffect(() => {
@@ -39,34 +31,10 @@ const Header = () => {
     // In a real application, this would call an API to record the activity
   };
 
-  // Save banner state to localStorage when it's closed
-  const handleCloseBanner = () => {
-    setShowBanner(false);
-    localStorage.setItem('bannerHidden', 'true');
-  };
-
   return (
     <div className="fixed z-20 w-full top-0 flex flex-col">
-      {/* Beta Feedback Banner - now fixed with the header */}
-      {showBanner && (
-        <div 
-          className="bg-purple-700 dark:bg-purple-900 text-white py-2 px-4 flex items-center justify-center shadow-md"
-          style={{ 
-            marginLeft: 'var(--sidebar-width, 280px)',
-            width: 'calc(100% - var(--sidebar-width, 280px))'
-          }}
-        >
-          <Megaphone className="w-4 h-4 mr-2" />
-          <span className="text-sm">We're in beta! Help us improve by providing <Link to="/feedback" className="underline font-medium">feedback</Link>.</span>
-          <button 
-            onClick={handleCloseBanner} 
-            className="ml-4 p-1 hover:bg-purple-600 dark:hover:bg-purple-800 rounded-full transition-colors"
-            aria-label="Close banner"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-      )}
+      {/* Banner component - now properly attached to the header */}
+      <Banner />
 
       <header 
         className="bg-white shadow-sm py-3 px-6 flex items-center justify-between dark:bg-gray-800 dark:text-white" 

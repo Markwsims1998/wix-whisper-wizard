@@ -115,14 +115,19 @@ export const getReceivedWinks = async (): Promise<Wink[]> => {
     
     if (profilesError) {
       console.error('Error fetching sender profiles:', profilesError);
-      return winks;
+      // Explicitly cast to the expected type
+      return winks.map(wink => ({
+        ...wink,
+        status: wink.status as 'pending' | 'accepted' | 'rejected'
+      })) as Wink[];
     }
 
-    // Map the profiles to the winks
+    // Map the profiles to the winks and cast status to the expected type
     const winksWithProfiles = winks.map(wink => {
       const senderProfile = profiles.find(profile => profile.id === wink.sender_id);
       return {
         ...wink,
+        status: wink.status as 'pending' | 'accepted' | 'rejected',
         sender: senderProfile
       };
     });
@@ -164,14 +169,19 @@ export const getSentWinks = async (): Promise<Wink[]> => {
     
     if (profilesError) {
       console.error('Error fetching recipient profiles:', profilesError);
-      return winks;
+      // Explicitly cast to the expected type
+      return winks.map(wink => ({
+        ...wink,
+        status: wink.status as 'pending' | 'accepted' | 'rejected'
+      })) as Wink[];
     }
 
-    // Map the profiles to the winks
+    // Map the profiles to the winks and cast status to the expected type
     const winksWithProfiles = winks.map(wink => {
       const recipientProfile = profiles.find(profile => profile.id === wink.recipient_id);
       return {
         ...wink,
+        status: wink.status as 'pending' | 'accepted' | 'rejected',
         recipient: recipientProfile
       };
     });

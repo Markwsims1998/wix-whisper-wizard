@@ -23,7 +23,7 @@ const PostItem = ({ post, handleLikePost }: PostItemProps) => {
   const [imageError, setImageError] = useState(false);
   const [authorData, setAuthorData] = useState<any>(post.author || null);
   
-  // Check like status when component mounts
+  // Check like status and update counts when component mounts
   useEffect(() => {
     if (user?.id && post.id) {
       checkLikeStatus();
@@ -89,9 +89,28 @@ const PostItem = ({ post, handleLikePost }: PostItemProps) => {
         .single();
       
       setIsLiked(!!data);
+      
+      // Get an accurate count of likes
+      fetchLikeCount();
     } catch (error) {
       // If no like found, error is expected
       setIsLiked(false);
+    }
+  };
+  
+  // Fetch accurate like count 
+  const fetchLikeCount = async () => {
+    try {
+      const { count } = await supabase
+        .from('likes')
+        .select('id', { count: 'exact', head: true })
+        .eq('post_id', post.id);
+        
+      if (count !== null) {
+        setLikesCount(count);
+      }
+    } catch (error) {
+      console.error('Error fetching like count:', error);
     }
   };
   
@@ -115,8 +134,9 @@ const PostItem = ({ post, handleLikePost }: PostItemProps) => {
     handleLikePost(post.id);
     
     // Optimistic UI update
-    setIsLiked(!isLiked);
-    setLikesCount(prev => isLiked ? Math.max(0, prev - 1) : prev + 1);
+    const newIsLiked = !isLiked;
+    setIsLiked(newIsLiked);
+    setLikesCount(prev => newIsLiked ? prev + 1 : Math.max(0, prev - 1));
   };
 
   // Generate the correct profile URL using username if available, otherwise ID

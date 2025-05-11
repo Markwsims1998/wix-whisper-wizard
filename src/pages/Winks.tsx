@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { getReceivedWinks, getSentWinks, updateWinkStatus, Wink } from "@/services/winksService";
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
+import Footer from "@/components/Footer";
 
 const WinksPage = () => {
   const [activeTab, setActiveTab] = useState("received");
@@ -67,14 +68,14 @@ const WinksPage = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-gray-100 dark:bg-gray-900">
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
       <Sidebar />
-      <div className="flex-1">
-        <Header />
-        <div className="container mx-auto p-4 md:p-6 mt-16" style={{ 
-          paddingLeft: 'max(1rem, calc(var(--sidebar-width, 280px) - 280px + 1rem))',
-          transition: 'padding-left 0.3s ease-in-out' 
-        }}>
+      <Header />
+      
+      <div className="pt-16 pb-10 pr-4 transition-all duration-300" style={{
+        paddingLeft: 'max(1rem, var(--sidebar-width, 280px))'
+      }}>
+        <div className="container mx-auto p-4 md:p-6 max-w-4xl">
           <Card className="border bg-white dark:bg-gray-800 shadow-sm">
             <CardHeader>
               <CardTitle>Winks</CardTitle>
@@ -205,6 +206,7 @@ const WinksPage = () => {
           </Card>
         </div>
       </div>
+      <Footer />
     </div>
   );
 };

@@ -1,3 +1,4 @@
+
 import { Separator } from "@/components/ui/separator";
 import { User, Heart, MessageCircle, Lock, Gift } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -251,7 +252,7 @@ const PostFeed = () => {
                         {post.author?.avatar_url ? (
                           <img 
                             src={post.author.avatar_url} 
-                            alt={post.author.full_name} 
+                            alt={post.author.full_name || "User"} 
                             className="h-full w-full object-cover"
                           />
                         ) : (
@@ -374,7 +375,6 @@ const PostFeed = () => {
                         <MessageCircle className="h-4 w-4" /> {post.comments_count}
                       </button>
                     </div>
-                    
                     
                     {post.id !== posts[posts.length - 1].id && <Separator className="my-6" />}
                   </div>

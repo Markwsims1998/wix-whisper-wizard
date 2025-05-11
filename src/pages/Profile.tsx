@@ -7,13 +7,10 @@ import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/lib/supabaseClient";
-
-// Import any additional components you need
 import ProfileHeader from "@/components/profile/ProfileHeader";
 import ProfileTabs from "@/components/profile/ProfileTabs";
 import Footer from "@/components/Footer";
 
-// Fix the ProfileParams interface to satisfy the required constraints
 interface ProfileParams {
   [key: string]: string | undefined;
   userId?: string;
@@ -76,33 +73,6 @@ const Profile = () => {
   
   // Determine whether to show loading state
   const isLoading = !profileData;
-
-  // Handle friend request
-  const handleAddFriend = async () => {
-    // Implementation here
-  };
-  
-  // Handle sending a message
-  const handleMessage = () => {
-    navigate(`/messages?user=${profileId}`);
-  };
-  
-  // Handle editing the relationship status
-  const [editRelationshipOpen, setEditRelationshipOpen] = useState(false);
-  
-  // Get subscription badge based on tier
-  const getSubscriptionBadge = (tier: string) => {
-    switch (tier) {
-      case 'gold':
-        return <span className="px-2 py-1 bg-yellow-500 text-white text-xs rounded">Gold</span>;
-      case 'silver':
-        return <span className="px-2 py-1 bg-gray-400 text-white text-xs rounded">Silver</span>;
-      case 'bronze':
-        return <span className="px-2 py-1 bg-amber-700 text-white text-xs rounded">Bronze</span>;
-      default:
-        return null;
-    }
-  };
 
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900">

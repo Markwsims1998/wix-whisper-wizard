@@ -94,9 +94,7 @@ export const getReceivedWinks = async (): Promise<Wink[]> => {
       return [];
     }
 
-    console.log('Received winks data:', data);
-    // Cast the result to our Wink interface
-    return (data as unknown as Wink[]) || [];
+    return data as Wink[] || [];
   } catch (error) {
     console.error('Unexpected error fetching received winks:', error);
     return [];
@@ -127,9 +125,7 @@ export const getSentWinks = async (): Promise<Wink[]> => {
       return [];
     }
 
-    console.log('Sent winks data:', data);
-    // Cast the result to our Wink interface
-    return (data as unknown as Wink[]) || [];
+    return data as Wink[] || [];
   } catch (error) {
     console.error('Unexpected error fetching sent winks:', error);
     return [];

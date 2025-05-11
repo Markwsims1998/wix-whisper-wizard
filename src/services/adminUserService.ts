@@ -60,20 +60,23 @@ export const fetchUsers = async (
 
 export const getUserDetails = async (userId: string): Promise<AdminUser | null> => {
   try {
-    // Join with auth.users to get email
+    // Instead of RPC, directly query the profiles table since we don't have the admin_get_user_details function
     const { data, error } = await supabase
-      .rpc('admin_get_user_details', { user_id: userId });
+      .from('profiles')
+      .select('id, username, full_name, role, status, created_at, last_sign_in_at, avatar_url, subscription_tier')
+      .eq('id', userId)
+      .single();
 
     if (error) {
       console.error('Error fetching user details:', error);
       throw error;
     }
 
-    if (!data || data.length === 0) {
+    if (!data) {
       return null;
     }
 
-    return data[0] as AdminUser;
+    return data as AdminUser;
   } catch (error) {
     console.error('Unexpected error fetching user details:', error);
     return null;

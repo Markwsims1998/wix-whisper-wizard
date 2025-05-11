@@ -1,4 +1,3 @@
-
 import { User } from '@supabase/supabase-js';
 import { supabase } from "@/integrations/supabase/client";
 import { AuthUser, defaultNotificationPrefs, defaultPrivacySettings, safeJsonParse } from './types';
@@ -120,7 +119,22 @@ export const transformUser = async (supabaseUser: User | null): Promise<AuthUser
           parsedSettings.postVisibility === 'friends' || 
           parsedSettings.postVisibility === 'private') ? 
           parsedSettings.postVisibility : 'public',
-        searchEngineVisible: !!parsedSettings.searchEngineVisible
+        searchEngineVisible: !!parsedSettings.searchEngineVisible,
+        // Add the missing properties with their default or parsed values
+        allowMessagesFrom: (parsedSettings.allowMessagesFrom === 'all' ||
+          parsedSettings.allowMessagesFrom === 'friends' ||
+          parsedSettings.allowMessagesFrom === 'matched' ||
+          parsedSettings.allowMessagesFrom === 'none') ?
+          parsedSettings.allowMessagesFrom : 'all',
+        allowWinksFrom: (parsedSettings.allowWinksFrom === 'all' ||
+          parsedSettings.allowWinksFrom === 'friends' ||
+          parsedSettings.allowWinksFrom === 'matched' ||
+          parsedSettings.allowWinksFrom === 'none') ?
+          parsedSettings.allowWinksFrom : 'all',
+        showProfileTo: (parsedSettings.showProfileTo === 'all' ||
+          parsedSettings.showProfileTo === 'friends' ||
+          parsedSettings.showProfileTo === 'matched') ?
+          parsedSettings.showProfileTo : 'all'
       };
     }
     

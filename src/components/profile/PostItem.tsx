@@ -1,4 +1,3 @@
-
 import { Heart, MessageCircle, User } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
@@ -98,9 +97,10 @@ const PostItem = ({ post, handleLikePost }: PostItemProps) => {
   };
   
   const avatarUrl = getAvatarUrl();
-  // Add debug logging to see what's happening with the avatars
-  console.log("Post author data:", post.author);
-  console.log("Post author avatar URL:", avatarUrl);
+  // Enhanced debug logging to help diagnose profile picture issues
+  console.log("Post author data in PostItem:", post.author);
+  console.log("Post author avatar URL in PostItem:", avatarUrl);
+  console.log("Full post data:", post);
   
   return (
     <div className="mb-6 pb-6 border-b border-gray-100 last:border-0 last:mb-0 last:pb-0 dark:border-gray-700 transition-all hover:bg-gray-50 dark:hover:bg-gray-800/50 p-4 rounded-lg -mx-4">
@@ -127,13 +127,14 @@ const PostItem = ({ post, handleLikePost }: PostItemProps) => {
             to={getProfileUrl()} 
             className="font-medium hover:text-purple-600 transition-colors"
           >
-            {post.author?.full_name}
+            {post.author?.full_name || post.author?.username || 'Unknown User'}
           </Link>
           <p className="text-xs text-gray-500 dark:text-gray-400">
             {post.created_at && format(new Date(post.created_at), 'MMM d, yyyy')}
           </p>
         </div>
       </div>
+      
       
       <p className="mb-3 text-gray-700 dark:text-gray-200">{post.content}</p>
       

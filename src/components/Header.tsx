@@ -16,11 +16,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 const Header = () => {
-  const { user, logout } = useAuth(); // Change from signOut to logout
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
-    await logout(); // Change from signOut to logout
+    await logout();
     navigate('/login');
   };
 

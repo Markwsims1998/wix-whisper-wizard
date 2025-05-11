@@ -84,45 +84,6 @@ export type Database = {
           },
         ]
       }
-      banner_settings: {
-        Row: {
-          active: boolean | null
-          color: string | null
-          created_at: string | null
-          end_date: string | null
-          id: string
-          link: string | null
-          link_text: string | null
-          scheduled: boolean | null
-          start_date: string | null
-          text: string
-        }
-        Insert: {
-          active?: boolean | null
-          color?: string | null
-          created_at?: string | null
-          end_date?: string | null
-          id?: string
-          link?: string | null
-          link_text?: string | null
-          scheduled?: boolean | null
-          start_date?: string | null
-          text: string
-        }
-        Update: {
-          active?: boolean | null
-          color?: string | null
-          created_at?: string | null
-          end_date?: string | null
-          id?: string
-          link?: string | null
-          link_text?: string | null
-          scheduled?: boolean | null
-          start_date?: string | null
-          text?: string
-        }
-        Relationships: []
-      }
       comments: {
         Row: {
           content: string

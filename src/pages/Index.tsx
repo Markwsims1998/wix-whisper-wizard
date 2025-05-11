@@ -32,7 +32,6 @@ const Index = () => {
   const [uploadType, setUploadType] = useState<'photo' | 'video'>('photo');
   const [tagSuggestions, setTagSuggestions] = useState<boolean>(false);
   const [selectedGif, setSelectedGif] = useState<string | null>(null);
-  const [bannerVisible, setBannerVisible] = useState(false);
   const [activeFriends, setActiveFriends] = useState<FriendProfile[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isPostLoading, setIsPostLoading] = useState(false);
@@ -130,6 +129,7 @@ const Index = () => {
   }, [user, isLoading, loadActiveFriends]);
 
   
+
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setPostText(e.target.value);
     // Check for @ symbol to trigger tag suggestions

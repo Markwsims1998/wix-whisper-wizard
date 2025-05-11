@@ -22,36 +22,11 @@ import Notifications from "./pages/Notifications";
 import Feedback from "./pages/Feedback";
 import Winks from "./pages/Winks";
 import { useAuth } from "@/contexts/auth/AuthProvider";
-import Banner from "./components/Banner";
 import Footer from "./components/Footer";
 import { useEffect } from "react";
 
-// Add CSS to handle banner spacing
-const addGlobalStyles = () => {
-  // Add CSS variables to :root
-  const style = document.createElement('style');
-  style.innerHTML = `
-    :root {
-      --banner-height: 0px;
-      --header-height: 64px;
-    }
-    .has-banner .fixed-header {
-      top: var(--banner-height);
-    }
-    body.has-banner {
-      padding-top: calc(var(--banner-height) + var(--header-height));
-    }
-  `;
-  document.head.appendChild(style);
-};
-
 function App() {
   const { isAuthenticated, loading } = useAuth();
-  
-  // Add global styles on first render
-  useEffect(() => {
-    addGlobalStyles();
-  }, []);
   
   // Show loading indicator if we're checking authentication status
   if (loading) {
@@ -65,7 +40,6 @@ function App() {
   return (
     <ThemeProvider>
       <div className="flex flex-col min-h-screen">
-        <Banner />
         <div className="flex-grow">
           <Routes>
             {/* Redirect root based on authentication status */}

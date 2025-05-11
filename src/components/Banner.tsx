@@ -6,6 +6,7 @@ import { BannerSettings, getBannerSettings } from "@/services/bannerService";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/auth/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
+import { adjustLayoutForBanner } from "@/utils/bannerAdjustment";
 
 const Banner = () => {
   const [banner, setBanner] = useState<BannerSettings | null>(null);
@@ -27,12 +28,16 @@ const Banner = () => {
         
         if (isMounted) {
           setBanner(settings);
+          // Apply banner adjustment when banner state changes
+          adjustLayoutForBanner(settings.active && isVisible);
         }
       } catch (error) {
         console.error('Error loading banner:', error);
         if (isMounted) {
           setHasError(true);
           setBanner(null);
+          // Ensure no banner adjustment when there's an error
+          adjustLayoutForBanner(false);
         }
       } finally {
         if (isMounted) {
@@ -73,8 +78,17 @@ const Banner = () => {
       clearInterval(interval);
       supabase.removeChannel(channel);
       window.removeEventListener('banner-updated', handleBannerUpdated);
+      // Ensure banner adjustment is removed when component unmounts
+      adjustLayoutForBanner(false);
     };
   }, []);
+  
+  // Update layout when visibility changes
+  useEffect(() => {
+    if (banner && banner.active) {
+      adjustLayoutForBanner(isVisible);
+    }
+  }, [isVisible, banner]);
   
   console.log("Banner render state:", { banner, hasError, isLoading, isVisible });
   

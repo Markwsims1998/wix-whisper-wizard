@@ -54,26 +54,23 @@ const Index = () => {
     }
   }, [user, navigate]);
 
-  // Check if banner is visible
+  // Add header-specific class when component mounts
   useEffect(() => {
-    const checkBanner = () => {
-      const bannerElement = document.querySelector('[class*="bg-purple-600"], [class*="bg-blue-600"], [class*="bg-green-600"], [class*="bg-red-600"], [class*="bg-orange-600"]');
-      setBannerVisible(!!bannerElement);
-    };
-
-    // Initial check
-    checkBanner();
-
-    // Set up a mutation observer to detect when banner appears or disappears
-    const observer = new MutationObserver(checkBanner);
-    observer.observe(document.body, { childList: true, subtree: true });
-
+    // Add class to header for proper positioning
+    const header = document.querySelector('header');
+    if (header) {
+      header.classList.add('fixed-header');
+    }
+    
     return () => {
-      observer.disconnect();
+      // Clean up class on unmount
+      if (header) {
+        header.classList.remove('fixed-header');
+      }
     };
   }, []);
-
-  // Update header position based on sidebar width - run once on mount and when showBanner changes
+  
+  // Update header position based on sidebar width
   useEffect(() => {
     const updateHeaderPosition = () => {
       const sidebar = document.querySelector('div[class*="bg-[#2B2A33]"]');
@@ -102,7 +99,7 @@ const Index = () => {
     return () => {
       if (sidebar) observer.unobserve(sidebar);
     };
-  }, [bannerVisible, user]);
+  }, [user]);
 
   // Memoize the loadActiveFriends function
   const loadActiveFriends = useCallback(async () => {
@@ -235,8 +232,7 @@ const Index = () => {
       <div 
         className="pl-[280px] pt-16 pr-4 pb-36 md:pb-10 transition-all duration-300 flex-grow" 
         style={{ 
-          paddingLeft: 'var(--sidebar-width, 280px)', 
-          marginTop: bannerVisible ? '40px' : '0'
+          paddingLeft: 'var(--sidebar-width, 280px)'
         }}
       >
         {/* Rest of the content */}

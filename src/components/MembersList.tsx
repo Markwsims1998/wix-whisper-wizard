@@ -12,6 +12,7 @@ type Member = {
   username: string;
   timeAgo: string;
   avatar?: string;
+  profilePicture?: string; // Added to handle profile_picture_url
   isLocal?: boolean;
   isHotlist?: boolean;
   isFriend?: boolean;
@@ -39,6 +40,7 @@ const MembersList = () => {
               full_name, 
               username, 
               avatar_url,
+              profile_picture_url,
               last_sign_in_at,
               location
             )
@@ -81,6 +83,7 @@ const MembersList = () => {
             username: `@${profile.username}`,
             timeAgo,
             avatar: profile.avatar_url,
+            profilePicture: profile.profile_picture_url,
             isLocal: !!profile.location,
             isHotlist: false, // Implement hotlist logic as needed
             isFriend: true
@@ -113,6 +116,11 @@ const MembersList = () => {
     fetchFriends().then(() => setLoading(false));
   }, [user?.id]);
 
+  // Helper function to get avatar url from multiple possible sources
+  const getAvatarUrl = (member: Member) => {
+    return member.avatar || member.profilePicture || null;
+  };
+
   return (
     <div className="bg-white rounded-lg p-4 dark:bg-gray-800">
       <h2 className="text-lg font-semibold mb-2 dark:text-white">Friends</h2>
@@ -125,8 +133,8 @@ const MembersList = () => {
           friendMembers.map((member) => (
             <Link to={`/profile/${member.id}`} key={member.id} className="flex items-center gap-3 hover:bg-gray-50 p-2 rounded-md transition-colors dark:hover:bg-gray-700">
               <Avatar className="h-10 w-10 bg-gray-200 dark:bg-gray-600">
-                {member.avatar ? (
-                  <AvatarImage src={member.avatar} alt={member.name} />
+                {getAvatarUrl(member) ? (
+                  <AvatarImage src={getAvatarUrl(member)} alt={member.name} />
                 ) : (
                   <AvatarFallback className="bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-300">
                     {member.name.charAt(0)}

@@ -35,14 +35,23 @@ const CommentItem = ({ comment, onDelete }: CommentItemProps) => {
     }
   };
 
+  // Get the appropriate avatar URL - ensure we're checking all possible locations
+  const getAvatarUrl = () => {
+    if (comment.author?.avatar_url) return comment.author.avatar_url;
+    if (comment.author?.profile_picture_url) return comment.author.profile_picture_url;
+    return null;
+  };
+
+  const avatarUrl = getAvatarUrl();
+
   return (
     <div className="flex gap-3 pt-2">
       <Link to={`/profile/${comment.author?.id}`} className="flex-shrink-0">
         <Avatar className="h-8 w-8 bg-purple-100 dark:bg-purple-900">
-          {comment.author?.avatar_url ? (
+          {avatarUrl ? (
             <AvatarImage 
-              src={comment.author.avatar_url} 
-              alt={comment.author.full_name || "User"}
+              src={avatarUrl} 
+              alt={comment.author?.full_name || "User"}
             />
           ) : (
             <AvatarFallback className="text-purple-600 dark:text-purple-300">

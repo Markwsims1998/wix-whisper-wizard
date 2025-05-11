@@ -1,3 +1,4 @@
+
 import { Heart, MessageCircle, User } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
@@ -88,6 +89,14 @@ const PostItem = ({ post, handleLikePost }: PostItemProps) => {
     }
     return "#";
   };
+
+  // Get avatar URL from multiple possible sources
+  const getAvatarUrl = () => {
+    if (!post.author) return null;
+    return post.author.avatar_url || post.author.profile_picture_url || null;
+  };
+  
+  const avatarUrl = getAvatarUrl();
   
   return (
     <div className="mb-6 pb-6 border-b border-gray-100 last:border-0 last:mb-0 last:pb-0 dark:border-gray-700 transition-all hover:bg-gray-50 dark:hover:bg-gray-800/50 p-4 rounded-lg -mx-4">
@@ -97,10 +106,10 @@ const PostItem = ({ post, handleLikePost }: PostItemProps) => {
           className="flex-shrink-0"
         >
           <Avatar className="h-10 w-10 bg-purple-100 dark:bg-purple-900">
-            {post.author?.avatar_url ? (
+            {avatarUrl ? (
               <AvatarImage 
-                src={post.author.avatar_url} 
-                alt={post.author.full_name || "User"} 
+                src={avatarUrl} 
+                alt={post.author?.full_name || "User"} 
               />
             ) : (
               <AvatarFallback className="text-purple-600 dark:text-purple-300">

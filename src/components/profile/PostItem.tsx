@@ -1,3 +1,4 @@
+
 import { Heart, MessageCircle, User } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
@@ -20,12 +21,18 @@ const PostItem = ({ post, handleLikePost }: PostItemProps) => {
   const [likesCount, setLikesCount] = useState(post.likes_count || 0);
   const [commentsCount, setCommentsCount] = useState(post.comments_count || 0);
   const [imageError, setImageError] = useState(false);
+  const [authorData, setAuthorData] = useState<any>(post.author || null);
   
   // Check like status when component mounts
   useEffect(() => {
     if (user?.id && post.id) {
       checkLikeStatus();
       fetchCommentCount();
+      
+      // Fetch complete author data if needed
+      if (post.author && !post.author.profile_picture_url) {
+        fetchAuthorData();
+      }
     }
   }, [user?.id, post.id]);
 
@@ -38,6 +45,36 @@ const PostItem = ({ post, handleLikePost }: PostItemProps) => {
       checkLikeStatus();
     }
   }, [post.id, post.likes_count, user?.id]);
+
+  // Fetch complete author data from profiles table
+  const fetchAuthorData = async () => {
+    if (!post.author?.id) return;
+    
+    try {
+      console.log("Fetching complete profile data for author ID:", post.author.id);
+      
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', post.author.id)
+        .single();
+      
+      if (error) {
+        console.error("Error fetching author profile:", error);
+        return;
+      }
+      
+      console.log("Retrieved author profile data:", data);
+      
+      // Update author data with complete profile
+      setAuthorData({
+        ...post.author,
+        ...data
+      });
+    } catch (err) {
+      console.error("Failed to fetch author data:", err);
+    }
+  };
 
   // Check if the current user has liked this post
   const checkLikeStatus = async () => {
@@ -84,45 +121,39 @@ const PostItem = ({ post, handleLikePost }: PostItemProps) => {
 
   // Generate the correct profile URL using username if available, otherwise ID
   const getProfileUrl = () => {
-    if (post.author) {
-      if (post.author.username) {
-        return `/profile?name=${post.author.username}`;
-      } else if (post.author.id) {
-        return `/profile?id=${post.author.id}`;
+    if (authorData) {
+      if (authorData.username) {
+        return `/profile?name=${authorData.username}`;
+      } else if (authorData.id) {
+        return `/profile?id=${authorData.id}`;
       }
     }
     return "#";
   };
 
-  // Get avatar URL with proper debugging to fix the issue
+  // Get avatar URL with prioritized sources and proper debugging
   const getAvatarUrl = () => {
-    if (!post.author) return null;
+    if (!authorData) return null;
     
-    // Log the complete author object to debug
-    console.log("Full author object:", post.author);
-    
-    // Try profile_picture_url first (from Supabase storage)
-    if (post.author.profile_picture_url) {
-      console.log("Using profile_picture_url:", post.author.profile_picture_url);
-      return post.author.profile_picture_url;
+    // First try profile_picture_url from Supabase storage
+    if (authorData.profile_picture_url) {
+      console.log("Using profile_picture_url for avatar:", authorData.profile_picture_url);
+      return authorData.profile_picture_url;
     }
     
-    // Then try avatar_url (possibly from OAuth provider)
-    if (post.author.avatar_url) {
-      console.log("Using avatar_url:", post.author.avatar_url);
-      return post.author.avatar_url;
+    // Then try avatar_url from OAuth provider
+    if (authorData.avatar_url) {
+      console.log("Using avatar_url for avatar:", authorData.avatar_url);
+      return authorData.avatar_url;
     }
     
-    console.log("No avatar URL found for author");
+    console.log("No avatar URL found for author:", authorData);
     return null;
   };
   
   const avatarUrl = getAvatarUrl();
-  const authorName = post.author?.full_name || post.author?.username || "User";
+  const authorName = authorData?.full_name || authorData?.username || "User";
   const authorInitial = authorName.charAt(0).toUpperCase();
-  
-  // Log the resolved avatar URL
-  console.log("Avatar URL resolved in PostItem:", avatarUrl);
   
   return (
     <div className="mb-6 pb-6 border-b border-gray-100 last:border-0 last:mb-0 last:pb-0 dark:border-gray-700 transition-all hover:bg-gray-50 dark:hover:bg-gray-800/50 p-4 rounded-lg -mx-4">
@@ -137,8 +168,9 @@ const PostItem = ({ post, handleLikePost }: PostItemProps) => {
                 src={avatarUrl} 
                 alt={authorName} 
                 className="h-full w-full object-cover"
-                onError={() => {
-                  console.log("Image failed to load from URL:", avatarUrl);
+                onError={(e) => {
+                  console.error("Image failed to load:", e);
+                  console.log("Failed image URL:", avatarUrl);
                   setImageError(true);
                 }}
               />

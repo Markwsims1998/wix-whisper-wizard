@@ -23,7 +23,7 @@ const Login = () => {
   const { toast } = useToast();
 
   // Get the intended destination from location state or default to /home
-  const from = location.state?.from?.pathname || "/home";
+  const from = location.state?.from?.pathname || "/";
 
   // Use useEffect to handle redirect after authentication
   useEffect(() => {

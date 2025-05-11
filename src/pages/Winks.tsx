@@ -3,26 +3,12 @@ import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { getWinks, changeWinkStatus } from "@/services/winksService";
+import { getReceivedWinks, getSentWinks, updateWinkStatus, Wink } from "@/services/winksService";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import Sidebar from "@/components/Sidebar";
 
-interface Wink {
-  id: string;
-  sender: {
-    name: string;
-    avatar: string;
-  };
-  recipient: {
-    name: string;
-    avatar: string;
-  };
-  status: "pending" | "accepted" | "declined";
-  timestamp: string;
-}
-
-const Winks = () => {
+const WinksPage = () => {
   const [activeTab, setActiveTab] = useState("received");
   const [winks, setWinks] = useState<Wink[]>([]);
   const [loading, setLoading] = useState(true);
@@ -32,7 +18,14 @@ const Winks = () => {
     const fetchWinks = async () => {
       try {
         setLoading(true);
-        const winksData = await getWinks(activeTab);
+        let winksData: Wink[] = [];
+        
+        if (activeTab === "received") {
+          winksData = await getReceivedWinks();
+        } else {
+          winksData = await getSentWinks();
+        }
+        
         setWinks(winksData);
       } catch (error) {
         console.error("Error fetching winks:", error);
@@ -49,19 +42,19 @@ const Winks = () => {
     fetchWinks();
   }, [activeTab, toast]);
 
-  const handleWinkAction = async (id: string, action: "accept" | "decline") => {
+  const handleWinkAction = async (id: string, action: "accept" | "reject") => {
     try {
-      await changeWinkStatus(id, action);
+      await updateWinkStatus(id, action === "accept" ? "accepted" : "rejected");
       
       // Update local state
       setWinks((currentWinks) =>
         currentWinks.map((wink) =>
-          wink.id === id ? { ...wink, status: action === "accept" ? "accepted" : "declined" } : wink
+          wink.id === id ? { ...wink, status: action === "accept" ? "accepted" : "rejected" } : wink
         )
       );
 
       toast({
-        title: action === "accept" ? "Wink Accepted" : "Wink Declined",
+        title: action === "accept" ? "Wink Accepted" : "Wink Rejected",
         description: action === "accept" ? "You've accepted the wink!" : "You've declined the wink.",
       });
     } catch (error) {
@@ -77,9 +70,9 @@ const Winks = () => {
   return (
     <div className="flex min-h-screen bg-gray-100 dark:bg-gray-900">
       <Sidebar />
-      <div className="flex-1 pl-[280px] pt-14">
+      <div className="flex-1 pl-[280px]">
         <Header />
-        <div className="container mx-auto p-6 mt-8">
+        <div className="container mx-auto p-6 mt-16">
           <Card className="border bg-white dark:bg-gray-800 shadow-sm">
             <CardHeader>
               <CardTitle>Winks</CardTitle>
@@ -106,22 +99,22 @@ const Winks = () => {
                         >
                           <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
-                              {wink.sender.avatar ? (
+                              {wink.sender?.avatar_url ? (
                                 <img
-                                  src={wink.sender.avatar}
-                                  alt={wink.sender.name}
+                                  src={wink.sender.avatar_url}
+                                  alt={wink.sender.full_name || wink.sender.username || "User"}
                                   className="w-full h-full object-cover"
                                 />
                               ) : (
                                 <div className="w-full h-full flex items-center justify-center text-gray-500">
-                                  {wink.sender.name.charAt(0)}
+                                  {(wink.sender?.full_name || wink.sender?.username || "U").charAt(0)}
                                 </div>
                               )}
                             </div>
                             <div>
-                              <div className="font-medium">{wink.sender.name}</div>
+                              <div className="font-medium">{wink.sender?.full_name || wink.sender?.username || "Unknown User"}</div>
                               <div className="text-sm text-gray-500">
-                                {new Date(wink.timestamp).toLocaleDateString()}
+                                {new Date(wink.created_at).toLocaleDateString()}
                               </div>
                             </div>
                           </div>
@@ -136,7 +129,7 @@ const Winks = () => {
                               </button>
                               <button
                                 className="px-4 py-1 text-sm bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
-                                onClick={() => handleWinkAction(wink.id, "decline")}
+                                onClick={() => handleWinkAction(wink.id, "reject")}
                               >
                                 Decline
                               </button>
@@ -171,22 +164,22 @@ const Winks = () => {
                         >
                           <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
-                              {wink.recipient.avatar ? (
+                              {wink.recipient?.avatar_url ? (
                                 <img
-                                  src={wink.recipient.avatar}
-                                  alt={wink.recipient.name}
+                                  src={wink.recipient.avatar_url}
+                                  alt={wink.recipient.full_name || wink.recipient.username || "User"}
                                   className="w-full h-full object-cover"
                                 />
                               ) : (
                                 <div className="w-full h-full flex items-center justify-center text-gray-500">
-                                  {wink.recipient.name.charAt(0)}
+                                  {(wink.recipient?.full_name || wink.recipient?.username || "U").charAt(0)}
                                 </div>
                               )}
                             </div>
                             <div>
-                              <div className="font-medium">{wink.recipient.name}</div>
+                              <div className="font-medium">{wink.recipient?.full_name || wink.recipient?.username || "Unknown User"}</div>
                               <div className="text-sm text-gray-500">
-                                {new Date(wink.timestamp).toLocaleDateString()}
+                                {new Date(wink.created_at).toLocaleDateString()}
                               </div>
                             </div>
                           </div>
@@ -215,4 +208,4 @@ const Winks = () => {
   );
 };
 
-export default Winks;
+export default WinksPage;

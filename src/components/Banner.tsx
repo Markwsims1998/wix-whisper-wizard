@@ -45,11 +45,13 @@ const Banner = () => {
         event: '*',
         schema: 'public',
         table: 'banner_settings'
-      }, () => {
-        console.log('Banner settings changed, reloading...');
+      }, (payload) => {
+        console.log('Banner settings changed, payload:', payload);
         loadBanner();
       })
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Supabase channel status:', status);
+      });
     
     // Load banner every 5 minutes to catch any missed real-time updates
     const interval = setInterval(loadBanner, 5 * 60 * 1000);

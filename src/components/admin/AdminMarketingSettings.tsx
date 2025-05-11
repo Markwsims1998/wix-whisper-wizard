@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,14 +10,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Image, Megaphone, Loader2 } from "lucide-react";
+import { CalendarIcon, Image, Megaphone, Loader2, AlertCircle } from "lucide-react";
 import { format } from "date-fns";
 import { saveBannerSettings, getBannerSettings } from "@/services/bannerService";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const AdminMarketingSettings = () => {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("banner");
   const [isLoading, setIsLoading] = useState(false);
+  const [tableError, setTableError] = useState<string | null>(null);
   
   // Banner state
   const [bannerActive, setBannerActive] = useState(true);
@@ -38,6 +39,26 @@ const AdminMarketingSettings = () => {
   const [adDescription, setAdDescription] = useState("Remove ads and get access to exclusive content with our premium plans.");
   const [adButtonText, setAdButtonText] = useState("View Subscription Plans");
   const [adLink, setAdLink] = useState("/shop");
+  
+  // Check if the banner_settings table exists
+  useEffect(() => {
+    const checkBannerTable = async () => {
+      try {
+        const { data, error } = await getBannerSettings();
+        
+        if (error && error.message && error.message.includes('does not exist')) {
+          setTableError("The banner_settings table doesn't exist in your database. Please create it first.");
+        } else {
+          setTableError(null);
+        }
+      } catch (error) {
+        console.error("Error checking banner table:", error);
+        setTableError("Failed to verify banner settings database. Database tables might be missing.");
+      }
+    };
+    
+    checkBannerTable();
+  }, []);
   
   // Load existing banner settings when component mounts
   useEffect(() => {
@@ -64,7 +85,7 @@ const AdminMarketingSettings = () => {
         console.error("Error loading banner settings:", error);
         toast({
           title: "Error",
-          description: "Failed to load banner settings",
+          description: "Failed to load banner settings. Please check console for details.",
           variant: "destructive"
         });
       } finally {
@@ -72,8 +93,10 @@ const AdminMarketingSettings = () => {
       }
     };
     
-    loadBannerSettings();
-  }, [toast]);
+    if (!tableError) {
+      loadBannerSettings();
+    }
+  }, [toast, tableError]);
 
   const handleSaveBanner = async () => {
     setIsLoading(true);
@@ -137,7 +160,7 @@ const AdminMarketingSettings = () => {
       } else {
         toast({
           title: "Failed to Save",
-          description: "There was a problem saving your banner settings.",
+          description: "There was a problem saving your banner settings. Please check console for details.",
           variant: "destructive",
         });
       }
@@ -179,6 +202,29 @@ const AdminMarketingSettings = () => {
         <h1 className="text-2xl font-bold tracking-tight">Marketing Settings</h1>
       </div>
       
+      {tableError && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Database Error</AlertTitle>
+          <AlertDescription>
+            {tableError}
+            <p className="mt-2">You may need to create the banner_settings table in your database with columns:</p>
+            <ul className="list-disc pl-5 mt-1 text-sm">
+              <li>id (uuid, primary key)</li>
+              <li>active (boolean)</li>
+              <li>text (text)</li>
+              <li>link (text, nullable)</li>
+              <li>link_text (text, nullable)</li>
+              <li>color (text)</li>
+              <li>scheduled (boolean)</li>
+              <li>start_date (timestamp with time zone, nullable)</li>
+              <li>end_date (timestamp with time zone, nullable)</li>
+              <li>created_at (timestamp with time zone)</li>
+            </ul>
+          </AlertDescription>
+        </Alert>
+      )}
+      
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList className="grid grid-cols-2 gap-2">
           <TabsTrigger value="banner" className="flex items-center gap-1">
@@ -207,7 +253,7 @@ const AdminMarketingSettings = () => {
                     Show the announcement banner to all users
                   </p>
                 </div>
-                <Switch checked={bannerActive} onCheckedChange={setBannerActive} />
+                <Switch checked={bannerActive} onCheckedChange={setBannerActive} disabled={!!tableError} />
               </div>
               
               <div className="space-y-2">
@@ -217,6 +263,7 @@ const AdminMarketingSettings = () => {
                   value={bannerText}
                   onChange={(e) => setBannerText(e.target.value)}
                   className="min-h-[80px]"
+                  disabled={!!tableError}
                 />
               </div>
               
@@ -228,6 +275,7 @@ const AdminMarketingSettings = () => {
                     value={bannerLink}
                     onChange={(e) => setBannerLink(e.target.value)}
                     placeholder="/feedback"
+                    disabled={!!tableError}
                   />
                 </div>
                 <div className="space-y-2">
@@ -237,13 +285,14 @@ const AdminMarketingSettings = () => {
                     value={bannerLinkText}
                     onChange={(e) => setBannerLinkText(e.target.value)}
                     placeholder="feedback"
+                    disabled={!!tableError}
                   />
                 </div>
               </div>
               
               <div className="space-y-2">
                 <Label htmlFor="banner-color">Banner Color</Label>
-                <Select value={bannerColor} onValueChange={setBannerColor}>
+                <Select value={bannerColor} onValueChange={setBannerColor} disabled={!!tableError}>
                   <SelectTrigger id="banner-color">
                     <SelectValue placeholder="Select a color" />
                   </SelectTrigger>
@@ -264,7 +313,7 @@ const AdminMarketingSettings = () => {
                     Set a date range when the banner should be shown
                   </p>
                 </div>
-                <Switch checked={bannerSchedule} onCheckedChange={setBannerSchedule} />
+                <Switch checked={bannerSchedule} onCheckedChange={setBannerSchedule} disabled={!!tableError} />
               </div>
               
               {bannerSchedule && (
@@ -276,6 +325,7 @@ const AdminMarketingSettings = () => {
                         <Button
                           variant="outline"
                           className="w-full justify-start text-left font-normal"
+                          disabled={!!tableError}
                         >
                           <CalendarIcon className="mr-2 h-4 w-4" />
                           {bannerStartDate ? format(bannerStartDate, "PPP") : "Select date"}
@@ -298,6 +348,7 @@ const AdminMarketingSettings = () => {
                         <Button
                           variant="outline"
                           className="w-full justify-start text-left font-normal"
+                          disabled={!!tableError}
                         >
                           <CalendarIcon className="mr-2 h-4 w-4" />
                           {bannerEndDate ? format(bannerEndDate, "PPP") : "Select date"}
@@ -330,7 +381,7 @@ const AdminMarketingSettings = () => {
             <CardFooter>
               <Button 
                 onClick={handleSaveBanner} 
-                disabled={isLoading}
+                disabled={isLoading || !!tableError}
                 className="flex items-center gap-2"
               >
                 {isLoading ? (

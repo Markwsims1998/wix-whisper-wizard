@@ -107,6 +107,20 @@ export const saveBannerSettings = async (settings: BannerSettings): Promise<bool
     
     console.log("Formatted banner data:", bannerData);
     
+    // Check if the banner_settings table exists
+    const { error: tableCheckError } = await supabase
+      .from('banner_settings')
+      .select('count(*)', { count: 'exact', head: true });
+      
+    if (tableCheckError) {
+      console.error('Error checking banner_settings table:', tableCheckError);
+      if (tableCheckError.message.includes('does not exist')) {
+        console.error('The banner_settings table does not exist. Please create it first.');
+        return false;
+      }
+      return false;
+    }
+    
     // Insert the new banner settings - our trigger will handle deactivating others
     const { error } = await supabase
       .from('banner_settings')

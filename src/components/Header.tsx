@@ -25,7 +25,7 @@ const Header = () => {
   };
 
   return (
-    <header className="w-full h-16 bg-background shadow-sm z-40 border-b">
+    <header className="fixed-header w-full h-16 bg-background shadow-sm z-40 border-b">
       <div className="h-full flex items-center justify-between px-4">
         <div className="flex items-center gap-2">
           {/* Logo - shown on mobile when sidebar is hidden */}

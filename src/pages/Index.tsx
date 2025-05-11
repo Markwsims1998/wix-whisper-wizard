@@ -4,7 +4,7 @@ import PostFeed from "@/components/PostFeed";
 import Sidebar from "@/components/Sidebar";
 import AdDisplay from "@/components/AdDisplay";
 import { Image, MessageSquare, Video, X, Tag, Smile, Gift } from "lucide-react";
-import { useAuth } from "@/contexts/auth/AuthProvider"; // Updated import path
+import { useAuth } from "@/contexts/auth/AuthProvider"; 
 import { useNavigate, Link } from "react-router-dom";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
@@ -19,7 +19,6 @@ import GifPicker from "@/components/media/GifPicker";
 import { createPost } from "@/services/feedService";
 import { getActiveFriends } from "@/services/userService";
 import { FriendProfile } from "@/services/userService";
-import Footer from "@/components/Footer";
 
 const Index = () => {
   const { user } = useAuth();
@@ -453,8 +452,6 @@ const Index = () => {
           </div>
         </div>
       </div>
-      
-      <Footer />
       
       {/* Content uploader dialog */}
       <ContentUploader 

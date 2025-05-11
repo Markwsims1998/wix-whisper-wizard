@@ -39,36 +39,41 @@ function App() {
 
   return (
     <ThemeProvider>
-      <Banner />
-      <Routes>
-        {/* Redirect root based on authentication status */}
-        <Route path="/" element={isAuthenticated ? <Index /> : <Navigate to="/home" replace />} />
-        
-        {/* Landing page - redirect to dashboard if authenticated */}
-        <Route path="/home" element={isAuthenticated ? <Navigate to="/" replace /> : <HomePage />} />
-        
-        {/* Protected routes - redirect to login if not authenticated */}
-        <Route path="/profile" element={isAuthenticated ? <Profile /> : <Navigate to="/login" replace />} />
-        <Route path="/messages" element={isAuthenticated ? <Messages /> : <Navigate to="/login" replace />} />
-        <Route path="/activity" element={isAuthenticated ? <Activity /> : <Navigate to="/login" replace />} />
-        <Route path="/comments" element={isAuthenticated ? <Comments /> : <Navigate to="/login" replace />} />
-        <Route path="/settings" element={isAuthenticated ? <Settings /> : <Navigate to="/login" replace />} />
-        <Route path="/videos" element={isAuthenticated ? <Videos /> : <Navigate to="/login" replace />} />
-        <Route path="/photos" element={isAuthenticated ? <Photos /> : <Navigate to="/login" replace />} />
-        <Route path="/people" element={isAuthenticated ? <People /> : <Navigate to="/login" replace />} />
-        <Route path="/shop" element={isAuthenticated ? <Shop /> : <Navigate to="/login" replace />} />
-        <Route path="/admin" element={isAuthenticated ? <Admin /> : <Navigate to="/login" replace />} />
-        <Route path="/watch" element={isAuthenticated ? <Watch /> : <Navigate to="/login" replace />} />
-        <Route path="/basket" element={isAuthenticated ? <Basket /> : <Navigate to="/login" replace />} />
-        <Route path="/notifications" element={isAuthenticated ? <Notifications /> : <Navigate to="/login" replace />} />
-        <Route path="/winks" element={isAuthenticated ? <Winks /> : <Navigate to="/login" replace />} />
-        
-        {/* Public routes */}
-        <Route path="/login" element={isAuthenticated ? <Navigate to="/" replace /> : <Login />} />
-        <Route path="/feedback" element={<Feedback />} />
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-      <Toaster />
+      <div className="flex flex-col min-h-screen">
+        <Banner />
+        <div className="flex-grow">
+          <Routes>
+            {/* Redirect root based on authentication status */}
+            <Route path="/" element={isAuthenticated ? <Index /> : <Navigate to="/home" replace />} />
+            
+            {/* Landing page - redirect to dashboard if authenticated */}
+            <Route path="/home" element={isAuthenticated ? <Navigate to="/" replace /> : <HomePage />} />
+            
+            {/* Protected routes - redirect to login if not authenticated */}
+            <Route path="/profile" element={isAuthenticated ? <Profile /> : <Navigate to="/login" replace />} />
+            <Route path="/messages" element={isAuthenticated ? <Messages /> : <Navigate to="/login" replace />} />
+            <Route path="/activity" element={isAuthenticated ? <Activity /> : <Navigate to="/login" replace />} />
+            <Route path="/comments" element={isAuthenticated ? <Comments /> : <Navigate to="/login" replace />} />
+            <Route path="/settings" element={isAuthenticated ? <Settings /> : <Navigate to="/login" replace />} />
+            <Route path="/videos" element={isAuthenticated ? <Videos /> : <Navigate to="/login" replace />} />
+            <Route path="/photos" element={isAuthenticated ? <Photos /> : <Navigate to="/login" replace />} />
+            <Route path="/people" element={isAuthenticated ? <People /> : <Navigate to="/login" replace />} />
+            <Route path="/shop" element={isAuthenticated ? <Shop /> : <Navigate to="/login" replace />} />
+            <Route path="/admin" element={isAuthenticated ? <Admin /> : <Navigate to="/login" replace />} />
+            <Route path="/watch" element={isAuthenticated ? <Watch /> : <Navigate to="/login" replace />} />
+            <Route path="/basket" element={isAuthenticated ? <Basket /> : <Navigate to="/login" replace />} />
+            <Route path="/notifications" element={isAuthenticated ? <Notifications /> : <Navigate to="/login" replace />} />
+            <Route path="/winks" element={isAuthenticated ? <Winks /> : <Navigate to="/login" replace />} />
+            
+            {/* Public routes */}
+            <Route path="/login" element={isAuthenticated ? <Navigate to="/" replace /> : <Login />} />
+            <Route path="/feedback" element={<Feedback />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </div>
+        <Footer />
+        <Toaster />
+      </div>
     </ThemeProvider>
   );
 }

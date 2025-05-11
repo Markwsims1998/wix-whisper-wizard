@@ -1,11 +1,9 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { getReceivedWinks, getSentWinks, updateWinkStatus, Wink } from "@/services/winksService";
 import Header from "@/components/Header";
-import Footer from "@/components/Footer";
 import Sidebar from "@/components/Sidebar";
 
 const WinksPage = () => {
@@ -202,7 +200,6 @@ const WinksPage = () => {
             </CardContent>
           </Card>
         </div>
-        <Footer />
       </div>
     </div>
   );

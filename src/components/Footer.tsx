@@ -9,7 +9,7 @@ const Footer = () => {
 
   return (
     <footer 
-      className={`bg-[#2B2A33] text-gray-300 dark:bg-gray-900 w-full z-10 ${isMobile ? 'relative mt-16' : 'relative'}`} 
+      className={`bg-[#2B2A33] text-gray-300 dark:bg-gray-900 w-full z-10 ${isMobile ? '' : ''}`} 
       style={!isMobile ? { 
         marginLeft: 'var(--sidebar-width, 280px)', 
         width: 'calc(100% - var(--sidebar-width, 280px))',

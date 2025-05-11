@@ -51,7 +51,7 @@ const Header = () => {
 
   return (
     <div className="fixed z-20 w-full top-0 flex flex-col">
-      {/* Banner component */}
+      {/* Banner component will be rendered first */}
       <Banner />
 
       <header 
@@ -61,7 +61,7 @@ const Header = () => {
           left: 'var(--sidebar-width, 280px)', 
           right: '0',
           width: 'calc(100% - var(--sidebar-width, 280px))',
-          top: bannerVisible ? '40px' : '0',
+          top: '0',
           transition: 'top 0.3s ease-in-out'
         }}
       >

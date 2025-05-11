@@ -68,25 +68,6 @@ const Banner = () => {
     };
   }, [isAuthenticated]);
   
-  // Debugging what's preventing the banner from showing
-  useEffect(() => {
-    if (isLoading) {
-      console.log("Banner is loading...");
-    } else if (hasError) {
-      console.log("Banner has error");
-    } else if (!banner) {
-      console.log("No banner data received");
-    } else if (!isAuthenticated) {
-      console.log("User not authenticated");
-    } else if (!banner.active) {
-      console.log("Banner is not active:", banner);
-    } else if (!isVisible) {
-      console.log("Banner is hidden by user");
-    } else {
-      console.log("Banner should be visible:", banner);
-    }
-  }, [banner, isLoading, hasError, isAuthenticated, isVisible]);
-  
   // If error, loading, no banner, not authenticated, banner not active, or not visible, return null
   if (hasError || isLoading || !banner || !isAuthenticated || !banner.active || !isVisible) {
     return null;

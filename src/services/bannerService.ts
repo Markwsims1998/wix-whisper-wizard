@@ -93,19 +93,24 @@ export const saveBannerSettings = async (settings: BannerSettings): Promise<bool
   try {
     console.log("Saving new banner settings:", settings);
     
+    // Format the data for Supabase
+    const bannerData = {
+      active: settings.active,
+      text: settings.text,
+      link: settings.link || null,
+      link_text: settings.linkText || null,
+      color: settings.color || 'purple',
+      scheduled: settings.scheduled || false,
+      start_date: settings.startDate || null,
+      end_date: settings.endDate || null
+    };
+    
+    console.log("Formatted banner data:", bannerData);
+    
     // Insert the new banner settings - our trigger will handle deactivating others
     const { error } = await supabase
       .from('banner_settings')
-      .insert({
-        active: settings.active,
-        text: settings.text,
-        link: settings.link,
-        link_text: settings.linkText,
-        color: settings.color,
-        scheduled: settings.scheduled,
-        start_date: settings.startDate,
-        end_date: settings.endDate
-      });
+      .insert(bannerData);
 
     if (error) {
       console.error('Error saving banner settings:', error);

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -116,9 +117,9 @@ const AdminMarketingSettings = () => {
       const success = await saveBannerSettings({
         active: bannerActive,
         text: bannerText,
-        link: bannerLink,
-        linkText: bannerLinkText,
-        color: bannerColor,
+        link: bannerLink || "",
+        linkText: bannerLinkText || "",
+        color: bannerColor || "purple",
         scheduled: bannerSchedule,
         startDate: bannerStartDate ? bannerStartDate.toISOString() : null,
         endDate: bannerEndDate ? bannerEndDate.toISOString() : null

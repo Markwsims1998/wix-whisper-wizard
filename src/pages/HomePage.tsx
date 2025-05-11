@@ -19,13 +19,6 @@ const HomePage = () => {
   const navigate = useNavigate();
   const [isScrolled, setIsScrolled] = useState(false);
 
-  // Redirect if already authenticated
-  useEffect(() => {
-    if (isAuthenticated) {
-      navigate("/home");
-    }
-  }, [isAuthenticated, navigate]);
-
   // Handle scroll effect for header
   useEffect(() => {
     const handleScroll = () => {
@@ -39,6 +32,9 @@ const HomePage = () => {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  // We removed the redirect if already authenticated as this is our landing page
+  // Users can navigate to the index page ("/") from here if they want
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900 dark:to-indigo-900 text-gray-800 dark:text-white overflow-hidden">
@@ -59,19 +55,30 @@ const HomePage = () => {
             <Link to="/feedback" className="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white text-sm">
               Beta Feedback
             </Link>
-            <Button 
-              onClick={() => navigate("/login")}
-              variant="outline" 
-              className="border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800"
-            >
-              Log In
-            </Button>
-            <Button 
-              onClick={() => navigate("/login?tab=signup")}
-              className="bg-purple-600 hover:bg-purple-700 text-white"
-            >
-              Sign Up
-            </Button>
+            {isAuthenticated ? (
+              <Button 
+                onClick={() => navigate("/")} 
+                className="bg-purple-600 hover:bg-purple-700 text-white"
+              >
+                Go to Dashboard
+              </Button>
+            ) : (
+              <>
+                <Button 
+                  onClick={() => navigate("/login")}
+                  variant="outline" 
+                  className="border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800"
+                >
+                  Log In
+                </Button>
+                <Button 
+                  onClick={() => navigate("/login?tab=signup")}
+                  className="bg-purple-600 hover:bg-purple-700 text-white"
+                >
+                  Sign Up
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </header>

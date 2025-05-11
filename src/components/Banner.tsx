@@ -8,11 +8,13 @@ const Banner = () => {
   const [banner, setBanner] = useState<BannerSettings | null>(null);
   const [isVisible, setIsVisible] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
   
   useEffect(() => {
     const loadBanner = async () => {
       try {
         setIsLoading(true);
+        setHasError(false);
         const settings = await getBannerSettings();
         if (settings && settings.active) {
           setBanner(settings);
@@ -21,6 +23,7 @@ const Banner = () => {
         }
       } catch (error) {
         console.error('Error loading banner:', error);
+        setHasError(true);
         setBanner(null);
       } finally {
         setIsLoading(false);
@@ -35,8 +38,8 @@ const Banner = () => {
     return () => clearInterval(interval);
   }, []);
   
-  // If still loading or no banner or not visible, return null
-  if (isLoading || !banner || !isVisible) return null;
+  // If error, loading, no banner, or not visible, return null
+  if (hasError || isLoading || !banner || !isVisible) return null;
   
   // Determine banner color class based on the color setting
   const getBannerColorClass = () => {

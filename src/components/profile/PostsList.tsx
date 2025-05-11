@@ -93,10 +93,21 @@ const PostsList = ({
             }
           }
           
+          // Ensure the author has the profile picture information
+          const author = post.author ? {
+            ...post.author,
+            // Use profile picture from author if available, otherwise use from profile
+            profile_picture_url: post.author.profile_picture_url || 
+                               (profile && post.user_id === profile.id ? profile.profile_picture_url : null),
+            avatar_url: post.author.avatar_url || 
+                      (profile && post.user_id === profile.id ? profile.avatar_url : null)
+          } : null;
+          
           return {
             ...post,
             likes_count: likesCount,
-            comments_count: commentsCount
+            comments_count: commentsCount,
+            author
           };
         });
         
@@ -111,7 +122,7 @@ const PostsList = ({
     };
     
     fetchProfilePosts();
-  }, [profileId, initialPosts]);
+  }, [profileId, initialPosts, profile]);
   
   // Check which posts the current user has liked
   const checkUserLikes = async (fetchedPosts: Post[]) => {
@@ -235,37 +246,13 @@ const PostsList = ({
               )}
             </div>
           ) : (
-            posts.map((post) => {
-              // Ensure each post has proper author data with profile picture information
-              const updatedPost = { ...post };
-              
-              // If post is missing author data completely, add it from the profile
-              if (!updatedPost.author && profile) {
-                updatedPost.author = {
-                  id: profile.id,
-                  username: profile.username,
-                  full_name: profile.full_name,
-                  avatar_url: profile.avatar_url,
-                  profile_picture_url: profile.profile_picture_url
-                };
-              } 
-              // If post has author but missing profile picture, add it from the profile
-              else if (updatedPost.author && profile && profile.id === updatedPost.author.id) {
-                updatedPost.author = {
-                  ...updatedPost.author,
-                  profile_picture_url: profile.profile_picture_url || updatedPost.author.profile_picture_url,
-                  avatar_url: profile.avatar_url || updatedPost.author.avatar_url
-                };
-              }
-              
-              return (
-                <PostItem 
-                  key={updatedPost.id} 
-                  post={updatedPost} 
-                  handleLikePost={onLikePost} 
-                />
-              );
-            })
+            posts.map((post) => (
+              <PostItem 
+                key={post.id} 
+                post={post} 
+                handleLikePost={onLikePost} 
+              />
+            ))
           )}
         </ScrollArea>
       </div>

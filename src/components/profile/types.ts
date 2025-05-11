@@ -19,7 +19,7 @@ export interface Post {
     username?: string;
     full_name?: string;
     avatar_url?: string;
-    profile_picture_url?: string; // Added this property
+    profile_picture_url?: string;
     subscription_tier?: string;
   };
 }

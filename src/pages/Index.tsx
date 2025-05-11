@@ -19,6 +19,7 @@ import GifPicker from "@/components/media/GifPicker";
 import { createPost } from "@/services/feedService";
 import { getActiveFriends } from "@/services/userService";
 import { FriendProfile } from "@/services/userService";
+import Footer from "@/components/Footer";
 
 const Index = () => {
   const { user } = useAuth();
@@ -452,6 +453,8 @@ const Index = () => {
           </div>
         </div>
       </div>
+      
+      <Footer />
       
       {/* Content uploader dialog */}
       <ContentUploader 

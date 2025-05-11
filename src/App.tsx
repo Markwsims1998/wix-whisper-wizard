@@ -22,6 +22,8 @@ import Notifications from "./pages/Notifications";
 import Feedback from "./pages/Feedback";
 import Winks from "./pages/Winks";
 import { useAuth } from "@/contexts/auth/AuthProvider";
+import Banner from "./components/Banner";
+import Footer from "./components/Footer";
 
 function App() {
   const { isAuthenticated, loading } = useAuth();
@@ -37,6 +39,7 @@ function App() {
 
   return (
     <ThemeProvider>
+      <Banner />
       <Routes>
         {/* Redirect root based on authentication status */}
         <Route path="/" element={isAuthenticated ? <Index /> : <Navigate to="/home" replace />} />

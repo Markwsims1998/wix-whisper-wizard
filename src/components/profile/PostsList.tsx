@@ -17,9 +17,8 @@ const PostsList = ({
   profile,
   handleLikePost 
 }: PostsListProps) => {
-  // Get profile name, prioritizing full_name, then username, with "User" as last fallback
-  // Using optional chaining to avoid errors with undefined values
-  const profileName = profile?.full_name || profile?.username || "User";
+  // Get display name, always prioritize full_name over username
+  const displayName = profile?.full_name || profile?.username || "User";
   
   console.log("Profile data in PostsList:", profile);
   console.log("Posts in PostsList:", posts);
@@ -29,7 +28,7 @@ const PostsList = ({
       <div className="bg-white rounded-lg shadow p-4 dark:bg-gray-800">
         <div className="mb-4">
           <h2 className="text-xl font-semibold">
-            {isMyProfile ? "Your Recent Posts" : `${profileName}'s Recent Posts`}
+            {isMyProfile ? "Your Recent Posts" : `${displayName}'s Recent Posts`}
           </h2>
         </div>
         <Separator className="mb-4" />

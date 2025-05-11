@@ -85,19 +85,39 @@ export const getFeedPosts = async (
 
     // Transform the data
     const posts = data.map(post => {
-      // Compute likes count
-      const likesCount = typeof post.likes_count === 'object' ? 
-        post.likes_count.count : 
-        Array.isArray(post.likes_count) ? 
-          post.likes_count.length : 
-          0;
+      // Compute likes count - handle different response formats
+      let likesCount = 0;
+      if (post.likes_count) {
+        if (typeof post.likes_count === 'number') {
+          likesCount = post.likes_count;
+        } else if (Array.isArray(post.likes_count)) {
+          // If it's an array with a count property
+          if (post.likes_count[0] && 'count' in post.likes_count[0]) {
+            likesCount = post.likes_count[0].count || 0;
+          } else {
+            likesCount = post.likes_count.length || 0;
+          }
+        } else if (typeof post.likes_count === 'object' && 'count' in post.likes_count) {
+          likesCount = post.likes_count.count || 0;
+        }
+      }
       
-      // Compute comments count
-      const commentsCount = typeof post.comments_count === 'object' ? 
-        post.comments_count.count : 
-        Array.isArray(post.comments_count) ? 
-          post.comments_count.length : 
-          0;
+      // Compute comments count - handle different response formats
+      let commentsCount = 0;
+      if (post.comments_count) {
+        if (typeof post.comments_count === 'number') {
+          commentsCount = post.comments_count;
+        } else if (Array.isArray(post.comments_count)) {
+          // If it's an array with a count property
+          if (post.comments_count[0] && 'count' in post.comments_count[0]) {
+            commentsCount = post.comments_count[0].count || 0;
+          } else {
+            commentsCount = post.comments_count.length || 0;
+          }
+        } else if (typeof post.comments_count === 'object' && 'count' in post.comments_count) {
+          commentsCount = post.comments_count.count || 0;
+        }
+      }
       
       // Check if the current user has liked this post
       let isLiked = false;
@@ -164,18 +184,38 @@ export const getPostById = async (postId: string): Promise<Post | null> => {
       return null;
     }
 
-    // Transform the data
-    const likesCount = typeof data.likes_count === 'object' ? 
-      data.likes_count.count : 
-      Array.isArray(data.likes_count) ? 
-        data.likes_count.length : 
-        0;
+    // Transform the data - handle different response formats for counts
+    let likesCount = 0;
+    if (data.likes_count) {
+      if (typeof data.likes_count === 'number') {
+        likesCount = data.likes_count;
+      } else if (Array.isArray(data.likes_count)) {
+        // If it's an array with a count property
+        if (data.likes_count[0] && 'count' in data.likes_count[0]) {
+          likesCount = data.likes_count[0].count || 0;
+        } else {
+          likesCount = data.likes_count.length || 0;
+        }
+      } else if (typeof data.likes_count === 'object' && 'count' in data.likes_count) {
+        likesCount = data.likes_count.count || 0;
+      }
+    }
     
-    const commentsCount = typeof data.comments_count === 'object' ? 
-      data.comments_count.count : 
-      Array.isArray(data.comments_count) ? 
-        data.comments_count.length : 
-        0;
+    let commentsCount = 0;
+    if (data.comments_count) {
+      if (typeof data.comments_count === 'number') {
+        commentsCount = data.comments_count;
+      } else if (Array.isArray(data.comments_count)) {
+        // If it's an array with a count property
+        if (data.comments_count[0] && 'count' in data.comments_count[0]) {
+          commentsCount = data.comments_count[0].count || 0;
+        } else {
+          commentsCount = data.comments_count.length || 0;
+        }
+      } else if (typeof data.comments_count === 'object' && 'count' in data.comments_count) {
+        commentsCount = data.comments_count.count || 0;
+      }
+    }
 
     return {
       ...data,
@@ -329,13 +369,43 @@ export const createPost = async (
       };
     }
     
-    // Transform the data
+    // Transform the data - handle different response formats for counts
+    let likesCount = 0;
+    if (completePost.likes_count) {
+      if (typeof completePost.likes_count === 'number') {
+        likesCount = completePost.likes_count;
+      } else if (Array.isArray(completePost.likes_count)) {
+        // If it's an array with a count property
+        if (completePost.likes_count[0] && 'count' in completePost.likes_count[0]) {
+          likesCount = completePost.likes_count[0].count || 0;
+        } else {
+          likesCount = completePost.likes_count.length || 0;
+        }
+      } else if (typeof completePost.likes_count === 'object' && 'count' in completePost.likes_count) {
+        likesCount = completePost.likes_count.count || 0;
+      }
+    }
+    
+    let commentsCount = 0;
+    if (completePost.comments_count) {
+      if (typeof completePost.comments_count === 'number') {
+        commentsCount = completePost.comments_count;
+      } else if (Array.isArray(completePost.comments_count)) {
+        // If it's an array with a count property
+        if (completePost.comments_count[0] && 'count' in completePost.comments_count[0]) {
+          commentsCount = completePost.comments_count[0].count || 0;
+        } else {
+          commentsCount = completePost.comments_count.length || 0;
+        }
+      } else if (typeof completePost.comments_count === 'object' && 'count' in completePost.comments_count) {
+        commentsCount = completePost.comments_count.count || 0;
+      }
+    }
+    
     const transformedPost = {
       ...completePost,
-      likes_count: typeof completePost.likes_count === 'object' ? 
-        completePost.likes_count.count : 0,
-      comments_count: typeof completePost.comments_count === 'object' ? 
-        completePost.comments_count.count : 0,
+      likes_count: likesCount,
+      comments_count: commentsCount,
     };
     
     return { success: true, post: transformedPost };

@@ -98,7 +98,9 @@ const PostItem = ({ post, handleLikePost }: PostItemProps) => {
   };
   
   const avatarUrl = getAvatarUrl();
-  console.log("Post author avatar:", avatarUrl, post.author);
+  // Add debug logging to see what's happening with the avatars
+  console.log("Post author data:", post.author);
+  console.log("Post author avatar URL:", avatarUrl);
   
   return (
     <div className="mb-6 pb-6 border-b border-gray-100 last:border-0 last:mb-0 last:pb-0 dark:border-gray-700 transition-all hover:bg-gray-50 dark:hover:bg-gray-800/50 p-4 rounded-lg -mx-4">

@@ -53,6 +53,7 @@ const CommentsPage = () => {
           
           // Load users who liked the post
           const likes = await getLikesForPost(postId);
+          console.log("Likes data:", likes);
           setLikeUsers(likes);
         } else {
           toast({
@@ -203,7 +204,7 @@ const CommentsPage = () => {
                     <Avatar className="h-10 w-10 bg-purple-100 dark:bg-purple-900">
                       {getAvatarUrl(post.author) ? (
                         <AvatarImage 
-                          src={getAvatarUrl(post.author)} 
+                          src={getAvatarUrl(post.author)}
                           alt={post.author?.full_name || "User"} 
                         />
                       ) : (

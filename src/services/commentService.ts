@@ -14,13 +14,14 @@ export interface Comment {
     username?: string;
     full_name?: string;
     avatar_url?: string;
-    profile_picture_url?: string; // Added this property
+    profile_picture_url?: string;
     subscription_tier?: string;
   };
 }
 
 export const fetchComments = async (postId: string): Promise<Comment[]> => {
   try {
+    console.log("Fetching comments for post:", postId);
     const { data, error } = await supabase
       .from('comments')
       .select(`
@@ -42,6 +43,7 @@ export const fetchComments = async (postId: string): Promise<Comment[]> => {
       return [];
     }
 
+    console.log("Fetched comments:", data);
     return data || [];
   } catch (error) {
     console.error('Error fetching comments:', error);
@@ -50,9 +52,9 @@ export const fetchComments = async (postId: string): Promise<Comment[]> => {
 };
 
 export const createComment = async (
+  content: string,
   postId: string, 
-  userId: string, 
-  content: string
+  userId: string
 ): Promise<{ success: boolean; data?: Comment; error?: string }> => {
   try {
     const { data, error } = await supabase

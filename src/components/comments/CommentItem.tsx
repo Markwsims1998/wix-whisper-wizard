@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { format } from "date-fns";
-import { MoreHorizontal, User } from "lucide-react";
+import { MoreHorizontal } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
@@ -42,6 +42,7 @@ const CommentItem = ({ comment, onDelete }: CommentItemProps) => {
   };
 
   const avatarUrl = getAvatarUrl();
+  console.log("Comment author avatar:", avatarUrl, comment.author);
 
   return (
     <div className="flex gap-3 pt-2">

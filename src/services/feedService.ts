@@ -1,113 +1,81 @@
-import { supabase } from "@/integrations/supabase/client";
-import { User } from "@supabase/supabase-js";
-import { createActivity } from "./activityService";
 
-// Define the Post interface
+import { supabase } from "@/integrations/supabase/client";
+
 export interface Post {
   id: string;
   content: string;
+  user_id: string;
   created_at: string;
   updated_at: string;
-  user_id: string;
   likes_count: number;
   comments_count: number;
   is_liked?: boolean;
-  author?: {
-    id: string;
-    full_name: string;
-    username: string;
-    avatar_url: string | null;
-    subscription_tier: string | null;
-  };
   media?: {
     id: string;
     file_url: string;
     thumbnail_url?: string;
     media_type: string;
-    created_at: string;
   }[];
+  author?: {
+    id: string;
+    username: string;
+    full_name: string;
+    avatar_url: string;
+    profile_picture_url?: string;
+    subscription_tier?: string;
+  };
 }
 
-// Get all posts for the feed
 export const getFeedPosts = async (
-  type: 'all' | 'local' | 'hotlist' | 'friends',
-  userId: string,
-  location: string = 'New York'
+  type: 'all' | 'local' | 'hotlist' | 'friends' = 'all',
+  userId?: string,
+  location?: string
 ): Promise<Post[]> => {
   try {
     let query = supabase
       .from('posts')
       .select(`
         *,
-        author:user_id(id, full_name, username, avatar_url, subscription_tier),
-        comments_count:comments(count),
+        author:user_id(
+          id, 
+          username, 
+          full_name, 
+          avatar_url, 
+          profile_picture_url,
+          subscription_tier, 
+          location
+        ),
+        media(id, file_url, thumbnail_url, media_type),
         likes_count:likes(count),
-        media(id, file_url, thumbnail_url, media_type, created_at)
+        comments_count:comments(count)
       `)
       .order('created_at', { ascending: false });
 
-    // Filter by location for local posts
-    if (type === 'local') {
-      // Join with profiles to filter by location
-      query = supabase
-        .from('posts')
-        .select(`
-          *,
-          author:user_id(id, full_name, username, avatar_url, subscription_tier),
-          comments_count:comments(count),
-          likes_count:likes(count),
-          media(id, file_url, thumbnail_url, media_type, created_at)
-        `)
-        .eq('author.location', location)
-        .order('created_at', { ascending: false });
-    }
-
-    // Filter for popular posts
-    if (type === 'hotlist') {
-      query = supabase
-        .from('posts')
-        .select(`
-          *,
-          author:user_id(id, full_name, username, avatar_url, subscription_tier),
-          comments_count:comments(count),
-          likes_count:likes(count),
-          media(id, file_url, thumbnail_url, media_type, created_at)
-        `)
-        .order('likes_count', { ascending: false })
-        .limit(20);
-    }
-
-    // Filter for friend's posts
-    if (type === 'friends') {
-      // First get the users that this user follows
+    // Filter based on type
+    if (type === 'local' && location) {
+      query = query.eq('author.location', location);
+    } else if (type === 'friends' && userId) {
+      // Get posts from users that the current user follows
       const { data: relationships } = await supabase
         .from('relationships')
         .select('followed_id')
         .eq('follower_id', userId)
-        .eq('status', 'accepted');
+        .eq('status', 'approved');
 
-      if (!relationships || relationships.length === 0) {
+      if (relationships && relationships.length > 0) {
+        const followedIds = relationships.map(r => r.followed_id);
+        query = query.in('user_id', followedIds);
+      } else {
         return []; // No friends, return empty array
       }
-
-      // Get all friend IDs
-      const friendIds = relationships.map(rel => rel.followed_id);
-
-      // Now get posts from these friends
-      query = supabase
-        .from('posts')
-        .select(`
-          *,
-          author:user_id(id, full_name, username, avatar_url, subscription_tier),
-          comments_count:comments(count),
-          likes_count:likes(count),
-          media(id, file_url, thumbnail_url, media_type, created_at)
-        `)
-        .in('user_id', friendIds)
-        .order('created_at', { ascending: false });
+    } else if (type === 'hotlist') {
+      // Hotlist is most liked posts
+      query = query.order('likes_count', { ascending: false });
     }
 
-    // Execute the query
+    // Limit results
+    query = query.limit(30);
+
     const { data, error } = await query;
 
     if (error) {
@@ -115,53 +83,78 @@ export const getFeedPosts = async (
       return [];
     }
 
-    // Check for likes by this user and format the posts
-    const postsWithLikes = data ? await Promise.all(
-      data.map(async (post) => {
-        // Check if user has liked this post
-        const { data: likeData } = await supabase
-          .from('likes')
-          .select('id')
-          .eq('post_id', post.id)
-          .eq('user_id', userId)
-          .single();
+    // Transform the data
+    const posts = data.map(post => {
+      // Compute likes count
+      const likesCount = typeof post.likes_count === 'object' ? 
+        post.likes_count.count : 
+        Array.isArray(post.likes_count) ? 
+          post.likes_count.length : 
+          0;
+      
+      // Compute comments count
+      const commentsCount = typeof post.comments_count === 'object' ? 
+        post.comments_count.count : 
+        Array.isArray(post.comments_count) ? 
+          post.comments_count.length : 
+          0;
+      
+      // Check if the current user has liked this post
+      let isLiked = false;
+      if (userId) {
+        isLiked = false; // We'll check this separately
+      }
+      
+      return {
+        ...post,
+        likes_count: likesCount,
+        comments_count: commentsCount,
+        is_liked: isLiked,
+      };
+    });
 
-        const likesCount = Array.isArray(post.likes_count) && post.likes_count.length > 0 
-          ? post.likes_count[0].count 
-          : 0;
+    // If user is logged in, check which posts they've liked in a single batch operation
+    if (userId) {
+      const postIds = posts.map(post => post.id);
+      const { data: likedPosts } = await supabase
+        .from('likes')
+        .select('post_id')
+        .eq('user_id', userId)
+        .in('post_id', postIds);
+      
+      if (likedPosts) {
+        const likedPostIds = new Set(likedPosts.map(like => like.post_id));
+        posts.forEach(post => {
+          post.is_liked = likedPostIds.has(post.id);
+        });
+      }
+    }
 
-        const commentsCount = Array.isArray(post.comments_count) && post.comments_count.length > 0 
-          ? post.comments_count[0].count 
-          : 0;
-
-        // Format the post object
-        return {
-          ...post,
-          likes_count: likesCount,
-          comments_count: commentsCount,
-          is_liked: !!likeData
-        };
-      })
-    ) : [];
-
-    return postsWithLikes;
+    console.log("Fetched posts:", posts);
+    return posts;
   } catch (error) {
-    console.error('Unexpected error fetching posts:', error);
+    console.error('Error in getFeedPosts:', error);
     return [];
   }
 };
 
-// Get a single post by ID
 export const getPostById = async (postId: string): Promise<Post | null> => {
   try {
     const { data, error } = await supabase
       .from('posts')
       .select(`
         *,
-        author:user_id(id, full_name, username, avatar_url, subscription_tier),
-        comments_count:comments(count),
+        author:user_id(
+          id, 
+          username, 
+          full_name, 
+          avatar_url,
+          profile_picture_url, 
+          subscription_tier
+        ),
+        media(id, file_url, thumbnail_url, media_type),
         likes_count:likes(count),
-        media(id, file_url, thumbnail_url, media_type, created_at)
+        comments_count:comments(count)
       `)
       .eq('id', postId)
       .single();
@@ -171,182 +164,183 @@ export const getPostById = async (postId: string): Promise<Post | null> => {
       return null;
     }
 
-    if (!data) return null;
-
-    const likesCount = Array.isArray(data.likes_count) && data.likes_count.length > 0 
-      ? data.likes_count[0].count 
-      : 0;
-
-    const commentsCount = Array.isArray(data.comments_count) && data.comments_count.length > 0 
-      ? data.comments_count[0].count 
-      : 0;
+    // Transform the data
+    const likesCount = typeof data.likes_count === 'object' ? 
+      data.likes_count.count : 
+      Array.isArray(data.likes_count) ? 
+        data.likes_count.length : 
+        0;
+    
+    const commentsCount = typeof data.comments_count === 'object' ? 
+      data.comments_count.count : 
+      Array.isArray(data.comments_count) ? 
+        data.comments_count.length : 
+        0;
 
     return {
       ...data,
       likes_count: likesCount,
-      comments_count: commentsCount
+      comments_count: commentsCount,
     };
   } catch (error) {
-    console.error('Unexpected error fetching post:', error);
+    console.error('Error in getPostById:', error);
     return null;
   }
 };
 
-// Like or unlike a post
 export const likePost = async (postId: string, userId: string): Promise<{ success: boolean; error?: string }> => {
   try {
-    // First get the post details to know the post owner
-    const { data: postData } = await supabase
-      .from('posts')
-      .select('user_id')
-      .eq('id', postId)
-      .single();
-      
-    if (!postData) {
-      return { success: false, error: 'Post not found' };
-    }
-    
-    // First check if the user has already liked this post
+    // Check if the user has already liked this post
     const { data: existingLike } = await supabase
       .from('likes')
       .select('id')
       .eq('post_id', postId)
       .eq('user_id', userId)
-      .single();
-
-    let success = false;
+      .maybeSingle();
     
     if (existingLike) {
-      // User already liked this post, so unlike it
+      // Unlike the post
       const { error } = await supabase
         .from('likes')
         .delete()
         .eq('id', existingLike.id);
-
+      
       if (error) {
-        console.error('Error removing like:', error);
         return { success: false, error: error.message };
       }
-      success = true;
     } else {
-      // User hasn't liked this post yet, so add a like
+      // Like the post
       const { error } = await supabase
         .from('likes')
         .insert({ post_id: postId, user_id: userId });
-
-      if (error) {
-        console.error('Error adding like:', error);
-        return { success: false, error: error.message };
-      }
-      success = true;
       
-      // Create activity notification (only when liking, not when unliking)
-      if (postData.user_id !== userId) {
-        // Don't create notification for self-likes
-        await createActivity(
-          postData.user_id,  // post owner receives the notification
-          userId,            // current user is the actor
-          'like',
-          'liked your post',
-          postId
-        );
+      if (error) {
+        return { success: false, error: error.message };
       }
     }
     
-    return { success };
-  } catch (error) {
-    console.error('Unexpected error liking post:', error);
-    return { success: false, error: 'An unexpected error occurred' };
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
   }
 };
 
-// Get the users who liked a post - updated to include profile_picture_url
 export const getLikesForPost = async (postId: string) => {
   try {
     const { data, error } = await supabase
       .from('likes')
       .select(`
         user_id,
-        user:user_id(id, username, full_name, avatar_url, profile_picture_url)
+        user:user_id(
+          id, 
+          username, 
+          full_name, 
+          avatar_url,
+          profile_picture_url
+        )
       `)
       .eq('post_id', postId);
-
+    
     if (error) {
       console.error('Error fetching likes:', error);
       return [];
     }
 
-    // Format the data to return just the user information
-    return data.map(like => like.user);
+    // Transform data to expected format
+    return data.map(like => ({
+      id: like.user.id,
+      username: like.user.username,
+      full_name: like.user.full_name,
+      avatar_url: like.user.avatar_url,
+      profile_picture_url: like.user.profile_picture_url
+    }));
   } catch (error) {
-    console.error('Unexpected error fetching likes:', error);
+    console.error('Error in getLikesForPost:', error);
     return [];
   }
 };
 
-// Create a new post
 export const createPost = async (
   content: string,
   userId: string,
-  mediaUrl?: string | null,
+  mediaUrl?: string,
   mediaType?: string
 ): Promise<{ success: boolean; post?: Post; error?: string }> => {
   try {
-    if (!content.trim() && !mediaUrl) {
-      return { success: false, error: 'Post content cannot be empty' };
-    }
-
-    // Create the post
-    const { data: postData, error: postError } = await supabase
+    // Start with creating the post
+    const { data: post, error: postError } = await supabase
       .from('posts')
-      .insert({ 
-        content, 
-        user_id: userId 
-      })
+      .insert({ content, user_id: userId })
       .select()
       .single();
-
+    
     if (postError) {
-      console.error('Error creating post:', postError);
       return { success: false, error: postError.message };
     }
-
-    // If there's media, create a media entry
+    
+    // If there's media, add it
     if (mediaUrl && mediaType) {
+      const mediaData = {
+        user_id: userId,
+        post_id: post.id,
+        file_url: mediaUrl,
+        media_type: mediaType
+      };
+      
       const { error: mediaError } = await supabase
         .from('media')
-        .insert({ 
-          post_id: postData.id, 
-          file_url: mediaUrl,
-          media_type: mediaType,
-          user_id: userId  // Added missing user_id field here
-        });
-
+        .insert(mediaData);
+      
       if (mediaError) {
-        console.error('Error adding media to post:', mediaError);
-        // We don't return an error here as the post was created successfully
+        console.error('Error adding media:', mediaError);
+        // Don't fail the whole operation if media insert fails
       }
     }
-
-    // Get the complete post with author info
-    const { data: fullPost, error: fetchError } = await supabase
+    
+    // Get the complete post data including counts and author
+    const { data: completePost, error: fetchError } = await supabase
       .from('posts')
       .select(`
         *,
-        author:user_id(id, full_name, username, avatar_url, subscription_tier),
-        media(id, file_url, thumbnail_url, media_type, created_at)
+        author:user_id(
+          id, 
+          username, 
+          full_name, 
+          avatar_url,
+          profile_picture_url, 
+          subscription_tier
+        ),
+        media(id, file_url, thumbnail_url, media_type),
+        likes_count:likes(count),
+        comments_count:comments(count)
       `)
-      .eq('id', postData.id)
+      .eq('id', post.id)
       .single();
-
+    
     if (fetchError) {
-      console.error('Error fetching complete post:', fetchError);
-      return { success: true, post: postData as Post };
+      // Return basic post if we can't fetch complete data
+      return { 
+        success: true, 
+        post: { 
+          ...post,
+          likes_count: 0,
+          comments_count: 0,
+        } 
+      };
     }
-
-    return { success: true, post: fullPost as Post };
-  } catch (error) {
-    console.error('Unexpected error creating post:', error);
-    return { success: false, error: 'An unexpected error occurred' };
+    
+    // Transform the data
+    const transformedPost = {
+      ...completePost,
+      likes_count: typeof completePost.likes_count === 'object' ? 
+        completePost.likes_count.count : 0,
+      comments_count: typeof completePost.comments_count === 'object' ? 
+        completePost.comments_count.count : 0,
+    };
+    
+    return { success: true, post: transformedPost };
+  } catch (error: any) {
+    console.error('Error creating post:', error);
+    return { success: false, error: error.message };
   }
 };

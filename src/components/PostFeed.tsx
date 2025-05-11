@@ -1,4 +1,3 @@
-
 import { Separator } from "@/components/ui/separator";
 import { User, Heart, MessageCircle, Lock, Gift } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -171,6 +170,12 @@ const PostFeed = () => {
     }
     return null;
   };
+  
+  // Update this function to get proper avatar URL
+  const getAvatarUrl = (author: any) => {
+    if (!author) return null;
+    return author.profile_picture_url || author.avatar_url || null;
+  };
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -249,10 +254,10 @@ const PostFeed = () => {
                         className="h-10 w-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center overflow-hidden cursor-pointer"
                         onClick={() => post.author && handleProfileClick(post.author)}
                       >
-                        {post.author?.avatar_url ? (
+                        {getAvatarUrl(post.author) ? (
                           <img 
-                            src={post.author.avatar_url} 
-                            alt={post.author.full_name || "User"} 
+                            src={getAvatarUrl(post.author)} 
+                            alt={post.author?.full_name || "User"} 
                             className="h-full w-full object-cover"
                           />
                         ) : (

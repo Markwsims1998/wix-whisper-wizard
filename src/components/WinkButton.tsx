@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -28,7 +29,9 @@ const WinkButton: React.FC<WinkButtonProps> = ({ recipientId, className = '' }) 
       
       try {
         setIsLoading(true);
+        console.log("Checking wink status for recipient:", recipientId);
         const { winked, status, canSendNewWink } = await checkIfWinked(recipientId);
+        console.log("Wink status result:", { winked, status, canSendNewWink });
         setIsWinked(winked);
         setWinkStatus(status);
         setCanSendNewWink(canSendNewWink);
@@ -47,6 +50,7 @@ const WinkButton: React.FC<WinkButtonProps> = ({ recipientId, className = '' }) 
             const winkDate = new Date(data[0].created_at);
             const resetDate = new Date(winkDate);
             resetDate.setDate(winkDate.getDate() + 7);
+            console.log("Next wink date calculated:", resetDate);
             setNextWinkDate(resetDate);
           }
         }
@@ -78,7 +82,9 @@ const WinkButton: React.FC<WinkButtonProps> = ({ recipientId, className = '' }) 
     
     try {
       setIsLoading(true);
+      console.log("Sending wink to recipient:", recipientId);
       const { success, message } = await sendWink(recipientId);
+      console.log("Send wink result:", { success, message });
       
       toast({
         title: success ? "Wink Sent" : "Failed to Send Wink",

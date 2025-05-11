@@ -92,6 +92,8 @@ export const getReceivedWinks = async (): Promise<Wink[]> => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return [];
 
+    console.log("Fetching received winks for user ID:", user.id);
+
     const { data, error } = await supabase
       .from('winks')
       .select(`
@@ -125,6 +127,8 @@ export const getSentWinks = async (): Promise<Wink[]> => {
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return [];
+
+    console.log("Fetching sent winks for user ID:", user.id);
 
     const { data, error } = await supabase
       .from('winks')

@@ -29,14 +29,16 @@ const WinksPage = () => {
         let winksData: Wink[] = [];
         
         if (activeTab === "received") {
+          console.log("Fetching received winks");
           winksData = await getReceivedWinks();
           console.log("Received winks:", winksData);
         } else {
+          console.log("Fetching sent winks");
           winksData = await getSentWinks();
           console.log("Sent winks:", winksData);
         }
         
-        setWinks(winksData);
+        setWinks(winksData || []);
       } catch (error) {
         console.error("Error fetching winks:", error);
         toast({
@@ -49,9 +51,7 @@ const WinksPage = () => {
       }
     };
 
-    if (user) {
-      fetchWinks();
-    }
+    fetchWinks();
   }, [activeTab, toast, user]);
 
   const handleWinkAction = async (id: string, action: "accept" | "reject") => {

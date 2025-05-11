@@ -34,17 +34,11 @@ export const getBannerSettings = async (): Promise<BannerSettings> => {
       .eq('active', true)
       .order('created_at', { ascending: false })
       .limit(1)
-      .maybeSingle(); // Using maybeSingle instead of single to avoid errors
+      .single();
 
     if (error) {
       console.error('Error fetching banner settings:', error);
       throw error;
-    }
-
-    // If no data found
-    if (!data) {
-      console.log("No active banner found");
-      return defaultBannerSettings;
     }
 
     console.log("Banner settings retrieved:", data);

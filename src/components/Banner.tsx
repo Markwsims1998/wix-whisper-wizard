@@ -76,8 +76,11 @@ const Banner = () => {
     };
   }, []);
   
+  console.log("Banner render state:", { banner, hasError, isLoading, isVisible });
+  
   // If error, loading, no banner, banner not active, or not visible, return null
   if (hasError || isLoading || !banner || !banner.active || !isVisible) {
+    console.log("Banner not showing because:", { hasError, isLoading, hasBanner: !!banner, active: banner?.active, isVisible });
     return null;
   }
   
@@ -94,7 +97,7 @@ const Banner = () => {
   };
   
   return (
-    <div className={`${getBannerColorClass()} text-white py-2 px-4 w-full`}>
+    <div className={`${getBannerColorClass()} text-white py-2 px-4 w-full fixed top-0 z-50`}>
       <div className="container mx-auto flex items-center justify-center gap-2">
         <Megaphone className="w-4 h-4 flex-shrink-0" />
         <span className="text-sm">

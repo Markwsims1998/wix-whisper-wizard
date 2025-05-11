@@ -41,7 +41,7 @@ function App() {
     <ThemeProvider>
       <div className="flex flex-col min-h-screen">
         <Banner />
-        <div className="flex-grow">
+        <div className="flex-grow pt-0">
           <Routes>
             {/* Redirect root based on authentication status */}
             <Route path="/" element={isAuthenticated ? <Index /> : <Navigate to="/home" replace />} />

@@ -1,165 +1,103 @@
 
-import { useState } from "react";
-import { Bell, Search, Menu, X } from "lucide-react";
+import { Bell, MessageSquare, Search, ShoppingCart } from "lucide-react";
 import { Link } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Input } from "@/components/ui/input";
-import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/auth/AuthProvider";
-import { countPendingWinks } from "@/services/winksService";
-import { useEffect, useState as useStateEffect } from "react";
-import Banner from "@/components/Banner";
-import { supabase } from "@/integrations/supabase/client";
+import { Badge } from "@/components/ui/badge";
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useTheme } from "@/contexts/ThemeContext";
+import Banner from "./Banner";
 
-// This component will not be edited by Lovable
-export default function Header() {
+const Header = () => {
+  const { user } = useAuth();
   const navigate = useNavigate();
-  const { user, isAuthenticated, logout } = useAuth();
-  const [searchVisible, setSearchVisible] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [pendingWinks, setPendingWinks] = useState(0);
-  
-  // Handle search submission
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    navigate(`/search?q=${encodeURIComponent(searchTerm)}`);
-    setSearchVisible(false);
-    setSearchTerm("");
-  };
-  
-  // Toggle sidebar on mobile
-  const toggleSidebar = () => {
-    setSidebarOpen(!sidebarOpen);
-    
-    // Send event to notify Sidebar component
-    const event = new CustomEvent('toggle-sidebar', {
-      detail: { open: !sidebarOpen }
-    });
-    window.dispatchEvent(event);
-  };
-  
-  // Load pending winks count
+  const { theme } = useTheme();
+
+  // Log user navigation
   useEffect(() => {
-    if (!isAuthenticated) return;
-    
-    const fetchPendingWinks = async () => {
-      try {
-        const count = await countPendingWinks();
-        setPendingWinks(count);
-      } catch (error) {
-        console.error('Error fetching pending winks:', error);
-      }
+    const logActivity = () => {
+      console.log("User activity: Header component loaded");
+      // In a real application, this would call an API to record the activity
     };
+
+    logActivity();
+  }, []);
+
+  const handleIconClick = (destination: string, name: string) => {
+    navigate(destination);
     
-    fetchPendingWinks();
-    
-    // Set up real-time listener for new winks
-    const channel = supabase
-      .channel('winks-count')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'winks',
-        filter: `recipient_id=eq.${user?.id}`
-      }, () => {
-        fetchPendingWinks();
-      })
-      .subscribe();
-    
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [isAuthenticated, user?.id]);
-  
+    // Log the activity
+    console.log(`User activity: Clicked on ${name}`);
+    // In a real application, this would call an API to record the activity
+  };
+
   return (
-    <div className="fixed top-0 w-full z-40">
+    <div className="fixed z-20 w-full top-0 flex flex-col">
+      {/* Banner component - now properly attached to the header */}
       <Banner />
-      <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
-        <div className="container mx-auto px-4">
-          <div className="flex h-16 items-center justify-between">
-            <div className="flex items-center">
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="md:hidden mr-2"
-                onClick={toggleSidebar}
-              >
-                {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-              </Button>
-              
-              <Link to="/" className="flex items-center">
-                {/* Removed the "Lovable App" text here */}
-              </Link>
-            </div>
-            
-            <div className="flex items-center gap-2">
-              {isAuthenticated && (
-                <>
-                  <form onSubmit={handleSearch} className={`${searchVisible ? 'flex' : 'hidden'} md:flex items-center relative`}>
-                    <Input
-                      type="search"
-                      placeholder="Search..."
-                      className="w-full md:w-auto max-w-[200px]"
-                      value={searchTerm}
-                      onChange={e => setSearchTerm(e.target.value)}
-                    />
-                  </form>
-                  
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    onClick={() => setSearchVisible(!searchVisible)}
-                    className="md:hidden"
-                  >
-                    <Search className="h-5 w-5" />
-                  </Button>
-                  
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="ghost" size="icon" className="relative">
-                        <Bell className="h-5 w-5" />
-                        {pendingWinks > 0 && (
-                          <span className="absolute top-0 right-0 h-4 w-4 rounded-full bg-red-500 text-white text-xs flex items-center justify-center">
-                            {pendingWinks}
-                          </span>
-                        )}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-80">
-                      <div className="space-y-2">
-                        <h3 className="font-medium">Notifications</h3>
-                        {pendingWinks > 0 ? (
-                          <Link 
-                            to="/winks" 
-                            className="block p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800"
-                          >
-                            <p>You have {pendingWinks} pending winks</p>
-                            <p className="text-sm text-gray-500">Click to view</p>
-                          </Link>
-                        ) : (
-                          <p className="text-gray-500">No new notifications</p>
-                        )}
-                      </div>
-                    </PopoverContent>
-                  </Popover>
-                </>
-              )}
-              
-              {isAuthenticated ? (
-                <Link to="/profile">
-                  <Button variant="ghost" size="sm">Profile</Button>
-                </Link>
-              ) : (
-                <Link to="/login">
-                  <Button size="sm">Login</Button>
-                </Link>
-              )}
-            </div>
+
+      <header 
+        className="bg-white shadow-sm py-3 px-6 flex items-center justify-between dark:bg-gray-800 dark:text-white" 
+        style={{ 
+          position: 'fixed',
+          left: 'var(--sidebar-width, 280px)', 
+          right: '0',
+          width: 'calc(100% - var(--sidebar-width, 280px))'
+        }}
+      >
+        <div className="flex-1 max-w-md">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <input 
+              type="text" 
+              placeholder="Search..." 
+              className="pl-10 pr-4 py-2 border border-gray-200 rounded-lg w-full focus:outline-none focus:ring-1 focus:ring-purple-500 text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+            />
           </div>
+        </div>
+
+        <div className="flex items-center gap-4">
+          <button 
+            onClick={() => handleIconClick("/notifications", "notifications")} 
+            className="relative text-gray-600 hover:text-purple-600 transition-colors dark:text-gray-300 dark:hover:text-purple-400 bg-gray-100 dark:bg-gray-700 rounded-full p-2"
+            aria-label="Notifications"
+          >
+            <Bell className="w-5 h-5" />
+            <Badge className="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 px-1.5 min-w-[20px] h-5 text-xs">3</Badge>
+          </button>
+          
+          <button 
+            onClick={() => handleIconClick("/messages", "messages")} 
+            className="relative text-gray-600 hover:text-purple-600 transition-colors dark:text-gray-300 dark:hover:text-purple-400 bg-gray-100 dark:bg-gray-700 rounded-full p-2"
+            aria-label="Messages"
+          >
+            <MessageSquare className="w-5 h-5" />
+            <Badge className="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 px-1.5 min-w-[20px] h-5 text-xs">5</Badge>
+          </button>
+          
+          <Link to="/basket" className="relative text-gray-600 hover:text-purple-600 transition-colors dark:text-gray-300 dark:hover:text-purple-400 bg-gray-100 dark:bg-gray-700 rounded-full p-2">
+            <ShoppingCart className="w-5 h-5" />
+            <Badge className="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 px-1.5 min-w-[20px] h-5 text-xs">3</Badge>
+          </Link>
+          
+          <button 
+            onClick={() => handleIconClick("/profile", "profile")}
+            className="flex items-center gap-2 text-gray-800 hover:text-purple-600 transition-colors dark:text-gray-300 dark:hover:text-purple-400"
+            aria-label="Profile"
+          >
+            <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center overflow-hidden dark:bg-purple-900">
+              {user?.profilePicture ? (
+                <img src={user.profilePicture} alt="Profile" className="w-full h-full object-cover" />
+              ) : (
+                <span className="font-medium text-purple-600 dark:text-purple-300">{user?.name?.charAt(0) || 'A'}</span>
+              )}
+            </div>
+            <span className="font-medium hidden md:block dark:text-white">{user?.name || 'User'}</span>
+          </button>
         </div>
       </header>
     </div>
   );
-}
+};
+
+export default Header;

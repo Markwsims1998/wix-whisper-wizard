@@ -31,6 +31,7 @@ export const getBannerSettings = async (): Promise<BannerSettings> => {
     const { data, error } = await supabase
       .from('banner_settings')
       .select('*')
+      .eq('active', true)
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle(); // Using maybeSingle instead of single to avoid errors
@@ -93,7 +94,7 @@ export const saveBannerSettings = async (settings: BannerSettings): Promise<bool
     console.log("Saving new banner settings:", settings);
     
     // Insert the new banner settings - our trigger will handle deactivating others
-    const { error } = await supabase
+    const { error, data } = await supabase
       .from('banner_settings')
       .insert({
         active: settings.active,
@@ -104,14 +105,15 @@ export const saveBannerSettings = async (settings: BannerSettings): Promise<bool
         scheduled: settings.scheduled,
         start_date: settings.startDate,
         end_date: settings.endDate
-      });
+      })
+      .select();
 
     if (error) {
       console.error('Error saving banner settings:', error);
       return false;
     }
 
-    console.log("Banner settings saved successfully");
+    console.log("Banner settings saved successfully:", data);
     return true;
   } catch (error) {
     console.error('Unexpected error saving banner settings:', error);

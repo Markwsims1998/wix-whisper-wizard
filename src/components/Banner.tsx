@@ -6,6 +6,7 @@ import { BannerSettings, getBannerSettings } from "@/services/bannerService";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/auth/AuthProvider";
 
+// Export the Banner component to be used in the Header
 const Banner = () => {
   const [banner, setBanner] = useState<BannerSettings | null>(null);
   const [isVisible, setIsVisible] = useState(true);
@@ -14,6 +15,12 @@ const Banner = () => {
   const { isAuthenticated } = useAuth();
   
   useEffect(() => {
+    // Only load banner for authenticated users
+    if (!isAuthenticated) {
+      setIsLoading(false);
+      return;
+    }
+    
     const loadBanner = async () => {
       try {
         setIsLoading(true);
@@ -60,7 +67,7 @@ const Banner = () => {
       supabase.removeChannel(channel);
       window.removeEventListener('banner-updated', handleBannerUpdated);
     };
-  }, []);
+  }, [isAuthenticated]);
   
   // Debugging what's preventing the banner from showing
   useEffect(() => {
@@ -69,13 +76,14 @@ const Banner = () => {
     }
   }, [banner]);
   
-  // If loading, no banner, or not visible, return null
-  if (hasError || isLoading || !banner || !banner.active || !isVisible) {
-    if (!isLoading && banner !== null) {
+  // If error, loading, no banner, not authenticated, banner not active, or not visible, return null
+  if (hasError || isLoading || !banner || !isAuthenticated || !banner.active || !isVisible) {
+    if (!isLoading) {
       console.log("Banner not showing because:", { 
         hasError, 
         isLoading, 
         bannerExists: !!banner, 
+        isAuthenticated, 
         bannerActive: banner?.active,
         isVisible
       });

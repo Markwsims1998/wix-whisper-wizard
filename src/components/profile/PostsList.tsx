@@ -17,7 +17,8 @@ const PostsList = ({
   profile,
   handleLikePost 
 }: PostsListProps) => {
-  // Get profile name, ensuring it's not undefined
+  // Get profile name, prioritizing full_name, then username, with "User" as last fallback
+  // Using optional chaining to avoid errors with undefined values
   const profileName = profile?.full_name || profile?.username || "User";
   
   console.log("Profile data in PostsList:", profile);

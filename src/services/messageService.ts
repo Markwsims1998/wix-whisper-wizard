@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { FriendProfile } from "./userService"; 
 
@@ -19,6 +18,7 @@ export interface Message {
     full_name: string;
     avatar_url?: string;
   };
+  image?: string | { url: string; name: string };
 }
 
 export interface ChatPreview {

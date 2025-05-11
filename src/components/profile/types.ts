@@ -102,6 +102,7 @@ export interface Post {
     full_name: string;
     username: string;
     avatar_url: string | null;
+    profile_picture_url?: string | null; // Added this field
     subscription_tier?: string | null;
   };
 }
@@ -122,6 +123,7 @@ export interface VideoType {
     username: string;
     full_name: string;
     avatar_url: string | null;
+    profile_picture_url?: string | null; // Added this field
   };
 }
 

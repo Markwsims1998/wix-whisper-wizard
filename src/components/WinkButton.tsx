@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -6,6 +5,8 @@ import { useToast } from '@/hooks/use-toast';
 import { checkIfWinked, sendWink } from '@/services/winksService';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { format } from 'date-fns';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/auth/AuthContext';
 
 interface WinkButtonProps {
   recipientId: string;
@@ -19,10 +20,11 @@ const WinkButton: React.FC<WinkButtonProps> = ({ recipientId, className = '' }) 
   const [canSendNewWink, setCanSendNewWink] = useState(true);
   const [nextWinkDate, setNextWinkDate] = useState<Date | null>(null);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   useEffect(() => {
     const checkWinkStatus = async () => {
-      if (!recipientId) return;
+      if (!recipientId || !user) return;
       
       try {
         setIsLoading(true);
@@ -56,7 +58,7 @@ const WinkButton: React.FC<WinkButtonProps> = ({ recipientId, className = '' }) 
     };
     
     checkWinkStatus();
-  }, [recipientId]);
+  }, [recipientId, user]);
 
   const handleWink = async () => {
     if (isWinked && !canSendNewWink) {

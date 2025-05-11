@@ -11,23 +11,29 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { User } from "lucide-react";
 import { format, formatDistance } from "date-fns";
 import { Link } from "react-router-dom";
+import { useAuth } from "@/contexts/auth/AuthContext";
 
 const WinksPage = () => {
   const [activeTab, setActiveTab] = useState("received");
   const [winks, setWinks] = useState<Wink[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   useEffect(() => {
     const fetchWinks = async () => {
+      if (!user) return;
+      
       try {
         setLoading(true);
         let winksData: Wink[] = [];
         
         if (activeTab === "received") {
           winksData = await getReceivedWinks();
+          console.log("Received winks:", winksData);
         } else {
           winksData = await getSentWinks();
+          console.log("Sent winks:", winksData);
         }
         
         setWinks(winksData);
@@ -43,24 +49,30 @@ const WinksPage = () => {
       }
     };
 
-    fetchWinks();
-  }, [activeTab, toast]);
+    if (user) {
+      fetchWinks();
+    }
+  }, [activeTab, toast, user]);
 
   const handleWinkAction = async (id: string, action: "accept" | "reject") => {
     try {
-      await updateWinkStatus(id, action === "accept" ? "accepted" : "rejected");
+      const success = await updateWinkStatus(id, action === "accept" ? "accepted" : "rejected");
       
-      // Update local state
-      setWinks((currentWinks) =>
-        currentWinks.map((wink) =>
-          wink.id === id ? { ...wink, status: action === "accept" ? "accepted" : "rejected" } : wink
-        )
-      );
+      if (success) {
+        // Update local state
+        setWinks((currentWinks) =>
+          currentWinks.map((wink) =>
+            wink.id === id ? { ...wink, status: action === "accept" ? "accepted" : "rejected" } : wink
+          )
+        );
 
-      toast({
-        title: action === "accept" ? "Wink Accepted" : "Wink Rejected",
-        description: action === "accept" ? "You've accepted the wink!" : "You've declined the wink.",
-      });
+        toast({
+          title: action === "accept" ? "Wink Accepted" : "Wink Rejected",
+          description: action === "accept" ? "You've accepted the wink!" : "You've declined the wink.",
+        });
+      } else {
+        throw new Error("Failed to update wink status");
+      }
     } catch (error) {
       console.error(`Error ${action}ing wink:`, error);
       toast({
@@ -76,9 +88,9 @@ const WinksPage = () => {
     if (!user) return "#";
     
     if (user.username) {
-      return `/profile?name=${user.username}`;
+      return `/profile/${user.username}`;
     } else if (user.id) {
-      return `/profile?id=${user.id}`;
+      return `/profile/${user.id}`;
     }
     
     return "#";

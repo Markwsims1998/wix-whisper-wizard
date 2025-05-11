@@ -10,12 +10,14 @@ export interface Wink {
   updated_at: string;
   // These will be populated when we join with profiles table
   sender?: {
+    id?: string;
     username?: string;
     full_name?: string;
     avatar_url?: string;
     profile_picture_url?: string;
   };
   recipient?: {
+    id?: string;
     username?: string;
     full_name?: string;
     avatar_url?: string;
@@ -110,6 +112,7 @@ export const getReceivedWinks = async (): Promise<Wink[]> => {
       return [];
     }
 
+    console.log('Received winks data:', data);
     return data as Wink[] || [];
   } catch (error) {
     console.error('Unexpected error fetching received winks:', error);
@@ -143,6 +146,7 @@ export const getSentWinks = async (): Promise<Wink[]> => {
       return [];
     }
 
+    console.log('Sent winks data:', data);
     return data as Wink[] || [];
   } catch (error) {
     console.error('Unexpected error fetching sent winks:', error);
@@ -184,7 +188,7 @@ export const checkIfWinked = async (recipientId: string): Promise<{ winked: bool
     const canSendNewWink = (Date.now() - winkDate.getTime()) > (7 * 24 * 60 * 60 * 1000);
     
     return {
-      winked: !!data,
+      winked: !!data.length,
       winkId: data[0]?.id,
       status: data[0]?.status as 'pending' | 'accepted' | 'rejected',
       canSendNewWink

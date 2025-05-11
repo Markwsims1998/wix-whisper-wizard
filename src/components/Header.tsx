@@ -51,7 +51,7 @@ const Header = () => {
 
   return (
     <div className="fixed z-20 w-full top-0 flex flex-col">
-      {/* Banner component - now properly attached to the header */}
+      {/* Banner component */}
       <Banner />
 
       <header 

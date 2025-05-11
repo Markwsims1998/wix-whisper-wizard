@@ -46,11 +46,11 @@ const AdminMarketingSettings = () => {
         const settings = await getBannerSettings();
         console.log("Loaded banner settings:", settings);
         setBannerActive(settings.active);
-        setBannerText(settings.text);
-        setBannerLink(settings.link);
-        setBannerLinkText(settings.linkText);
-        setBannerColor(settings.color);
-        setBannerSchedule(settings.scheduled);
+        setBannerText(settings.text || "");
+        setBannerLink(settings.link || "");
+        setBannerLinkText(settings.linkText || "");
+        setBannerColor(settings.color || "purple");
+        setBannerSchedule(settings.scheduled || false);
         
         if (settings.startDate) {
           setBannerStartDate(new Date(settings.startDate));

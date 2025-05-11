@@ -6,7 +6,6 @@ import { BannerSettings, getBannerSettings } from "@/services/bannerService";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/auth/AuthProvider";
 
-// Export the Banner component to be used in the Header
 const Banner = () => {
   const [banner, setBanner] = useState<BannerSettings | null>(null);
   const [isVisible, setIsVisible] = useState(true);
@@ -71,23 +70,25 @@ const Banner = () => {
   
   // Debugging what's preventing the banner from showing
   useEffect(() => {
-    if (!banner?.active && banner !== null) {
+    if (isLoading) {
+      console.log("Banner is loading...");
+    } else if (hasError) {
+      console.log("Banner has error");
+    } else if (!banner) {
+      console.log("No banner data received");
+    } else if (!isAuthenticated) {
+      console.log("User not authenticated");
+    } else if (!banner.active) {
       console.log("Banner is not active:", banner);
+    } else if (!isVisible) {
+      console.log("Banner is hidden by user");
+    } else {
+      console.log("Banner should be visible:", banner);
     }
-  }, [banner]);
+  }, [banner, isLoading, hasError, isAuthenticated, isVisible]);
   
   // If error, loading, no banner, not authenticated, banner not active, or not visible, return null
   if (hasError || isLoading || !banner || !isAuthenticated || !banner.active || !isVisible) {
-    if (!isLoading) {
-      console.log("Banner not showing because:", { 
-        hasError, 
-        isLoading, 
-        bannerExists: !!banner, 
-        isAuthenticated, 
-        bannerActive: banner?.active,
-        isVisible
-      });
-    }
     return null;
   }
   
@@ -104,7 +105,7 @@ const Banner = () => {
   };
   
   return (
-    <div className={`${getBannerColorClass()} text-white py-2 px-4 fixed top-0 z-30 w-full`}>
+    <div className={`${getBannerColorClass()} text-white py-2 px-4 w-full`}>
       <div className="container mx-auto flex items-center justify-center gap-2">
         <Megaphone className="w-4 h-4 flex-shrink-0" />
         <span className="text-sm">

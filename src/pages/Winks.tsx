@@ -147,132 +147,134 @@ const Winks = () => {
         }}
       >
         <div className="max-w-4xl mx-auto">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h1 className="text-2xl font-bold">Winks</h1>
-              <p className="text-muted-foreground">View and manage your winks</p>
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 mb-6">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h1 className="text-2xl font-bold">Winks</h1>
+                <p className="text-muted-foreground">View and manage your winks</p>
+              </div>
+              
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={loadWinks}
+                disabled={isLoading}
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
             </div>
             
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={loadWinks}
-              disabled={isLoading}
-            >
-              <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-              Refresh
-            </Button>
-          </div>
-          
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-4">
-              <TabsTrigger value="received" className="flex items-center gap-2">
-                Received
-                {receivedWinks.filter(w => w.status === 'pending').length > 0 && (
-                  <Badge variant="secondary" className="ml-1 bg-purple-600 text-white">
-                    {receivedWinks.filter(w => w.status === 'pending').length}
-                  </Badge>
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList className="grid w-full grid-cols-2 mb-4">
+                <TabsTrigger value="received" className="flex items-center gap-2">
+                  Received
+                  {receivedWinks.filter(w => w.status === 'pending').length > 0 && (
+                    <Badge variant="secondary" className="ml-1 bg-purple-600 text-white">
+                      {receivedWinks.filter(w => w.status === 'pending').length}
+                    </Badge>
+                  )}
+                </TabsTrigger>
+                <TabsTrigger value="sent">Sent</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="received">
+                {receivedWinks.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Heart className="mx-auto h-12 w-12 text-muted-foreground" />
+                    <h3 className="mt-4 text-lg font-medium">No winks yet</h3>
+                    <p className="text-muted-foreground mt-1">When someone winks at you, it will appear here.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {receivedWinks.map((wink) => (
+                      <Card key={wink.id}>
+                        <CardHeader className="pb-2">
+                          <div className="flex justify-between">
+                            <div className="flex items-center gap-3">
+                              <Avatar>
+                                {wink.sender?.avatar_url ? (
+                                  <AvatarImage src={wink.sender.avatar_url} alt={wink.sender?.username || 'User'} />
+                                ) : (
+                                  <AvatarFallback><User className="h-5 w-5" /></AvatarFallback>
+                                )}
+                              </Avatar>
+                              <div>
+                                <CardTitle>{wink.sender?.full_name || wink.sender?.username || 'Unknown User'}</CardTitle>
+                                <CardDescription className="flex items-center mt-1">
+                                  <Clock className="h-3 w-3 mr-1" />
+                                  {formatDistanceToNow(new Date(wink.created_at), { addSuffix: true })}
+                                </CardDescription>
+                              </div>
+                            </div>
+                            {getStatusBadge(wink.status)}
+                          </div>
+                        </CardHeader>
+                        <CardContent>
+                          {wink.status === 'pending' ? (
+                            <div className="flex justify-end gap-2">
+                              <Button variant="outline" size="sm" onClick={() => handleWinkAction(wink.id, 'rejected')}>
+                                <XCircle className="h-4 w-4 mr-2" />
+                                Ignore
+                              </Button>
+                              <Button variant="default" size="sm" onClick={() => handleWinkAction(wink.id, 'accepted')}>
+                                <CheckCircle className="h-4 w-4 mr-2" />
+                                Accept
+                              </Button>
+                            </div>
+                          ) : (
+                            <p className="text-sm text-muted-foreground">
+                              {wink.status === 'accepted' ? 
+                                "You accepted this wink. You can now chat with this user." : 
+                                "You ignored this wink."}
+                            </p>
+                          )}
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
                 )}
-              </TabsTrigger>
-              <TabsTrigger value="sent">Sent</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="received">
-              {receivedWinks.length === 0 ? (
-                <div className="text-center py-12">
-                  <Heart className="mx-auto h-12 w-12 text-muted-foreground" />
-                  <h3 className="mt-4 text-lg font-medium">No winks yet</h3>
-                  <p className="text-muted-foreground mt-1">When someone winks at you, it will appear here.</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {receivedWinks.map((wink) => (
-                    <Card key={wink.id}>
-                      <CardHeader className="pb-2">
-                        <div className="flex justify-between">
-                          <div className="flex items-center gap-3">
-                            <Avatar>
-                              {wink.sender?.avatar_url ? (
-                                <AvatarImage src={wink.sender.avatar_url} alt={wink.sender?.username || 'User'} />
-                              ) : (
-                                <AvatarFallback><User className="h-5 w-5" /></AvatarFallback>
-                              )}
-                            </Avatar>
-                            <div>
-                              <CardTitle>{wink.sender?.full_name || wink.sender?.username || 'Unknown User'}</CardTitle>
-                              <CardDescription className="flex items-center mt-1">
-                                <Clock className="h-3 w-3 mr-1" />
-                                {formatDistanceToNow(new Date(wink.created_at), { addSuffix: true })}
-                              </CardDescription>
+              </TabsContent>
+              
+              <TabsContent value="sent">
+                {sentWinks.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Heart className="mx-auto h-12 w-12 text-muted-foreground" />
+                    <h3 className="mt-4 text-lg font-medium">No sent winks</h3>
+                    <p className="text-muted-foreground mt-1">When you wink at someone, it will appear here.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {sentWinks.map((wink) => (
+                      <Card key={wink.id}>
+                        <CardHeader className="pb-2">
+                          <div className="flex justify-between">
+                            <div className="flex items-center gap-3">
+                              <Avatar>
+                                {wink.recipient?.avatar_url ? (
+                                  <AvatarImage src={wink.recipient.avatar_url} alt={wink.recipient?.username || 'User'} />
+                                ) : (
+                                  <AvatarFallback><User className="h-5 w-5" /></AvatarFallback>
+                                )}
+                              </Avatar>
+                              <div>
+                                <CardTitle>{wink.recipient?.full_name || wink.recipient?.username || 'Unknown User'}</CardTitle>
+                                <CardDescription className="flex items-center mt-1">
+                                  <Clock className="h-3 w-3 mr-1" />
+                                  {formatDistanceToNow(new Date(wink.created_at), { addSuffix: true })}
+                                </CardDescription>
+                              </div>
                             </div>
+                            {getStatusBadge(wink.status)}
                           </div>
-                          {getStatusBadge(wink.status)}
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        {wink.status === 'pending' ? (
-                          <div className="flex justify-end gap-2">
-                            <Button variant="outline" size="sm" onClick={() => handleWinkAction(wink.id, 'rejected')}>
-                              <XCircle className="h-4 w-4 mr-2" />
-                              Ignore
-                            </Button>
-                            <Button variant="default" size="sm" onClick={() => handleWinkAction(wink.id, 'accepted')}>
-                              <CheckCircle className="h-4 w-4 mr-2" />
-                              Accept
-                            </Button>
-                          </div>
-                        ) : (
-                          <p className="text-sm text-muted-foreground">
-                            {wink.status === 'accepted' ? 
-                              "You accepted this wink. You can now chat with this user." : 
-                              "You ignored this wink."}
-                          </p>
-                        )}
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              )}
-            </TabsContent>
-            
-            <TabsContent value="sent">
-              {sentWinks.length === 0 ? (
-                <div className="text-center py-12">
-                  <Heart className="mx-auto h-12 w-12 text-muted-foreground" />
-                  <h3 className="mt-4 text-lg font-medium">No sent winks</h3>
-                  <p className="text-muted-foreground mt-1">When you wink at someone, it will appear here.</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {sentWinks.map((wink) => (
-                    <Card key={wink.id}>
-                      <CardHeader className="pb-2">
-                        <div className="flex justify-between">
-                          <div className="flex items-center gap-3">
-                            <Avatar>
-                              {wink.recipient?.avatar_url ? (
-                                <AvatarImage src={wink.recipient.avatar_url} alt={wink.recipient?.username || 'User'} />
-                              ) : (
-                                <AvatarFallback><User className="h-5 w-5" /></AvatarFallback>
-                              )}
-                            </Avatar>
-                            <div>
-                              <CardTitle>{wink.recipient?.full_name || wink.recipient?.username || 'Unknown User'}</CardTitle>
-                              <CardDescription className="flex items-center mt-1">
-                                <Clock className="h-3 w-3 mr-1" />
-                                {formatDistanceToNow(new Date(wink.created_at), { addSuffix: true })}
-                              </CardDescription>
-                            </div>
-                          </div>
-                          {getStatusBadge(wink.status)}
-                        </div>
-                      </CardHeader>
-                    </Card>
-                  ))}
-                </div>
-              )}
-            </TabsContent>
-          </Tabs>
+                        </CardHeader>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </TabsContent>
+            </Tabs>
+          </div>
         </div>
       </div>
       

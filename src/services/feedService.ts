@@ -88,16 +88,22 @@ export const getFeedPosts = async (
       // Compute likes count - handle different response formats
       let likesCount = 0;
       if (post.likes_count) {
+        // Debug log to understand the structure
+        console.log('Likes count structure:', JSON.stringify(post.likes_count));
+        
         if (typeof post.likes_count === 'number') {
           likesCount = post.likes_count;
         } else if (Array.isArray(post.likes_count)) {
-          // If it's an array with a count property
-          if (post.likes_count[0] && 'count' in post.likes_count[0]) {
-            likesCount = post.likes_count[0].count || 0;
-          } else {
-            likesCount = post.likes_count.length || 0;
+          if (post.likes_count.length > 0) {
+            // Check if the first item has a count property
+            if (post.likes_count[0] && typeof post.likes_count[0] === 'object' && 'count' in post.likes_count[0]) {
+              likesCount = post.likes_count[0].count || 0;
+            } else {
+              // If it's just an array without count property
+              likesCount = post.likes_count.length || 0;
+            }
           }
-        } else if (typeof post.likes_count === 'object' && 'count' in post.likes_count) {
+        } else if (typeof post.likes_count === 'object' && post.likes_count !== null && 'count' in post.likes_count) {
           likesCount = post.likes_count.count || 0;
         }
       }
@@ -105,16 +111,22 @@ export const getFeedPosts = async (
       // Compute comments count - handle different response formats
       let commentsCount = 0;
       if (post.comments_count) {
+        // Debug log to understand the structure
+        console.log('Comments count structure:', JSON.stringify(post.comments_count));
+        
         if (typeof post.comments_count === 'number') {
           commentsCount = post.comments_count;
         } else if (Array.isArray(post.comments_count)) {
-          // If it's an array with a count property
-          if (post.comments_count[0] && 'count' in post.comments_count[0]) {
-            commentsCount = post.comments_count[0].count || 0;
-          } else {
-            commentsCount = post.comments_count.length || 0;
+          if (post.comments_count.length > 0) {
+            // Check if the first item has a count property
+            if (post.comments_count[0] && typeof post.comments_count[0] === 'object' && 'count' in post.comments_count[0]) {
+              commentsCount = post.comments_count[0].count || 0;
+            } else {
+              // If it's just an array without count property
+              commentsCount = post.comments_count.length || 0;
+            }
           }
-        } else if (typeof post.comments_count === 'object' && 'count' in post.comments_count) {
+        } else if (typeof post.comments_count === 'object' && post.comments_count !== null && 'count' in post.comments_count) {
           commentsCount = post.comments_count.count || 0;
         }
       }
@@ -187,32 +199,44 @@ export const getPostById = async (postId: string): Promise<Post | null> => {
     // Transform the data - handle different response formats for counts
     let likesCount = 0;
     if (data.likes_count) {
+      // Debug log to understand the structure
+      console.log('Single post likes count structure:', JSON.stringify(data.likes_count));
+      
       if (typeof data.likes_count === 'number') {
         likesCount = data.likes_count;
       } else if (Array.isArray(data.likes_count)) {
-        // If it's an array with a count property
-        if (data.likes_count[0] && 'count' in data.likes_count[0]) {
-          likesCount = data.likes_count[0].count || 0;
-        } else {
-          likesCount = data.likes_count.length || 0;
+        if (data.likes_count.length > 0) {
+          // Check if the first item has a count property
+          if (data.likes_count[0] && typeof data.likes_count[0] === 'object' && 'count' in data.likes_count[0]) {
+            likesCount = data.likes_count[0].count || 0;
+          } else {
+            // If it's just an array without count property
+            likesCount = data.likes_count.length || 0;
+          }
         }
-      } else if (typeof data.likes_count === 'object' && 'count' in data.likes_count) {
+      } else if (typeof data.likes_count === 'object' && data.likes_count !== null && 'count' in data.likes_count) {
         likesCount = data.likes_count.count || 0;
       }
     }
     
     let commentsCount = 0;
     if (data.comments_count) {
+      // Debug log to understand the structure
+      console.log('Single post comments count structure:', JSON.stringify(data.comments_count));
+      
       if (typeof data.comments_count === 'number') {
         commentsCount = data.comments_count;
       } else if (Array.isArray(data.comments_count)) {
-        // If it's an array with a count property
-        if (data.comments_count[0] && 'count' in data.comments_count[0]) {
-          commentsCount = data.comments_count[0].count || 0;
-        } else {
-          commentsCount = data.comments_count.length || 0;
+        if (data.comments_count.length > 0) {
+          // Check if the first item has a count property
+          if (data.comments_count[0] && typeof data.comments_count[0] === 'object' && 'count' in data.comments_count[0]) {
+            commentsCount = data.comments_count[0].count || 0;
+          } else {
+            // If it's just an array without count property
+            commentsCount = data.comments_count.length || 0;
+          }
         }
-      } else if (typeof data.comments_count === 'object' && 'count' in data.comments_count) {
+      } else if (typeof data.comments_count === 'object' && data.comments_count !== null && 'count' in data.comments_count) {
         commentsCount = data.comments_count.count || 0;
       }
     }
@@ -372,32 +396,44 @@ export const createPost = async (
     // Transform the data - handle different response formats for counts
     let likesCount = 0;
     if (completePost.likes_count) {
+      // Debug log to understand the structure
+      console.log('Created post likes count structure:', JSON.stringify(completePost.likes_count));
+      
       if (typeof completePost.likes_count === 'number') {
         likesCount = completePost.likes_count;
       } else if (Array.isArray(completePost.likes_count)) {
-        // If it's an array with a count property
-        if (completePost.likes_count[0] && 'count' in completePost.likes_count[0]) {
-          likesCount = completePost.likes_count[0].count || 0;
-        } else {
-          likesCount = completePost.likes_count.length || 0;
+        if (completePost.likes_count.length > 0) {
+          // Check if the first item has a count property
+          if (completePost.likes_count[0] && typeof completePost.likes_count[0] === 'object' && 'count' in completePost.likes_count[0]) {
+            likesCount = completePost.likes_count[0].count || 0;
+          } else {
+            // If it's just an array without count property
+            likesCount = completePost.likes_count.length || 0;
+          }
         }
-      } else if (typeof completePost.likes_count === 'object' && 'count' in completePost.likes_count) {
+      } else if (typeof completePost.likes_count === 'object' && completePost.likes_count !== null && 'count' in completePost.likes_count) {
         likesCount = completePost.likes_count.count || 0;
       }
     }
     
     let commentsCount = 0;
     if (completePost.comments_count) {
+      // Debug log to understand the structure
+      console.log('Created post comments count structure:', JSON.stringify(completePost.comments_count));
+      
       if (typeof completePost.comments_count === 'number') {
         commentsCount = completePost.comments_count;
       } else if (Array.isArray(completePost.comments_count)) {
-        // If it's an array with a count property
-        if (completePost.comments_count[0] && 'count' in completePost.comments_count[0]) {
-          commentsCount = completePost.comments_count[0].count || 0;
-        } else {
-          commentsCount = completePost.comments_count.length || 0;
+        if (completePost.comments_count.length > 0) {
+          // Check if the first item has a count property
+          if (completePost.comments_count[0] && typeof completePost.comments_count[0] === 'object' && 'count' in completePost.comments_count[0]) {
+            commentsCount = completePost.comments_count[0].count || 0;
+          } else {
+            // If it's just an array without count property
+            commentsCount = completePost.comments_count.length || 0;
+          }
         }
-      } else if (typeof completePost.comments_count === 'object' && 'count' in completePost.comments_count) {
+      } else if (typeof completePost.comments_count === 'object' && completePost.comments_count !== null && 'count' in completePost.comments_count) {
         commentsCount = completePost.comments_count.count || 0;
       }
     }

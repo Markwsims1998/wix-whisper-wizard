@@ -1,5 +1,4 @@
-
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,10 +12,12 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon, Image, Megaphone } from "lucide-react";
 import { format } from "date-fns";
+import { saveBannerSettings, getBannerSettings } from "@/services/bannerService";
 
 const AdminMarketingSettings = () => {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("banner");
+  const [isLoading, setIsLoading] = useState(false);
   
   // Banner state
   const [bannerActive, setBannerActive] = useState(true);
@@ -29,20 +30,77 @@ const AdminMarketingSettings = () => {
   const [bannerEndDate, setBannerEndDate] = useState<Date | undefined>(
     new Date(new Date().setMonth(new Date().getMonth() + 1))
   );
-  
+
   // Ad display state
   const [adImage, setAdImage] = useState("https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?auto=format&fit=crop&w=800&h=400");
   const [adTitle, setAdTitle] = useState("Upgrade to Silver or Gold");
   const [adDescription, setAdDescription] = useState("Remove ads and get access to exclusive content with our premium plans.");
   const [adButtonText, setAdButtonText] = useState("View Subscription Plans");
   const [adLink, setAdLink] = useState("/shop");
+  
+  // Load existing banner settings when component mounts
+  useEffect(() => {
+    const loadBannerSettings = async () => {
+      try {
+        const settings = await getBannerSettings();
+        setBannerActive(settings.active);
+        setBannerText(settings.text);
+        setBannerLink(settings.link);
+        setBannerLinkText(settings.linkText);
+        setBannerColor(settings.color);
+        setBannerSchedule(settings.scheduled);
+        
+        if (settings.startDate) {
+          setBannerStartDate(new Date(settings.startDate));
+        }
+        
+        if (settings.endDate) {
+          setBannerEndDate(new Date(settings.endDate));
+        }
+      } catch (error) {
+        console.error("Error loading banner settings:", error);
+      }
+    };
+    
+    loadBannerSettings();
+  }, []);
 
-  const handleSaveBanner = () => {
-    // In a real app, this would save to a database or API
-    toast({
-      title: "Banner Settings Saved",
-      description: "Your banner configuration has been updated.",
-    });
+  const handleSaveBanner = async () => {
+    setIsLoading(true);
+    try {
+      const success = await saveBannerSettings({
+        active: bannerActive,
+        text: bannerText,
+        link: bannerLink,
+        linkText: bannerLinkText,
+        color: bannerColor,
+        scheduled: bannerSchedule,
+        startDate: bannerStartDate ? bannerStartDate.toISOString() : null,
+        endDate: bannerEndDate ? bannerEndDate.toISOString() : null
+      });
+      
+      if (success) {
+        toast({
+          title: "Banner Settings Saved",
+          description: "Your banner configuration has been updated.",
+        });
+      } else {
+        toast({
+          title: "Failed to Save",
+          description: "There was a problem saving your banner settings.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error saving banner settings:", error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred while saving banner settings.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleSaveAd = () => {
@@ -208,7 +266,9 @@ const AdminMarketingSettings = () => {
               </div>
             </CardContent>
             <CardFooter>
-              <Button onClick={handleSaveBanner}>Save Banner Settings</Button>
+              <Button onClick={handleSaveBanner} disabled={isLoading}>
+                {isLoading ? "Saving..." : "Save Banner Settings"}
+              </Button>
             </CardFooter>
           </Card>
         </TabsContent>

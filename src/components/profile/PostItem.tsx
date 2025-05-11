@@ -2,10 +2,12 @@
 import { Heart, MessageCircle, User } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Post } from "./types";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/auth/AuthProvider";
 
 type PostItemProps = {
   post: Post;
@@ -13,9 +15,43 @@ type PostItemProps = {
 };
 
 const PostItem = ({ post, handleLikePost }: PostItemProps) => {
+  const { user } = useAuth();
   const [isLiked, setIsLiked] = useState(!!post.is_liked);
   const [likesCount, setLikesCount] = useState(post.likes_count || 0);
   const [commentsCount, setCommentsCount] = useState(post.comments_count || 0);
+  
+  // Check like status when component mounts
+  useEffect(() => {
+    if (user?.id && post.id) {
+      checkLikeStatus();
+    }
+  }, [user?.id, post.id]);
+
+  // Update state when post prop changes
+  useEffect(() => {
+    setIsLiked(!!post.is_liked);
+    setLikesCount(post.likes_count || 0);
+    setCommentsCount(post.comments_count || 0);
+  }, [post.is_liked, post.likes_count, post.comments_count]);
+
+  // Check if the current user has liked this post
+  const checkLikeStatus = async () => {
+    try {
+      if (!user?.id) return;
+      
+      const { data } = await supabase
+        .from('likes')
+        .select('id')
+        .eq('post_id', post.id)
+        .eq('user_id', user.id)
+        .single();
+      
+      setIsLiked(!!data);
+    } catch (error) {
+      // If no like found, error is expected
+      setIsLiked(false);
+    }
+  };
   
   const onLikeClick = () => {
     handleLikePost(post.id);
@@ -36,6 +72,26 @@ const PostItem = ({ post, handleLikePost }: PostItemProps) => {
     }
     return "#";
   };
+  
+  // Fetch current comment count
+  useEffect(() => {
+    const fetchCommentCount = async () => {
+      try {
+        const { count } = await supabase
+          .from('comments')
+          .select('id', { count: 'exact', head: true })
+          .eq('post_id', post.id);
+          
+        if (count !== null) {
+          setCommentsCount(count);
+        }
+      } catch (error) {
+        console.error('Error fetching comment count:', error);
+      }
+    };
+    
+    fetchCommentCount();
+  }, [post.id]);
   
   return (
     <div className="mb-6 pb-6 border-b border-gray-100 last:border-0 last:mb-0 last:pb-0 dark:border-gray-700 transition-all hover:bg-gray-50 dark:hover:bg-gray-800/50 p-4 rounded-lg -mx-4">
@@ -128,8 +184,6 @@ const PostItem = ({ post, handleLikePost }: PostItemProps) => {
           </Tooltip>
         </TooltipProvider>
       </div>
-      
-      {/* Removed CommentSection from here */}
     </div>
   );
 };

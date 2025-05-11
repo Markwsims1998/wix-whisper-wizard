@@ -26,6 +26,11 @@ export interface Post {
   };
 }
 
+// Define interface for count response from Supabase
+interface CountResponse {
+  count: number;
+}
+
 export const getFeedPosts = async (
   type: 'all' | 'local' | 'hotlist' | 'friends' = 'all',
   userId?: string,
@@ -98,16 +103,18 @@ export const getFeedPosts = async (
             // Check if the first item has a count property
             const firstItem = post.likes_count[0];
             if (firstItem && typeof firstItem === 'object' && firstItem !== null) {
-              // Using optional chaining and nullish coalescing for safe access
-              likesCount = firstItem?.count ?? 0;
+              // Using type assertion after checking object type
+              const countObj = firstItem as unknown as { count?: number };
+              likesCount = countObj?.count ?? 0;
             } else {
               // If it's just an array without count property
               likesCount = post.likes_count.length || 0;
             }
           }
         } else if (typeof post.likes_count === 'object' && post.likes_count !== null) {
-          // Using optional chaining and nullish coalescing for safer access
-          likesCount = post.likes_count?.count ?? 0;
+          // Using type assertion after checking object type
+          const countObj = post.likes_count as unknown as { count?: number };
+          likesCount = countObj?.count ?? 0;
         }
       }
       
@@ -124,16 +131,18 @@ export const getFeedPosts = async (
             // Check if the first item has a count property
             const firstItem = post.comments_count[0];
             if (firstItem && typeof firstItem === 'object' && firstItem !== null) {
-              // Using optional chaining and nullish coalescing for safe access
-              commentsCount = firstItem?.count ?? 0;
+              // Using type assertion after checking object type
+              const countObj = firstItem as unknown as { count?: number };
+              commentsCount = countObj?.count ?? 0;
             } else {
               // If it's just an array without count property
               commentsCount = post.comments_count.length || 0;
             }
           }
         } else if (typeof post.comments_count === 'object' && post.comments_count !== null) {
-          // Using optional chaining and nullish coalescing for safer access
-          commentsCount = post.comments_count?.count ?? 0;
+          // Using type assertion after checking object type
+          const countObj = post.comments_count as unknown as { count?: number };
+          commentsCount = countObj?.count ?? 0;
         }
       }
       
@@ -215,16 +224,18 @@ export const getPostById = async (postId: string): Promise<Post | null> => {
           // Check if the first item has a count property
           const firstItem = data.likes_count[0];
           if (firstItem && typeof firstItem === 'object' && firstItem !== null) {
-            // Using optional chaining and nullish coalescing for safe access
-            likesCount = firstItem?.count ?? 0;
+            // Using type assertion after checking object type
+            const countObj = firstItem as unknown as { count?: number };
+            likesCount = countObj?.count ?? 0;
           } else {
             // If it's just an array without count property
             likesCount = data.likes_count.length || 0;
           }
         }
       } else if (typeof data.likes_count === 'object' && data.likes_count !== null) {
-        // Using optional chaining and nullish coalescing for safer access
-        likesCount = data.likes_count?.count ?? 0;
+        // Using type assertion after checking object type
+        const countObj = data.likes_count as unknown as { count?: number };
+        likesCount = countObj?.count ?? 0;
       }
     }
     
@@ -240,16 +251,18 @@ export const getPostById = async (postId: string): Promise<Post | null> => {
           // Check if the first item has a count property
           const firstItem = data.comments_count[0];
           if (firstItem && typeof firstItem === 'object' && firstItem !== null) {
-            // Using optional chaining and nullish coalescing for safe access
-            commentsCount = firstItem?.count ?? 0;
+            // Using type assertion after checking object type
+            const countObj = firstItem as unknown as { count?: number };
+            commentsCount = countObj?.count ?? 0;
           } else {
             // If it's just an array without count property
             commentsCount = data.comments_count.length || 0;
           }
         }
       } else if (typeof data.comments_count === 'object' && data.comments_count !== null) {
-        // Using optional chaining and nullish coalescing for safer access
-        commentsCount = data.comments_count?.count ?? 0;
+        // Using type assertion after checking object type
+        const countObj = data.comments_count as unknown as { count?: number };
+        commentsCount = countObj?.count ?? 0;
       }
     }
 
@@ -346,16 +359,18 @@ export const createPost = async (
           // Check if the first item has a count property
           const firstItem = completePost.likes_count[0];
           if (firstItem && typeof firstItem === 'object' && firstItem !== null) {
-            // Using optional chaining and nullish coalescing for safe access
-            likesCount = firstItem?.count ?? 0;
+            // Using type assertion after checking object type
+            const countObj = firstItem as unknown as { count?: number };
+            likesCount = countObj?.count ?? 0;
           } else {
             // If it's just an array without count property
             likesCount = completePost.likes_count.length || 0;
           }
         }
       } else if (typeof completePost.likes_count === 'object' && completePost.likes_count !== null) {
-        // Using optional chaining and nullish coalescing for safer access
-        likesCount = completePost.likes_count?.count ?? 0;
+        // Using type assertion after checking object type
+        const countObj = completePost.likes_count as unknown as { count?: number };
+        likesCount = countObj?.count ?? 0;
       }
     }
     
@@ -371,16 +386,18 @@ export const createPost = async (
           // Check if the first item has a count property
           const firstItem = completePost.comments_count[0];
           if (firstItem && typeof firstItem === 'object' && firstItem !== null) {
-            // Using optional chaining and nullish coalescing for safe access
-            commentsCount = firstItem?.count ?? 0;
+            // Using type assertion after checking object type
+            const countObj = firstItem as unknown as { count?: number };
+            commentsCount = countObj?.count ?? 0;
           } else {
             // If it's just an array without count property
             commentsCount = completePost.comments_count.length || 0;
           }
         }
       } else if (typeof completePost.comments_count === 'object' && completePost.comments_count !== null) {
-        // Using optional chaining and nullish coalescing for safer access
-        commentsCount = completePost.comments_count?.count ?? 0;
+        // Using type assertion after checking object type
+        const countObj = completePost.comments_count as unknown as { count?: number };
+        commentsCount = countObj?.count ?? 0;
       }
     }
     

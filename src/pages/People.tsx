@@ -1,4 +1,3 @@
-
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
 import { useEffect, useState } from "react";
@@ -18,8 +17,8 @@ interface ProfileData {
   full_name: string;
   avatar_url?: string;
   last_active?: string;
-  relationship_status?: string;
   location?: string;
+  relationship_status?: string;
   is_local?: boolean;
   is_hotlist?: boolean;
   subscription_tier?: 'free' | 'bronze' | 'silver' | 'gold';
@@ -241,10 +240,10 @@ const People = () => {
     }
   };
   
-  // Handle view profile
+  // Handle view profile - Update this function to navigate correctly
   const handleViewProfile = (userId: string) => {
-    // Navigate to the profile page with user ID
-    navigate(`/profile?id=${userId}`);
+    // Navigate to the profile page with userId as the parameter
+    navigate(`/profile/${userId}`);
   };
   
   // Filter members based on search term

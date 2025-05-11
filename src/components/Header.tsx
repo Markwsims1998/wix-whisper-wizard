@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Badge } from "@/components/ui/badge";
 import { Link, useNavigate } from "react-router-dom";
@@ -11,20 +11,41 @@ const Header = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
+  // Update header position based on sidebar width
+  useEffect(() => {
+    const updateHeaderPosition = () => {
+      const sidebar = document.querySelector('.sidebar') || document.querySelector('div[class*="bg-[#2B2A33]"]');
+      if (sidebar) {
+        const width = sidebar.getBoundingClientRect().width;
+        document.documentElement.style.setProperty('--sidebar-width', `${width}px`);
+      }
+    };
+
+    // Initial update
+    updateHeaderPosition();
+
+    // Set up observer to detect sidebar width changes
+    const observer = new ResizeObserver(updateHeaderPosition);
+    const sidebar = document.querySelector('.sidebar') || document.querySelector('div[class*="bg-[#2B2A33]"]');
+    if (sidebar) {
+      observer.observe(sidebar);
+    }
+
+    return () => {
+      if (sidebar) observer.unobserve(sidebar);
+    };
+  }, []);
+
   const handleSignOut = async () => {
     await logout();
     navigate('/login');
   };
 
   return (
-    <header className="bg-white shadow-sm py-3 px-6 flex items-center justify-between dark:bg-gray-800 dark:text-white" style={{
-      position: 'fixed',
+    <header className="bg-white shadow-sm py-3 px-6 flex items-center justify-between dark:bg-gray-800 dark:text-white fixed top-0 right-0 z-50" style={{
       left: 'var(--sidebar-width, 280px)',
-      right: 0,
       width: 'calc(100% - var(--sidebar-width, 280px))',
-      top: 0,
-      transition: 'top 0.3s ease-in-out',
-      zIndex: 100
+      transition: 'left 0.3s ease-in-out, width 0.3s ease-in-out',
     }}>
       <div className="flex-1 max-w-md">
         <div className="relative">
@@ -73,8 +94,12 @@ const Header = () => {
           onClick={() => navigate('/profile')}
         >
           <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center overflow-hidden dark:bg-purple-900">
-            {user?.profilePicture ? (
-              <img src={user.profilePicture} alt="Profile" className="w-full h-full object-cover" />
+            {user?.profilePicture || user?.avatar_url ? (
+              <img 
+                src={user.profilePicture || user.avatar_url} 
+                alt="Profile" 
+                className="w-full h-full object-cover" 
+              />
             ) : (
               <span className="font-medium text-purple-600 dark:text-purple-300">
                 {user?.name?.charAt(0) || user?.email?.charAt(0) || "M"}
@@ -82,7 +107,7 @@ const Header = () => {
             )}
           </div>
           <span className="font-medium hidden md:block dark:text-white">
-            {user?.name || "Mark W Sims"}
+            {user?.name || user?.full_name || "Mark W Sims"}
           </span>
         </button>
       </div>

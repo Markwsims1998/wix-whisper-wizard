@@ -48,8 +48,11 @@ function App() {
             {/* Landing page - redirect to dashboard if authenticated */}
             <Route path="/home" element={isAuthenticated ? <Navigate to="/" replace /> : <HomePage />} />
             
-            {/* Protected routes - redirect to login if not authenticated */}
+            {/* Profile routes - both for current user and specific users */}
             <Route path="/profile" element={isAuthenticated ? <Profile /> : <Navigate to="/login" replace />} />
+            <Route path="/profile/:userId" element={isAuthenticated ? <Profile /> : <Navigate to="/login" replace />} />
+            
+            {/* Protected routes - redirect to login if not authenticated */}
             <Route path="/messages" element={isAuthenticated ? <Messages /> : <Navigate to="/login" replace />} />
             <Route path="/activity" element={isAuthenticated ? <Activity /> : <Navigate to="/login" replace />} />
             <Route path="/comments" element={isAuthenticated ? <Comments /> : <Navigate to="/login" replace />} />

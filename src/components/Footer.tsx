@@ -2,10 +2,36 @@
 import { Link } from 'react-router-dom';
 import { Facebook, Instagram, Twitter, Youtube } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useEffect } from 'react';
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
   const isMobile = useIsMobile();
+  
+  // Update footer position based on sidebar width
+  useEffect(() => {
+    const updateFooterPosition = () => {
+      const sidebar = document.querySelector('.sidebar') || document.querySelector('div[class*="bg-[#2B2A33]"]');
+      if (sidebar) {
+        const width = sidebar.getBoundingClientRect().width;
+        document.documentElement.style.setProperty('--sidebar-width', `${width}px`);
+      }
+    };
+
+    // Initial update
+    updateFooterPosition();
+
+    // Set up observer to detect sidebar width changes
+    const observer = new ResizeObserver(updateFooterPosition);
+    const sidebar = document.querySelector('.sidebar') || document.querySelector('div[class*="bg-[#2B2A33]"]');
+    if (sidebar) {
+      observer.observe(sidebar);
+    }
+
+    return () => {
+      if (sidebar) observer.unobserve(sidebar);
+    };
+  }, []);
 
   return (
     <footer 

@@ -1,29 +1,54 @@
 
-import React from "react";
-import { useParams } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/contexts/auth/AuthProvider";
 import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
 import { Skeleton } from "@/components/ui/skeleton";
+import { supabase } from "@/lib/supabaseClient";
 
 // Import any additional components you need
 import ProfileHeader from "@/components/profile/ProfileHeader";
 import ProfileTabs from "@/components/profile/ProfileTabs";
 
 // Fix the ProfileParams interface to satisfy the required constraints
-// by adding an index signature
 interface ProfileParams {
-  userId?: string;
   [key: string]: string | undefined;
+  userId?: string;
 }
 
 const Profile = () => {
   const { userId } = useParams<ProfileParams>();
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const [profileData, setProfileData] = useState<any>(null);
   
   // If no userId is provided, show the current user's profile
   const profileId = userId || user?.id;
+  
+  // Fetch profile data
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (!profileId) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', profileId)
+          .single();
+          
+        if (error) throw error;
+        
+        setProfileData(data);
+      } catch (err) {
+        console.error('Error fetching profile:', err);
+      }
+    };
+    
+    fetchProfile();
+  }, [profileId]);
   
   // Get gender display value
   const getGenderDisplayValue = (genderCode?: string) => {
@@ -42,10 +67,10 @@ const Profile = () => {
   };
   
   // Determine whether to show loading state
-  const isLoading = !user;
+  const isLoading = !user || !profileData;
 
   // Get the relationship status if available
-  const relationshipStatus = user?.relationshipStatus || "Single";
+  const relationshipStatus = profileData?.relationship_status || user?.relationshipStatus || "Single";
 
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
@@ -63,9 +88,9 @@ const Profile = () => {
           <div className="max-w-4xl mx-auto">
             {/* Cover Photo Area */}
             <div className="relative h-64 bg-gray-200 dark:bg-gray-700 overflow-hidden rounded-t-lg">
-              {user?.coverPhoto ? (
+              {profileData?.cover_photo_url || user?.coverPhoto ? (
                 <img 
-                  src={user.coverPhoto} 
+                  src={profileData?.cover_photo_url || user?.coverPhoto} 
                   alt="Cover" 
                   className="w-full h-full object-cover"
                 />
@@ -81,16 +106,20 @@ const Profile = () => {
                   {/* Profile Picture */}
                   <div className="flex-shrink-0">
                     <div className="w-32 h-32 rounded-full bg-white dark:bg-gray-800 p-1 border-4 border-white dark:border-gray-800 overflow-hidden">
-                      {user?.profilePicture ? (
+                      {profileData?.avatar_url || user?.profilePicture ? (
                         <img 
-                          src={user.profilePicture} 
-                          alt={user.name || "Profile"} 
+                          src={profileData?.avatar_url || user?.profilePicture} 
+                          alt={profileData?.full_name || user?.name || "Profile"} 
                           className="rounded-full w-full h-full object-cover"
                         />
                       ) : (
                         <div className="w-full h-full rounded-full bg-purple-100 dark:bg-purple-900 flex items-center justify-center">
                           <span className="text-3xl font-medium text-purple-600 dark:text-purple-300">
-                            {user?.name?.charAt(0) || user?.username?.charAt(0) || "U"}
+                            {profileData?.full_name?.charAt(0) || 
+                             profileData?.username?.charAt(0) || 
+                             user?.name?.charAt(0) || 
+                             user?.username?.charAt(0) || 
+                             "U"}
                           </span>
                         </div>
                       )}
@@ -99,21 +128,25 @@ const Profile = () => {
                   
                   {/* Profile Details */}
                   <div className="flex-grow pt-2">
-                    <h1 className="text-2xl font-bold">{user?.name || "Unknown User"}</h1>
-                    <div className="text-sm text-gray-500 dark:text-gray-400">{user?.username ? `@${user.username}` : ""}</div>
+                    <h1 className="text-2xl font-bold">
+                      {profileData?.full_name || user?.name || "Unknown User"}
+                    </h1>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                      {profileData?.username ? `@${profileData.username}` : user?.username ? `@${user.username}` : ""}
+                    </div>
                     
                     <div className="mt-3 space-y-1">
-                      {user?.gender && (
+                      {(profileData?.gender || user?.gender) && (
                         <div className="flex items-center text-sm">
                           <span className="font-medium mr-2">Gender:</span>
-                          <span>{getGenderDisplayValue(user.gender)}</span>
+                          <span>{getGenderDisplayValue(profileData?.gender || user?.gender)}</span>
                         </div>
                       )}
                       
-                      {user?.location && (
+                      {(profileData?.location || user?.location) && (
                         <div className="flex items-center text-sm">
                           <span className="font-medium mr-2">Location:</span>
-                          <span>{user.location}</span>
+                          <span>{profileData?.location || user?.location}</span>
                         </div>
                       )}
                       
@@ -130,9 +163,9 @@ const Profile = () => {
                       )}
                     </div>
                     
-                    {user?.bio && (
+                    {(profileData?.bio || user?.bio) && (
                       <div className="mt-4">
-                        <p className="text-sm">{user.bio}</p>
+                        <p className="text-sm">{profileData?.bio || user?.bio}</p>
                       </div>
                     )}
                   </div>

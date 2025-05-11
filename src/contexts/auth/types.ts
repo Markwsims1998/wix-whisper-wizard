@@ -36,6 +36,7 @@ export interface AuthUser {
   email?: string;
   role?: 'admin' | 'moderator' | 'user';
   profilePicture?: string;
+  coverPhoto?: string;
   relationshipStatus?: string;
   relationshipPartners?: string[];
   location?: string;
@@ -64,7 +65,7 @@ export interface AuthUser {
   followers?: number;
   joinDate?: string;
   
-  // New profile fields
+  // Profile fields
   gender?: string;
   interestedIn?: string[];
   ageRange?: [number, number];

@@ -23,7 +23,8 @@ const Header = () => {
       right: 0,
       width: 'calc(100% - var(--sidebar-width, 280px))',
       top: 0,
-      transition: 'top 0.3s ease-in-out'
+      transition: 'top 0.3s ease-in-out',
+      zIndex: 100
     }}>
       <div className="flex-1 max-w-md">
         <div className="relative">
@@ -69,6 +70,7 @@ const Header = () => {
         <button 
           className="flex items-center gap-2 text-gray-800 hover:text-purple-600 transition-colors dark:text-gray-300 dark:hover:text-purple-400"
           aria-label="Profile"
+          onClick={() => navigate('/profile')}
         >
           <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center overflow-hidden dark:bg-purple-900">
             {user?.profilePicture ? (

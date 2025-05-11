@@ -1,3 +1,4 @@
+
 import { User } from '@supabase/supabase-js';
 import { supabase } from "@/integrations/supabase/client";
 import { AuthUser, defaultNotificationPrefs, defaultPrivacySettings, safeJsonParse } from './types';
@@ -15,8 +16,11 @@ export const transformUser = async (supabaseUser: User | null): Promise<AuthUser
         username, 
         full_name, 
         avatar_url, 
+        profile_picture_url,
+        cover_photo_url,
         subscription_tier,
         bio,
+        gender,
         location,
         relationship_status,
         relationship_partners,
@@ -145,7 +149,9 @@ export const transformUser = async (supabaseUser: User | null): Promise<AuthUser
       name: profile?.full_name || supabaseUser.email?.split('@')[0] || 'User',
       email: supabaseUser.email || '',
       role: userRole,
-      profilePicture: profile?.avatar_url,
+      profilePicture: profile?.profile_picture_url || profile?.avatar_url,
+      coverPhoto: profile?.cover_photo_url,
+      gender: profile?.gender,
       relationshipStatus: profile?.relationship_status,
       relationshipPartners: profile?.relationship_partners,
       location: profile?.location,
@@ -158,9 +164,9 @@ export const transformUser = async (supabaseUser: User | null): Promise<AuthUser
       privacySettings: privacySettings,
       status: userStatus,
       lastSignIn: profile?.last_sign_in_at,
-      following: 0, // Added default values for profile stats
-      followers: 0, // These will be populated from relationship counts in future updates
-      joinDate: profile?.created_at || new Date().toISOString() // Use created_at if available, otherwise current date
+      following: 0,
+      followers: 0,
+      joinDate: profile?.created_at || new Date().toISOString()
     };
     
     console.log('User transformed successfully, role:', userRole);
@@ -190,7 +196,9 @@ export const convertToProfileUpdates = (updates: Partial<AuthUser>): Record<stri
   
   if (updates.name !== undefined) profileUpdates.full_name = updates.name;
   if (updates.username !== undefined) profileUpdates.username = updates.username;
-  if (updates.profilePicture !== undefined) profileUpdates.avatar_url = updates.profilePicture;
+  if (updates.profilePicture !== undefined) profileUpdates.profile_picture_url = updates.profilePicture;
+  if (updates.coverPhoto !== undefined) profileUpdates.cover_photo_url = updates.coverPhoto;
+  if (updates.gender !== undefined) profileUpdates.gender = updates.gender;
   if (updates.relationshipStatus !== undefined) profileUpdates.relationship_status = updates.relationshipStatus;
   if (updates.relationshipPartners !== undefined) profileUpdates.relationship_partners = updates.relationshipPartners;
   if (updates.location !== undefined) profileUpdates.location = updates.location;

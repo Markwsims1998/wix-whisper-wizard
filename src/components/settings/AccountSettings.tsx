@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth/AuthProvider";
+import ProfileImageUpload from "./ProfileImageUpload";
+import GenderSelection from "./GenderSelection";
 
 const AccountSettings = () => {
   const { toast } = useToast();
@@ -73,9 +75,51 @@ const AccountSettings = () => {
     }
   };
 
+  // Handle profile picture upload
+  const handleProfilePictureUpdate = async (url: string) => {
+    return await updateUserProfile({ profilePicture: url });
+  };
+
+  // Handle cover photo upload
+  const handleCoverPhotoUpdate = async (url: string) => {
+    return await updateUserProfile({ coverPhoto: url });
+  };
+
   return (
     <>
       <Card>
+        <CardHeader>
+          <CardTitle>Profile Images</CardTitle>
+          <CardDescription>
+            Update your profile picture and cover photo
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="space-y-4">
+            <Label>Profile Picture</Label>
+            <ProfileImageUpload
+              type="profile"
+              currentImageUrl={user?.profilePicture}
+              onUploadSuccess={handleProfilePictureUpdate}
+            />
+          </div>
+          
+          <div className="space-y-4">
+            <Label>Cover Photo</Label>
+            <ProfileImageUpload
+              type="cover"
+              currentImageUrl={user?.coverPhoto}
+              onUploadSuccess={handleCoverPhotoUpdate}
+            />
+          </div>
+        </CardContent>
+      </Card>
+      
+      <div className="mt-4">
+        <GenderSelection />
+      </div>
+      
+      <Card className="mt-4">
         <CardHeader>
           <CardTitle>Account Information</CardTitle>
           <CardDescription>

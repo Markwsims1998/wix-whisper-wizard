@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth/AuthProvider";
 import FeaturedContentSettings from "./FeaturedContentSettings";
-import GenderPreferencesSettings from "./GenderPreferencesSettings";
+import AgeRangeSelector from "./AgeRangeSelector";
 
 const PrivacySettings = () => {
   const { toast } = useToast();
@@ -205,7 +205,7 @@ const PrivacySettings = () => {
         </CardFooter>
       </Card>
       
-      <GenderPreferencesSettings />
+      <AgeRangeSelector />
       
       <FeaturedContentSettings />
     </div>

@@ -318,14 +318,17 @@ export type Database = {
           avatar_url: string | null
           bio: string | null
           bottom_nav_preferences: string[] | null
+          cover_photo_url: string | null
           created_at: string
           dark_mode: boolean | null
           full_name: string | null
+          gender: string | null
           id: string
           last_sign_in_at: string | null
           location: string | null
           notification_preferences: Json | null
           privacy_settings: Json | null
+          profile_picture_url: string | null
           relationship_partners: string[] | null
           relationship_status: string | null
           role: string | null
@@ -341,14 +344,17 @@ export type Database = {
           avatar_url?: string | null
           bio?: string | null
           bottom_nav_preferences?: string[] | null
+          cover_photo_url?: string | null
           created_at?: string
           dark_mode?: boolean | null
           full_name?: string | null
+          gender?: string | null
           id: string
           last_sign_in_at?: string | null
           location?: string | null
           notification_preferences?: Json | null
           privacy_settings?: Json | null
+          profile_picture_url?: string | null
           relationship_partners?: string[] | null
           relationship_status?: string | null
           role?: string | null
@@ -364,14 +370,17 @@ export type Database = {
           avatar_url?: string | null
           bio?: string | null
           bottom_nav_preferences?: string[] | null
+          cover_photo_url?: string | null
           created_at?: string
           dark_mode?: boolean | null
           full_name?: string | null
+          gender?: string | null
           id?: string
           last_sign_in_at?: string | null
           location?: string | null
           notification_preferences?: Json | null
           privacy_settings?: Json | null
+          profile_picture_url?: string | null
           relationship_partners?: string[] | null
           relationship_status?: string | null
           role?: string | null

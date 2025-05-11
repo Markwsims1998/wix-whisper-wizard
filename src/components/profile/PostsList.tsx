@@ -3,7 +3,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Post } from "@/components/profile/types";
 import PostItem from "./PostItem";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 type PostsListProps = {
   posts: Post[];
@@ -21,25 +20,10 @@ const PostsList = ({
   // Get profile name or username, ensuring it's not undefined
   const profileName = profile?.full_name || profile?.username || "User";
   
-  // Get avatar URL - prioritize profile_picture_url over avatar_url
-  const avatarUrl = profile?.profile_picture_url || profile?.avatar_url;
-  
   return (
     <div className="mt-6">
       <div className="bg-white rounded-lg shadow p-4 dark:bg-gray-800">
-        <div className="flex items-center gap-3 mb-4">
-          <Avatar className="h-10 w-10 bg-purple-100 dark:bg-purple-900">
-            {avatarUrl ? (
-              <AvatarImage 
-                src={avatarUrl} 
-                alt={profileName} 
-              />
-            ) : (
-              <AvatarFallback className="text-purple-600 dark:text-purple-300">
-                {profileName.charAt(0)}
-              </AvatarFallback>
-            )}
-          </Avatar>
+        <div className="mb-4">
           <h2 className="text-xl font-semibold">
             {isMyProfile ? "Your Recent Posts" : `${profileName}'s Recent Posts`}
           </h2>

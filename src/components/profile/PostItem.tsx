@@ -1,4 +1,3 @@
-
 import { Heart, MessageCircle, User } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
@@ -20,6 +19,7 @@ const PostItem = ({ post, handleLikePost }: PostItemProps) => {
   const [isLiked, setIsLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(post.likes_count || 0);
   const [commentsCount, setCommentsCount] = useState(post.comments_count || 0);
+  const [imageError, setImageError] = useState(false);
   
   // Check like status when component mounts
   useEffect(() => {
@@ -94,18 +94,35 @@ const PostItem = ({ post, handleLikePost }: PostItemProps) => {
     return "#";
   };
 
-  // Get avatar URL using the same approach as in PostFeed.tsx
+  // Get avatar URL with proper debugging to fix the issue
   const getAvatarUrl = () => {
     if (!post.author) return null;
-    return post.author.profile_picture_url || post.author.avatar_url || null;
+    
+    // Log the complete author object to debug
+    console.log("Full author object:", post.author);
+    
+    // Try profile_picture_url first (from Supabase storage)
+    if (post.author.profile_picture_url) {
+      console.log("Using profile_picture_url:", post.author.profile_picture_url);
+      return post.author.profile_picture_url;
+    }
+    
+    // Then try avatar_url (possibly from OAuth provider)
+    if (post.author.avatar_url) {
+      console.log("Using avatar_url:", post.author.avatar_url);
+      return post.author.avatar_url;
+    }
+    
+    console.log("No avatar URL found for author");
+    return null;
   };
   
   const avatarUrl = getAvatarUrl();
   const authorName = post.author?.full_name || post.author?.username || "User";
   const authorInitial = authorName.charAt(0).toUpperCase();
   
-  console.log("Post author data:", post.author);
-  console.log("Avatar URL resolved:", avatarUrl);
+  // Log the resolved avatar URL
+  console.log("Avatar URL resolved in PostItem:", avatarUrl);
   
   return (
     <div className="mb-6 pb-6 border-b border-gray-100 last:border-0 last:mb-0 last:pb-0 dark:border-gray-700 transition-all hover:bg-gray-50 dark:hover:bg-gray-800/50 p-4 rounded-lg -mx-4">
@@ -115,11 +132,15 @@ const PostItem = ({ post, handleLikePost }: PostItemProps) => {
           className="flex-shrink-0"
         >
           <div className="h-10 w-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center overflow-hidden cursor-pointer">
-            {avatarUrl ? (
+            {avatarUrl && !imageError ? (
               <img 
                 src={avatarUrl} 
                 alt={authorName} 
                 className="h-full w-full object-cover"
+                onError={() => {
+                  console.log("Image failed to load from URL:", avatarUrl);
+                  setImageError(true);
+                }}
               />
             ) : (
               <User className="h-5 w-5 text-gray-500" />

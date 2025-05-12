@@ -15,14 +15,17 @@ export interface Photo {
     full_name?: string;
     avatar_url?: string;
   };
-  likes_count: number; // Added this property
+  likes_count: number;
+  // Add missing properties that are being used in Photos.tsx
+  image?: string; // Alias for image_url to maintain compatibility
+  thumbnail?: string; // For thumbnail images
 }
 
 export const fetchPhotos = async (): Promise<Photo[]> => {
   try {
     // Mock data for demonstration purposes
     // In a real application, this would fetch from Supabase
-    return [
+    const photos = [
       {
         id: '1',
         user_id: '1',
@@ -54,6 +57,13 @@ export const fetchPhotos = async (): Promise<Photo[]> => {
         likes_count: 18
       }
     ];
+    
+    // Add image property as alias to image_url for backward compatibility
+    return photos.map(photo => ({
+      ...photo,
+      image: photo.image_url, // Add image property as alias
+      thumbnail: photo.image_url, // Add thumbnail property as fallback
+    }));
   } catch (error) {
     console.error('Error fetching photos:', error);
     return [];

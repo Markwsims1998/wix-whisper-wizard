@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Grid, List, ImagePlus, Heart } from 'lucide-react';
@@ -14,14 +13,14 @@ const PhotosPage = () => {
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState('all');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [viewMode, setViewMode] useState<'grid' | 'list'>('grid');
   const navigate = useNavigate();
   const { subscriptionDetails } = useSubscription();
 
-  const loadPhotos = useCallback(async (category: string = 'all') => {
+  const loadPhotos = useCallback(async () => {
     setLoading(true);
     try {
-      const fetchedPhotos = await fetchPhotos(category);
+      const fetchedPhotos = await fetchPhotos();
       setPhotos(fetchedPhotos);
       
       console.log('Loaded photos:', fetchedPhotos);
@@ -33,7 +32,7 @@ const PhotosPage = () => {
   }, []);
 
   useEffect(() => {
-    loadPhotos(activeCategory);
+    loadPhotos();
   }, [activeCategory, loadPhotos]);
 
   const handlePhotoClick = (photo: Photo) => {
@@ -49,7 +48,7 @@ const PhotosPage = () => {
   const renderGridView = () => (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
       {photos.map((photo) => {
-        const needsWatermark = !subscriptionDetails.canViewPhotos || shouldShowWatermark(photo.image);
+        const needsWatermark = !subscriptionDetails.canViewPhotos || shouldShowWatermark(photo.image_url || photo.image);
         return (
           <div 
             key={photo.id}
@@ -57,7 +56,7 @@ const PhotosPage = () => {
             onClick={() => handlePhotoClick(photo)}
           >
             <img 
-              src={photo.image} 
+              src={photo.image_url || photo.image} 
               alt={photo.title || 'Photo'} 
               className={`w-full h-full object-cover transition-transform duration-300 group-hover:scale-105 ${needsWatermark ? 'opacity-90' : ''}`}
               loading="lazy"
@@ -95,7 +94,7 @@ const PhotosPage = () => {
   const renderListView = () => (
     <div className="space-y-4">
       {photos.map((photo) => {
-        const needsWatermark = !subscriptionDetails.canViewPhotos || shouldShowWatermark(photo.image);
+        const needsWatermark = !subscriptionDetails.canViewPhotos || shouldShowWatermark(photo.image_url || photo.image);
         return (
           <div 
             key={photo.id}
@@ -104,7 +103,7 @@ const PhotosPage = () => {
           >
             <div className="w-32 h-32 relative flex-shrink-0">
               <img 
-                src={photo.thumbnail || photo.image} 
+                src={photo.thumbnail || photo.image_url || photo.image} 
                 alt={photo.title || 'Photo'} 
                 className="w-full h-full object-cover"
                 loading="lazy"

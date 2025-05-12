@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -82,17 +81,16 @@ const WinksPage = () => {
     }
   };
   
-  // Get profile URL for a user
-  const getProfileUrl = (user: any) => {
-    if (!user) return "#";
+  // Get profile URL for a user - UPDATED to use query parameter format
+  const getProfileUrl = (profileUser: any) => {
+    if (!profileUser) return "#";
     
-    if (user.username) {
-      return `/profile/${user.username}`;
-    } else if (user.id) {
-      return `/profile/${user.id}`;
+    // If it's the current user, go to /profile, otherwise use query param
+    if (profileUser.id === user?.id) {
+      return "/profile";
+    } else {
+      return `/profile?id=${profileUser.id}`;
     }
-    
-    return "#";
   };
   
   // Get avatar image source

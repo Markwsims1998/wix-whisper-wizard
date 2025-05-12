@@ -5,8 +5,10 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { FriendProfile } from "@/services/userService";
-import { User, MessageCircle } from "lucide-react";
+import { User, MessageCircle, UserMinus } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { useToast } from "@/components/ui/use-toast";
+import RelationshipDialog from "../profile/RelationshipDialog";
 
 interface FriendsListProps {
   friends: FriendProfile[];
@@ -30,6 +32,9 @@ interface FriendCardProps {
 
 const FriendCard = ({ friend, isCurrentUser }: FriendCardProps) => {
   const [expanded, setExpanded] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [friendshipStatus, setFriendshipStatus] = useState<'none' | 'pending' | 'friends'>('friends');
+  const { toast } = useToast();
   
   // Format last active time
   const getLastActiveText = () => {
@@ -42,12 +47,29 @@ const FriendCard = ({ friend, isCurrentUser }: FriendCardProps) => {
       return 'Last seen: Recently';
     }
   };
+
+  // Format date to readable string
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return 'Unknown';
+    try {
+      return new Date(dateString).toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'long'
+      });
+    } catch (error) {
+      return 'Unknown';
+    }
+  };
   
+  const handleOpenDialog = () => {
+    setIsDialogOpen(true);
+  };
+
   return (
     <Card className={`p-4 transition-all duration-200 ${expanded ? 'bg-gray-50 dark:bg-gray-800' : ''}`}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Link to={`/profile/${friend.id}`}>
+          <Link to={`/profile?id=${friend.id}`}>
             <Avatar className="h-12 w-12">
               {friend.avatar_url ? (
                 <AvatarImage src={friend.avatar_url} alt={friend.full_name} />
@@ -60,7 +82,7 @@ const FriendCard = ({ friend, isCurrentUser }: FriendCardProps) => {
             </Avatar>
           </Link>
           <div>
-            <Link to={`/profile/${friend.id}`} className="font-medium hover:underline">
+            <Link to={`/profile?id=${friend.id}`} className="font-medium hover:underline">
               {friend.full_name || 'User'}
             </Link>
             <p className="text-xs text-gray-500 dark:text-gray-400">{friend.username ? `@${friend.username}` : ''}</p>
@@ -70,12 +92,24 @@ const FriendCard = ({ friend, isCurrentUser }: FriendCardProps) => {
         
         <div className="flex gap-2">
           {isCurrentUser && (
-            <Button variant="outline" size="sm" className="text-xs" asChild>
-              <Link to={`/messages?userId=${friend.id}`}>
-                <MessageCircle className="h-4 w-4 mr-1" />
-                Message
-              </Link>
-            </Button>
+            <>
+              <Button variant="outline" size="sm" className="text-xs" asChild>
+                <Link to={`/messages?userId=${friend.id}`}>
+                  <MessageCircle className="h-4 w-4 mr-1" />
+                  Message
+                </Link>
+              </Button>
+              
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="text-xs text-red-600 hover:text-red-700"
+                onClick={handleOpenDialog}
+              >
+                <UserMinus className="h-4 w-4 mr-1" />
+                Remove
+              </Button>
+            </>
           )}
           <Button 
             variant="ghost" 
@@ -93,22 +127,59 @@ const FriendCard = ({ friend, isCurrentUser }: FriendCardProps) => {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <h4 className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Member since</h4>
-              <p className="text-sm">March 2023</p>
+              <p className="text-sm">{formatDate(friend.created_at)}</p>
             </div>
             <div>
               <h4 className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Friends</h4>
-              <p className="text-sm">24</p>
+              <p className="text-sm">
+                <Link to={`/friends/${friend.id}`} className="hover:text-purple-600">
+                  View
+                </Link>
+              </p>
             </div>
             <div>
               <h4 className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Posts</h4>
-              <p className="text-sm">128</p>
+              <p className="text-sm">
+                <Link to={`/profile?id=${friend.id}`} className="hover:text-purple-600">
+                  View
+                </Link>
+              </p>
             </div>
             <div>
               <h4 className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Photos</h4>
-              <p className="text-sm">56</p>
+              <p className="text-sm">
+                <Link to={`/photos?userId=${friend.id}`} className="hover:text-purple-600">
+                  View
+                </Link>
+              </p>
             </div>
           </div>
         </div>
+      )}
+
+      {/* Friendship Dialog for removing friend */}
+      {isDialogOpen && (
+        <RelationshipDialog 
+          open={isDialogOpen}
+          setOpen={setIsDialogOpen}
+          onOpenChange={setIsDialogOpen}
+          userId={friend.id}
+          name={friend.full_name || friend.username || 'User'}
+          setFriendshipStatus={setFriendshipStatus}
+          // Add defaults for required props
+          selectedRelationshipStatus={null}
+          setSelectedRelationshipStatus={() => {}}
+          relationshipPartners={[]}
+          handleRemovePartner={() => {}}
+          availablePartners={[]}
+          partnerSearchOpen={false}
+          setPartnerSearchOpen={() => {}}
+          searchQuery=""
+          setSearchQuery={() => {}}
+          handleAddPartner={() => {}}
+          relationshipStatuses={[]}
+          handleSaveRelationship={() => {}}
+        />
       )}
     </Card>
   );

@@ -211,7 +211,8 @@ export const getFriends = async (userId: string): Promise<FriendProfile[]> => {
           username, 
           full_name, 
           avatar_url,
-          last_sign_in_at
+          last_sign_in_at,
+          created_at
         )
       `)
       .eq('follower_id', userId)
@@ -238,6 +239,7 @@ export const getFriends = async (userId: string): Promise<FriendProfile[]> => {
         full_name: profile && typeof profile === 'object' && 'full_name' in profile ? String(profile.full_name || '') : '',
         avatar_url: profile && typeof profile === 'object' && 'avatar_url' in profile ? String(profile.avatar_url || '') : '',
         last_active: profile && typeof profile === 'object' && 'last_sign_in_at' in profile ? String(profile.last_sign_in_at || '') : '',
+        created_at: profile && typeof profile === 'object' && 'created_at' in profile ? String(profile.created_at || '') : '',
         status: isRecent ? 'online' : 'offline'
       };
     });

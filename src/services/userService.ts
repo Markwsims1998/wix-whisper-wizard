@@ -1,101 +1,61 @@
+import { supabase } from "@/lib/supabaseClient";
 
-import { supabase } from "@/integrations/supabase/client";
-
+// Profile types
 export interface FriendProfile {
   id: string;
   username: string;
   full_name: string;
-  avatar_url?: string;
+  avatar_url: string;
+  status: 'online' | 'offline';
   last_active?: string;
-  status?: 'online' | 'offline' | 'away';
+  created_at?: string;
 }
 
-/**
- * Fetch active friends for a user
- * @param userId The ID of the current user
- * @returns Array of active friend profiles
- */
+// Get active friends (friends who are online)
 export const getActiveFriends = async (userId: string): Promise<FriendProfile[]> => {
-  if (!userId) return [];
-  
   try {
-    // Get all followed relationships where the user is the follower
-    const { data: relationships, error: relationshipError } = await supabase
+    // Get relationships where the user is the follower and status is accepted
+    const { data: relationships, error } = await supabase
       .from('relationships')
-      .select('followed_id')
+      .select(`
+        followed_id,
+        profiles!relationships_followed_id_fkey(
+          id, 
+          username, 
+          full_name, 
+          avatar_url,
+          last_sign_in_at
+        )
+      `)
       .eq('follower_id', userId)
-      .eq('status', 'accepted'); // Only get accepted relationships
+      .eq('status', 'accepted');
     
-    if (relationshipError) throw relationshipError;
-    if (!relationships || relationships.length === 0) return [];
-    
-    // Extract followed user IDs
-    const followedIds = relationships.map(rel => rel.followed_id);
-    
-    // Get profiles for these users
-    const { data: profiles, error: profilesError } = await supabase
-      .from('profiles')
-      .select('id, username, full_name, avatar_url')
-      .in('id', followedIds);
-    
-    if (profilesError) throw profilesError;
-    
-    // For this demo, we'll randomly set some friends as "online"
-    // In a real app, you would use Supabase Presence or a last_seen timestamp
-    return (profiles || []).map(profile => ({
-      ...profile,
-      status: Math.random() > 0.5 ? 'online' : 'offline',
-      last_active: new Date().toISOString()
-    }));
-    
-  } catch (error) {
-    console.error("Error fetching active friends:", error);
-    return [];
-  }
-};
-
-// Type for user settings updates
-export interface UserSettingsUpdate {
-  dark_mode?: boolean;
-  use_system_theme?: boolean;
-  show_featured_content?: boolean;
-  bottom_nav_preferences?: string[];
-  notification_preferences?: {
-    email: boolean;
-    push: boolean;
-    friendRequests: boolean;
-    messages: boolean;
-  };
-  privacy_settings?: {
-    profileVisibility: 'public' | 'friends' | 'private';
-    postVisibility: 'public' | 'friends' | 'private';
-    searchEngineVisible: boolean;
-  };
-}
-
-/**
- * Update user settings
- * @param userId The user ID
- * @param settings The settings to update
- * @returns Success status
- */
-export const updateUserSettings = async (userId: string, settings: UserSettingsUpdate): Promise<boolean> => {
-  if (!userId) return false;
-  
-  try {
-    const { error } = await supabase
-      .from('profiles')
-      .update(settings)
-      .eq('id', userId);
-      
     if (error) {
-      console.error('Error updating user settings:', error);
-      return false;
+      console.error('Error fetching friends:', error);
+      return [];
     }
     
-    return true;
+    // Transform the data into the FriendProfile format
+    return (relationships || []).map(rel => {
+      const profile = rel.profiles;
+      let isRecent = false;
+      
+      if (profile && typeof profile === 'object' && 'last_sign_in_at' in profile && profile.last_sign_in_at) {
+        const lastSignInValue = profile.last_sign_in_at as string;
+        isRecent = (new Date().getTime() - new Date(lastSignInValue).getTime()) < 15 * 60 * 1000; // 15 minutes
+      }
+      
+      return {
+        id: profile && typeof profile === 'object' && 'id' in profile ? String(profile.id || '') : '',
+        username: profile && typeof profile === 'object' && 'username' in profile ? String(profile.username || '') : '',
+        full_name: profile && typeof profile === 'object' && 'full_name' in profile ? String(profile.full_name || '') : '',
+        avatar_url: profile && typeof profile === 'object' && 'avatar_url' in profile ? String(profile.avatar_url || '') : '',
+        last_active: profile && typeof profile === 'object' && 'last_sign_in_at' in profile ? String(profile.last_sign_in_at || '') : '',
+        status: isRecent ? 'online' : 'offline'
+      };
+    }).filter(friend => friend.status === 'online');
   } catch (error) {
-    console.error('Error in updateUserSettings:', error);
-    return false;
+    console.error('Error in getActiveFriends:', error);
+    return [];
   }
 };

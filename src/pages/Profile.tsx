@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
@@ -8,6 +7,7 @@ import Header from "@/components/Header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/lib/supabaseClient";
 import ProfileHeader from "@/components/profile/ProfileHeader";
+import ProfileFriends from "@/components/profile/ProfileFriends";
 import ProfileTabs from "@/components/profile/ProfileTabs";
 import Footer from "@/components/Footer";
 
@@ -171,6 +171,13 @@ const Profile = () => {
                 </div>
               </CardContent>
             </Card>
+            
+            {/* Friends Section - NEW */}
+            {profileId && (
+              <div className="mt-6">
+                <ProfileFriends userId={profileId} />
+              </div>
+            )}
             
             {/* Profile Content Tabs */}
             <div className="mt-6">

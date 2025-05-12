@@ -1,10 +1,9 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { User, Mail, Heart, Users, MoreHorizontal, CheckCircle2, Globe } from "lucide-react";
+import { User, Mail, Heart, Users, MoreHorizontal, CheckCircle2, Globe, UserMinus } from "lucide-react";
 import { useAuth } from "@/contexts/auth/AuthProvider";
 import { sendWink } from "@/services/winksService";
 import { useToast } from "@/components/ui/use-toast";
@@ -12,8 +11,15 @@ import { getFriends, checkFriendshipStatus, sendFriendRequest } from "@/services
 import { FriendProfile } from "@/services/userService";
 import RelationshipDialog from "./RelationshipDialog";
 import { Link } from "react-router-dom";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuSeparator, 
+  DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu";
 
-interface ProfileHeaderProps {
+export interface ProfileHeaderProps {
   name: string;
   userId: string;
   username?: string;
@@ -232,9 +238,41 @@ const ProfileHeader = ({
             </>
           )}
           
-          <Button variant="ghost" size="icon" className="h-8 w-8">
-            <MoreHorizontal className="h-4 w-4" />
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8">
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem>
+                <Link to={`/friends/${userId}`} className="flex items-center w-full">
+                  <Users className="h-4 w-4 mr-2" />
+                  View Friends
+                </Link>
+              </DropdownMenuItem>
+              
+              <DropdownMenuItem>
+                <Link to={`/photos?userId=${userId}`} className="flex items-center w-full">
+                  <User className="h-4 w-4 mr-2" />
+                  View Photos
+                </Link>
+              </DropdownMenuItem>
+              
+              {!isCurrentUser && friendshipStatus === 'friends' && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem 
+                    className="text-red-600 focus:text-red-600"
+                    onClick={() => setIsDialogOpen(true)}
+                  >
+                    <UserMinus className="h-4 w-4 mr-2" />
+                    Remove Friend
+                  </DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
         
         {/* Name and Details */}

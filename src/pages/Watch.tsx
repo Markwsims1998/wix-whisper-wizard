@@ -87,7 +87,7 @@ const Videos = () => {
 
   const handleVideoClick = (video: Video) => {
     if (canViewVideos) {
-      // Open the video in the viewer
+      // Open the video in the viewer - prevent default navigation
       console.log("Opening video in viewer:", video.id);
       setSelectedVideo(video);
     } else {

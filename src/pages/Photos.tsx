@@ -84,13 +84,18 @@ const Photos = () => {
 
   const handlePhotoClick = (photo: Photo, e?: React.MouseEvent) => {
     if (e) {
+      // Prevent default navigation behavior
       e.preventDefault();
       e.stopPropagation();
     }
+    
+    // Set the selected photo to open the viewer
+    console.log("Opening photo in viewer:", photo.id);
     setSelectedPhoto(photo);
   };
 
   const handleCloseViewer = () => {
+    // Close the viewer by setting selectedPhoto to null
     setSelectedPhoto(null);
   };
 

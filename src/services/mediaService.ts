@@ -58,6 +58,35 @@ export const fetchMedia = async (
   }
 };
 
+// Add the missing function to fetch media by ID
+export const fetchMediaById = async (mediaId: string): Promise<MediaItem | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('media')
+      .select(`
+        *,
+        user:user_id (
+          id,
+          username,
+          full_name,
+          avatar_url
+        )
+      `)
+      .eq('id', mediaId)
+      .maybeSingle();
+    
+    if (error) {
+      console.error(`Error fetching media by ID:`, error);
+      return null;
+    }
+    
+    return data;
+  } catch (err) {
+    console.error(`Error in fetchMediaById:`, err);
+    return null;
+  }
+};
+
 // Helper function to convert MediaItem to Video format
 export const convertToVideoFormat = (mediaItems: MediaItem[]): Video[] => {
   return mediaItems.map(item => ({

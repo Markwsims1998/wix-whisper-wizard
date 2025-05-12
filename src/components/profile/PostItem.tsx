@@ -323,7 +323,7 @@ const PostItem = ({ post, handleLikePost }: PostItemProps) => {
               {!userCanViewThisContent && (
                 <div className="absolute inset-0 overflow-hidden">
                   <div className="absolute inset-0 w-full h-full flex items-center justify-center">
-                    <div className="font-bold text-white text-6xl opacity-50 transform -rotate-30 select-none whitespace-nowrap">
+                    <div className="font-bold text-white text-6xl opacity-50 transform -rotate-12 select-none whitespace-nowrap">
                       PREMIUM
                     </div>
                   </div>

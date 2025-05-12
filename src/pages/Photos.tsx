@@ -246,13 +246,13 @@ const Photos = () => {
                       />
                       {!subscriptionDetails.canViewPhotos && (
                         <div className="absolute inset-0 bg-black bg-opacity-50 flex flex-col items-center justify-center">
-                          <div className="absolute w-full h-full flex items-center justify-center">
-                            <div className="font-bold text-white text-4xl opacity-50 transform -rotate-30 absolute text-center select-none">
-                              PREMIUM
+                          <div className="absolute inset-0 overflow-hidden">
+                            <div className="absolute inset-0 w-full h-full flex items-center justify-center">
+                              <div className="font-bold text-white text-6xl opacity-50 transform -rotate-12 select-none whitespace-nowrap">
+                                PREMIUM
+                              </div>
                             </div>
                           </div>
-                          <span className="text-white bg-red-500 px-2 py-1 rounded text-xs font-bold mb-2">SUBSCRIBE</span>
-                          <span className="text-white text-xs">Premium Content</span>
                         </div>
                       )}
                       <Badge className="absolute top-3 right-3 bg-gray-800/80 text-white">

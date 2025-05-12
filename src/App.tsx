@@ -1,68 +1,103 @@
 
-import { Route, Routes } from "react-router-dom";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { Routes, Route, Navigate } from "react-router-dom";
+import Index from "./pages/Index";
+import NotFound from "./pages/NotFound";
 import { ThemeProvider } from "@/contexts/ThemeContext";
-import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
-import { Toaster } from "@/components/ui/toaster";
-
-// Pages
-import Index from "@/pages/Index";
-import HomePage from "@/pages/HomePage";
-import Login from "@/pages/Login";
-import Profile from "@/pages/Profile";
-import Messages from "@/pages/Messages";
-import People from "@/pages/People";
-import Photos from "@/pages/Photos";
-import Settings from "@/pages/Settings";
-import Videos from "@/pages/Videos";
-import Watch from "@/pages/Watch";
-import Shop from "@/pages/Shop";
-import Basket from "@/pages/Basket";
-import NotFound from "@/pages/NotFound";
-import Admin from "@/pages/Admin";
-import Comments from "@/pages/Comments";
-import Notifications from "@/pages/Notifications";
-import Activity from "@/pages/Activity";
-import Winks from "@/pages/Winks";
-import Feedback from "@/pages/Feedback";
-import Friends from "@/pages/Friends";
-
-import "@/App.css";
-
-// Create a client
-const queryClient = new QueryClient();
+import { Toaster } from "./components/ui/toaster";
+import Profile from "./pages/Profile";
+import Login from "./pages/Login";
+import HomePage from "./pages/HomePage";
+import Messages from "./pages/Messages";
+import Activity from "./pages/Activity";
+import Comments from "./pages/Comments";
+import Settings from "./pages/Settings";
+import Videos from "./pages/Videos";
+import Photos from "./pages/Photos";
+import People from "./pages/People";
+import Shop from "./pages/Shop";
+import Admin from "./pages/Admin";
+import Watch from "./pages/Watch";
+import Basket from "./pages/Basket";
+import Notifications from "./pages/Notifications";
+import Feedback from "./pages/Feedback";
+import Winks from "./pages/Winks";
+import { useAuth } from "@/contexts/auth/AuthProvider";
+import Footer from "./components/Footer";
+import { useEffect } from "react";
 
 function App() {
+  const { isAuthenticated, loading } = useAuth();
+  
+  // Update sidebar width variable on load and resize
+  useEffect(() => {
+    const updateSidebarWidth = () => {
+      const sidebar = document.querySelector('.sidebar') || document.querySelector('div[class*="bg-[#2B2A33]"]');
+      if (sidebar) {
+        const width = sidebar.getBoundingClientRect().width;
+        document.documentElement.style.setProperty('--sidebar-width', `${width}px`);
+      }
+    };
+
+    // Initial update
+    updateSidebarWidth();
+    
+    // Add resize listener
+    window.addEventListener('resize', updateSidebarWidth);
+    
+    return () => {
+      window.removeEventListener('resize', updateSidebarWidth);
+    };
+  }, []);
+  
+  // Show loading indicator if we're checking authentication status
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+      </div>
+    );
+  }
+
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <SubscriptionProvider>
+    <ThemeProvider>
+      <div className="flex flex-col min-h-screen">
+        <div className="flex-grow">
           <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/home" element={<HomePage />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/messages" element={<Messages />} />
-            <Route path="/people" element={<People />} />
-            <Route path="/photos" element={<Photos />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/videos" element={<Videos />} />
-            <Route path="/watch" element={<Watch />} />
-            <Route path="/shop" element={<Shop />} />
-            <Route path="/basket" element={<Basket />} />
-            <Route path="/admin/*" element={<Admin />} />
-            <Route path="/comments/:postId" element={<Comments />} />
-            <Route path="/notifications" element={<Notifications />} />
-            <Route path="/activity" element={<Activity />} />
-            <Route path="/winks" element={<Winks />} />
+            {/* Redirect root based on authentication status */}
+            <Route path="/" element={isAuthenticated ? <Index /> : <Navigate to="/home" replace />} />
+            
+            {/* Landing page - redirect to dashboard if authenticated */}
+            <Route path="/home" element={isAuthenticated ? <Navigate to="/" replace /> : <HomePage />} />
+            
+            {/* Profile routes - both for current user and specific users */}
+            <Route path="/profile" element={isAuthenticated ? <Profile /> : <Navigate to="/login" replace />} />
+            <Route path="/profile/:userId" element={isAuthenticated ? <Profile /> : <Navigate to="/login" replace />} />
+            
+            {/* Protected routes - redirect to login if not authenticated */}
+            <Route path="/messages" element={isAuthenticated ? <Messages /> : <Navigate to="/login" replace />} />
+            <Route path="/activity" element={isAuthenticated ? <Activity /> : <Navigate to="/login" replace />} />
+            <Route path="/comments" element={isAuthenticated ? <Comments /> : <Navigate to="/login" replace />} />
+            <Route path="/settings" element={isAuthenticated ? <Settings /> : <Navigate to="/login" replace />} />
+            <Route path="/videos" element={isAuthenticated ? <Videos /> : <Navigate to="/login" replace />} />
+            <Route path="/photos" element={isAuthenticated ? <Photos /> : <Navigate to="/login" replace />} />
+            <Route path="/people" element={isAuthenticated ? <People /> : <Navigate to="/login" replace />} />
+            <Route path="/shop" element={isAuthenticated ? <Shop /> : <Navigate to="/login" replace />} />
+            <Route path="/admin" element={isAuthenticated ? <Admin /> : <Navigate to="/login" replace />} />
+            <Route path="/watch" element={isAuthenticated ? <Watch /> : <Navigate to="/login" replace />} />
+            <Route path="/basket" element={isAuthenticated ? <Basket /> : <Navigate to="/login" replace />} />
+            <Route path="/notifications" element={isAuthenticated ? <Notifications /> : <Navigate to="/login" replace />} />
+            <Route path="/winks" element={isAuthenticated ? <Winks /> : <Navigate to="/login" replace />} />
+            
+            {/* Public routes */}
+            <Route path="/login" element={isAuthenticated ? <Navigate to="/" replace /> : <Login />} />
             <Route path="/feedback" element={<Feedback />} />
-            <Route path="/friends" element={<Friends />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
-          <Toaster />
-        </SubscriptionProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
+        </div>
+        <Footer />
+        <Toaster />
+      </div>
+    </ThemeProvider>
   );
 }
 

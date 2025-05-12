@@ -20,6 +20,7 @@ import VideoCard from "@/components/videos/VideoCard";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { shouldShowWatermark } from "@/services/securePhotoService";
 import VideoSubscriptionLock from '@/components/media/VideoSubscriptionLock';
+import Watermark from '@/components/media/Watermark';
 
 const Watch = () => {
   const { id } = useParams<{ id: string }>();

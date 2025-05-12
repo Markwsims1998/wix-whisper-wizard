@@ -146,7 +146,7 @@ const CommentsPage = () => {
   // Display users who liked the post, limited to 50 by default
   const displayedLikes = showAllLikes ? likeUsers : likeUsers.slice(0, 50);
 
-  // Add the missing getLikesForPost function
+  // Add the getLikesForPost function
   const getLikesForPost = async (postId: string): Promise<LikeUser[]> => {
     try {
       const { data, error } = await supabase
@@ -168,7 +168,7 @@ const CommentsPage = () => {
         return [];
       }
       
-      // Map the data to the expected format
+      // Map the data to the expected format with proper type handling
       return data.map(like => {
         const profile = like.profiles;
         return {

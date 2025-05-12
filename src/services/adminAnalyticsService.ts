@@ -1,283 +1,245 @@
 
 import { supabase } from '@/lib/supabaseClient';
 
-export interface DataPoint {
-  name: string;
-  count: number;
-}
-
+// Define types for dashboard statistics
 export interface DashboardStats {
-  totalUsers: number;
+  userCount: number;
+  newUsersToday: number;
   activeUsers: number;
   premiumUsers: number;
-  totalPosts: number;
-  totalComments: number;
-  newUsersToday: number;
-  newUsersThisWeek: number;
-  newUsersThisMonth: number;
-  averageSessionTime: number;
+  contentCount: number;
+  reportsCount: number;
 }
 
+// Define type for chart data points
+export interface DataPoint {
+  name: string;
+  value: number;
+}
+
+// Fetch general dashboard statistics
 export const fetchDashboardStats = async (): Promise<DashboardStats> => {
   try {
-    // Get user stats
-    const userStats = await getUserStats();
-    
-    // Get content stats
-    const { data: postsData } = await supabase
-      .from('posts')
-      .select('count', { count: 'exact', head: true });
+    // Get total user count
+    const { count: userCount, error: userError } = await supabase
+      .from('profiles')
+      .select('*', { count: 'exact', head: true });
       
-    const { data: commentsData } = await supabase
-      .from('comments')
-      .select('count', { count: 'exact', head: true });
+    // Get new users today count
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const { count: newUsersToday, error: newUserError } = await supabase
+      .from('profiles')
+      .select('*', { count: 'exact', head: true })
+      .gte('created_at', today.toISOString());
+      
+    // Get active user count (users who have logged in in the last 7 days)
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const { count: activeUsers, error: activeUserError } = await supabase
+      .from('profiles')
+      .select('*', { count: 'exact', head: true })
+      .gte('last_sign_in_at', sevenDaysAgo.toISOString());
+      
+    // Get premium user count
+    const { count: premiumUsers, error: premiumError } = await supabase
+      .from('profiles')
+      .select('*', { count: 'exact', head: true })
+      .not('subscription_tier', 'eq', 'free');
+      
+    // Get total content count (posts, photos, videos)
+    const { count: contentCount, error: contentError } = await supabase
+      .from('media')
+      .select('*', { count: 'exact', head: true });
+      
+    // Reports count (placeholder for now)
+    const reportsCount = 0;
     
     return {
-      totalUsers: userStats.total,
-      activeUsers: userStats.active,
-      premiumUsers: userStats.premium,
-      totalPosts: postsData?.count || 0,
-      totalComments: commentsData?.count || 0,
-      newUsersToday: userStats.new.today || 0,
-      newUsersThisWeek: userStats.new.thisWeek,
-      newUsersThisMonth: userStats.new.thisMonth,
-      averageSessionTime: 15 // Mock data, would need session tracking
+      userCount: userCount || 0,
+      newUsersToday: newUsersToday || 0,
+      activeUsers: activeUsers || 0,
+      premiumUsers: premiumUsers || 0,
+      contentCount: contentCount || 0,
+      reportsCount
     };
   } catch (error) {
-    console.error("Error fetching dashboard stats:", error);
-    
-    // Return default values
+    console.error('Error fetching dashboard stats:', error);
     return {
-      totalUsers: 0,
+      userCount: 0,
+      newUsersToday: 0,
       activeUsers: 0,
       premiumUsers: 0,
-      totalPosts: 0,
-      totalComments: 0,
-      newUsersToday: 0,
-      newUsersThisWeek: 0,
-      newUsersThisMonth: 0,
-      averageSessionTime: 0
+      contentCount: 0,
+      reportsCount: 0
     };
   }
 };
 
+// Fetch weekly activity data for charts
 export const fetchWeeklyActivityData = async (): Promise<DataPoint[]> => {
   try {
-    const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const today = new Date();
-    const data: DataPoint[] = [];
+    const dayOfWeek = today.getDay();
     
-    // Generate 7 days of data
+    // Generate data for the last 7 days
+    const result: DataPoint[] = [];
+    
     for (let i = 6; i >= 0; i--) {
       const date = new Date();
       date.setDate(today.getDate() - i);
-      const dayName = weekDays[date.getDay()];
       
-      // TODO: Replace with actual data from analytics tables when available
-      const mockActivityCount = Math.floor(Math.random() * 20) + 5;
+      // Get posts created on this day
+      const startOfDay = new Date(date);
+      startOfDay.setHours(0, 0, 0, 0);
       
-      data.push({
-        name: dayName,
-        count: mockActivityCount
+      const endOfDay = new Date(date);
+      endOfDay.setHours(23, 59, 59, 999);
+      
+      const { count, error } = await supabase
+        .from('posts')
+        .select('*', { count: 'exact', head: true })
+        .gte('created_at', startOfDay.toISOString())
+        .lte('created_at', endOfDay.toISOString());
+        
+      result.push({
+        name: daysOfWeek[(dayOfWeek - i + 7) % 7],
+        value: count || 0
       });
     }
-    
-    return data;
-  } catch (error) {
-    console.error("Error fetching weekly activity data:", error);
-    return [];
-  }
-};
-
-export const getSubscriptionDistribution = async (): Promise<DataPoint[]> => {
-  try {
-    const { data } = await supabase
-      .from('profiles')
-      .select(`subscription_tier`);
-    
-    const subscriptionCounts = {
-      "free": 0,
-      "bronze": 0,
-      "silver": 0,
-      "gold": 0
-    };
-    
-    // Count each subscription tier
-    data?.forEach(user => {
-      const tier = user.subscription_tier || "free";
-      if (tier in subscriptionCounts) {
-        subscriptionCounts[tier as keyof typeof subscriptionCounts]++;
-      } else {
-        subscriptionCounts.free++;
-      }
-    });
-    
-    // Create data points for each tier
-    const result: DataPoint[] = Object.entries(subscriptionCounts).map(([name, count]) => ({
-      name,
-      count
-    }));
     
     return result;
   } catch (error) {
-    console.error("Error fetching subscription distribution:", error);
+    console.error('Error fetching weekly activity data:', error);
     return [];
   }
 };
 
-// Helper function for dashboard stats
-export const getUserStats = async () => {
+// Fetch subscription distribution data
+export const fetchSubscriptionDistribution = async (): Promise<DataPoint[]> => {
   try {
-    // Get total users
-    const { count: totalUsers } = await supabase
-      .from('profiles')
-      .select('id', { count: 'exact', head: true });
+    const tiers = ['free', 'bronze', 'silver', 'gold'];
+    const result: DataPoint[] = [];
     
-    // Get premium users
-    const { count: premiumUsers } = await supabase
-      .from('profiles')
-      .select('id', { count: 'exact', head: true })
-      .in('subscription_tier', ['bronze', 'silver', 'gold']);
-    
-    // Get active users
-    const { count: activeUsers } = await supabase
-      .from('profiles')
-      .select('id', { count: 'exact', head: true })
-      .eq('status', 'active');
-    
-    // Get new users today
-    const startOfToday = new Date();
-    startOfToday.setHours(0, 0, 0, 0);
-    
-    const { count: newUsersToday } = await supabase
-      .from('profiles')
-      .select('id', { count: 'exact', head: true })
-      .gte('created_at', startOfToday.toISOString());
-    
-    // Get new users this week
-    const oneWeekAgo = new Date();
-    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-    
-    const { count: newUsersThisWeek } = await supabase
-      .from('profiles')
-      .select('id', { count: 'exact', head: true })
-      .gte('created_at', oneWeekAgo.toISOString());
-    
-    // Get new users this month
-    const oneMonthAgo = new Date();
-    oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
-    
-    const { count: newUsersThisMonth } = await supabase
-      .from('profiles')
-      .select('id', { count: 'exact', head: true })
-      .gte('created_at', oneMonthAgo.toISOString());
-    
-    return {
-      total: totalUsers || 0,
-      active: activeUsers || 0,
-      premium: premiumUsers || 0,
-      new: {
-        today: newUsersToday || 0,
-        thisWeek: newUsersThisWeek || 0,
-        thisMonth: newUsersThisMonth || 0
-      }
-    };
-  } catch (error) {
-    console.error('Error getting user stats:', error);
-    return {
-      total: 0,
-      active: 0,
-      premium: 0,
-      new: {
-        today: 0,
-        thisWeek: 0,
-        thisMonth: 0
-      }
-    };
-  }
-};
-
-export const fetchRevenueData = async (): Promise<DataPoint[]> => {
-  try {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const currentMonth = new Date().getMonth();
-    const data: DataPoint[] = [];
-    
-    // Generate 6 months of mock revenue data
-    for (let i = 5; i >= 0; i--) {
-      const monthIndex = (currentMonth - i + 12) % 12;
-      const mockRevenue = Math.floor(Math.random() * 2000) + 500;
-      
-      data.push({
-        name: months[monthIndex],
-        count: mockRevenue
+    // Get count for each subscription tier
+    for (const tier of tiers) {
+      const { count, error } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true })
+        .eq('subscription_tier', tier);
+        
+      result.push({
+        name: tier.charAt(0).toUpperCase() + tier.slice(1),
+        value: count || 0
       });
     }
     
-    return data;
+    return result;
   } catch (error) {
-    console.error("Error fetching revenue data:", error);
+    console.error('Error fetching subscription distribution:', error);
     return [];
   }
 };
 
-export const fetchRecentActivity = async (): Promise<any[]> => {
+// Function to get subscription distribution that was already in use
+export const getSubscriptionDistribution = fetchSubscriptionDistribution;
+
+// Fetch revenue data (placeholder for now)
+export const fetchRevenueData = async (): Promise<DataPoint[]> => {
+  // This would normally fetch real revenue data from a payment system
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
+  
+  // Placeholder data
+  return months.map(month => ({
+    name: month,
+    value: Math.floor(Math.random() * 10000)
+  }));
+};
+
+// Fetch recent activity
+export interface ActivityItem {
+  id: string;
+  type: 'login' | 'signup' | 'post' | 'media';
+  user: {
+    id: string;
+    name: string;
+    avatar?: string;
+  };
+  timestamp: string;
+  description: string;
+}
+
+export const fetchRecentActivity = async (): Promise<ActivityItem[]> => {
   try {
-    // Get recent posts
-    const { data: recentPosts } = await supabase
+    const { data: posts, error: postsError } = await supabase
       .from('posts')
       .select(`
-        id,
-        content,
+        id, 
         created_at,
         user_id,
-        user:user_id (username, full_name, avatar_url)
+        profiles:user_id (
+          username, 
+          full_name,
+          avatar_url
+        )
       `)
       .order('created_at', { ascending: false })
       .limit(5);
+      
+    if (postsError) throw postsError;
     
-    // Get recent comments
-    const { data: recentComments } = await supabase
-      .from('comments')
+    const { data: media, error: mediaError } = await supabase
+      .from('media')
       .select(`
-        id,
-        content,
+        id, 
         created_at,
         user_id,
-        user:user_id (username, full_name, avatar_url),
-        post_id
+        content_type,
+        profiles:user_id (
+          username, 
+          full_name,
+          avatar_url
+        )
       `)
       .order('created_at', { ascending: false })
       .limit(5);
+      
+    if (mediaError) throw mediaError;
     
-    // Combine and sort activities
-    const activities = [
-      ...(recentPosts || []).map(post => ({
+    // Combine and format activity items
+    const activities: ActivityItem[] = [
+      ...posts.map(post => ({
         id: post.id,
-        type: 'post',
-        content: post.content,
-        created_at: post.created_at,
-        user: post.user,
-        postId: post.id
+        type: 'post' as const,
+        user: {
+          id: post.user_id,
+          name: post.profiles.full_name || post.profiles.username || 'Unknown User',
+          avatar: post.profiles.avatar_url || undefined
+        },
+        timestamp: post.created_at,
+        description: 'created a new post'
       })),
-      ...(recentComments || []).map(comment => ({
-        id: comment.id,
-        type: 'comment',
-        content: comment.content,
-        created_at: comment.created_at,
-        user: comment.user,
-        postId: comment.post_id
+      ...media.map(item => ({
+        id: item.id,
+        type: 'media' as const,
+        user: {
+          id: item.user_id,
+          name: item.profiles.full_name || item.profiles.username || 'Unknown User',
+          avatar: item.profiles.avatar_url || undefined
+        },
+        timestamp: item.created_at,
+        description: `uploaded a new ${item.content_type}`
       }))
     ];
     
-    // Sort by most recent first
-    activities.sort((a, b) => 
-      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    );
+    // Sort by timestamp, newest first
+    return activities.sort((a, b) => 
+      new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    ).slice(0, 10);
     
-    return activities.slice(0, 5);
   } catch (error) {
-    console.error("Error fetching recent activity:", error);
+    console.error('Error fetching recent activity:', error);
     return [];
   }
 };

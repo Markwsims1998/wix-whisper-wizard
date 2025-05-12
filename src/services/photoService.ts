@@ -52,7 +52,7 @@ export const fetchPhotos = async (category: string = 'all'): Promise<Photo[]> =>
   }
 };
 
-// Add the missing function that's imported in Photos.tsx
+// Add the function that's imported in Photos.tsx
 export const getPhotosByCategory = async (category: string = 'all'): Promise<Photo[]> => {
   return fetchPhotos(category);
 };

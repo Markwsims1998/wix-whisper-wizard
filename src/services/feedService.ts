@@ -1,4 +1,3 @@
-
 import { supabase } from "@/lib/supabaseClient";
 
 // Export the Post type so it can be used in other files
@@ -387,9 +386,9 @@ export const getLikesForPost = async (postId: string): Promise<LikeUser[]> => {
     
     // Map each item in the array individually and properly typed
     return data.map(item => {
-      // Check if profiles exists and is an object
-      const profile = item.profiles;
-      if (!profile) {
+      // Check if profiles exists and is an array with at least one item
+      const profileData = item.profiles;
+      if (!profileData) {
         return {
           id: '',
           username: '',
@@ -399,12 +398,15 @@ export const getLikesForPost = async (postId: string): Promise<LikeUser[]> => {
         };
       }
       
+      // Handle the structure correctly - access the first item if it's an array
+      const profile = Array.isArray(profileData) ? profileData[0] : profileData;
+      
       return {
-        id: profile.id || '',
-        username: profile.username || '',
-        full_name: profile.full_name || '',
-        avatar_url: profile.avatar_url || null,
-        profile_picture_url: profile.profile_picture_url || null
+        id: profile?.id || '',
+        username: profile?.username || '',
+        full_name: profile?.full_name || '',
+        avatar_url: profile?.avatar_url || null,
+        profile_picture_url: profile?.profile_picture_url || null
       };
     });
   } catch (error) {

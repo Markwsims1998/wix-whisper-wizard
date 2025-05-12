@@ -8,7 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth/AuthProvider";
 import CommentInput from "@/components/comments/CommentInput";
 import CommentList from "@/components/comments/CommentList";
-import { getPostById, likePost, Post as PostType, LikeUser } from "@/services/feedService";
+import { getPostById, likePost, Post as PostType, LikeUser, getLikesForPost } from "@/services/feedService";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import Sidebar from "@/components/Sidebar";
@@ -137,55 +137,8 @@ const CommentsPage = () => {
   // Display users who liked the post, limited to 50 by default
   const displayedLikes = showAllLikes ? likeUsers : likeUsers.slice(0, 50);
 
-  // Add the getLikesForPost function with proper typing
-  const getLikesForPost = async (postId: string): Promise<LikeUser[]> => {
-    try {
-      const { data, error } = await supabase
-        .from('post_likes')
-        .select(`
-          user_id,
-          profiles!relationships_follower_id_fkey(
-            id, 
-            username, 
-            full_name, 
-            avatar_url, 
-            profile_picture_url
-          )
-        `)
-        .eq('post_id', postId);
-        
-      if (error) {
-        console.error('Error fetching likes for post:', error);
-        return [];
-      }
-      
-      // Map each item in the array properly with correct typing
-      return data.map(item => {
-        const profile = item.profiles;
-        if (!profile) {
-          return {
-            id: '',
-            username: '',
-            full_name: '',
-            avatar_url: null,
-            profile_picture_url: null
-          };
-        }
-        
-        return {
-          id: profile.id || '',
-          username: profile.username || '',
-          full_name: profile.full_name || '',
-          avatar_url: profile.avatar_url || null,
-          profile_picture_url: profile.profile_picture_url || null
-        };
-      });
-    } catch (error) {
-      console.error('Error in getLikesForPost:', error);
-      return [];
-    }
-  };
-
+  // We've removed the duplicated getLikesForPost function and are now importing it from feedService.ts
+  
   if (!postId) {
     return (
       <div className="min-h-screen">

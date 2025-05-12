@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams, Link } from "react-router-dom";
 import { Heart, User, ChevronLeft } from "lucide-react";
@@ -395,21 +396,21 @@ const MediaDetail = () => {
                 <div className="mt-8">
                   <h3 className="text-md font-medium mb-3">Who loved this ({likesCount})</h3>
                   <div className="flex flex-wrap gap-2">
-                    {displayedLikes.map((user) => (
+                    {displayedLikes.map((user: LikeUser) => (
                       <Link 
-                        to={getProfileUrl(user.id, user.username)} 
-                        key={user.id}
-                        title={user.full_name}
+                        to={getProfileUrl(user?.id || '', user?.username)} 
+                        key={user?.id}
+                        title={user?.full_name || ''}
                       >
                         <Avatar className="h-8 w-8 border-2 border-white dark:border-gray-800">
-                          {user.profile_picture_url || user.avatar_url ? (
+                          {(user?.profile_picture_url || user?.avatar_url) ? (
                             <AvatarImage 
-                              src={user.profile_picture_url || user.avatar_url} 
-                              alt={user.full_name} 
+                              src={user?.profile_picture_url || user?.avatar_url || ''} 
+                              alt={user?.full_name || ''} 
                             />
                           ) : (
                             <AvatarFallback className="bg-purple-100 text-purple-600 dark:bg-purple-900 dark:text-purple-300">
-                              {user.full_name?.charAt(0) || 'U'}
+                              {user?.full_name?.charAt(0) || 'U'}
                             </AvatarFallback>
                           )}
                         </Avatar>

@@ -1,41 +1,34 @@
-
+import { useEffect, useState } from "react";
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
-import { useEffect, useState } from "react";
-import { Activity as ActivityIcon, User, Heart, MessageCircle, Filter, X } from "lucide-react";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { useToast } from "@/components/ui/use-toast";
+import { CalendarDays, User, Users, ListChecks, LucideIcon } from "lucide-react";
 import { useAuth } from "@/contexts/auth/AuthProvider";
-import { supabase } from "@/integrations/supabase/client";
-import { format, formatDistanceToNow } from "date-fns";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import AdDisplay from "@/components/AdDisplay";
+import { Link } from "react-router-dom";
+import { formatDistanceToNow } from 'date-fns';
+import { useToast } from "@/hooks/use-toast";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Info } from "lucide-react";
 
-type ActivityType = 'like' | 'comment' | 'follow' | 'message' | 'tag' | 'system';
-
-interface ActivityItem {
+// Define Activity type
+type ActivityItem = {
   id: string;
-  type: ActivityType;
-  content: string;
-  timestamp: string;
-  user?: {
-    name: string;
-    avatar?: string;
-  };
-  read: boolean;
-}
+  actor_id: string;
+  target_id: string;
+  type: string;
+  description: string;
+  created_at: string;
+  actor?: {
+    id: string;
+    full_name: string | null;
+    avatar_url: string | null;
+  } | null;
+};
 
 const Activity = () => {
-  const [activeFilters, setActiveFilters] = useState<ActivityType[]>([]);
-  const [filteredActivities, setFilteredActivities] = useState<ActivityItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [activities, setActivities] = useState<ActivityItem[]>([]);
-  const { toast } = useToast();
   const { user } = useAuth();
+  const [activities, setActivities] = useState<ActivityItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
   // Update header position based on sidebar width
   useEffect(() => {
@@ -62,337 +55,108 @@ const Activity = () => {
     };
   }, []);
 
-  // Fetch activities from Supabase
   useEffect(() => {
     const fetchActivities = async () => {
-      if (!user) return;
-      
-      setIsLoading(true);
-      
+      setLoading(true);
       try {
-        // Modified query with explicit field hints for the actor_id relationship
-        const { data, error } = await supabase
-          .from('activities')
-          .select(`
-            id,
-            activity_type,
-            content,
-            created_at,
-            read,
-            actor:profiles!actor_id(
-              id,
-              full_name,
-              avatar_url
-            )
-          `)
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false });
-          
-        if (error) {
-          console.error('Error fetching activities:', error);
-          toast({
-            title: 'Error',
-            description: 'Failed to load activities',
-            variant: 'destructive',
-          });
-          return;
+        // Fetch activities from API (replace with your actual API endpoint)
+        const response = await fetch(`/api/activities?userId=${user?.id}`);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
         }
-        
-        // Transform Supabase data to our ActivityItem format
-        if (data) {
-          const transformedData: ActivityItem[] = data.map(item => ({
-            id: item.id,
-            type: item.activity_type as ActivityType,
-            content: item.content || '',
-            timestamp: formatTimeAgo(item.created_at),
-            user: item.actor ? {
-              name: item.actor.full_name || 'Unknown User',
-              avatar: item.actor.avatar_url
-            } : undefined,
-            read: item.read || false
-          }));
-          
-          setActivities(transformedData);
-        }
-      } catch (err) {
-        console.error('Unexpected error:', err);
+        const data = await response.json();
+        setActivities(data);
+      } catch (error: any) {
+        console.error("Failed to load activities:", error);
+        toast({
+          title: "Error loading activities",
+          description: "There was a problem loading the activities. Please try again.",
+          variant: "destructive",
+        });
       } finally {
-        setIsLoading(false);
+        setLoading(false);
       }
     };
-    
+
     fetchActivities();
-  }, [user, toast]);
+  }, [user?.id, toast]);
 
-  // Format timestamps
-  const formatTimeAgo = (timestamp: string) => {
-    try {
-      return formatDistanceToNow(new Date(timestamp), { addSuffix: true });
-    } catch (e) {
-      return 'unknown time';
-    }
-  };
-
-  // Filter activities based on active filters
-  useEffect(() => {
-    if (activeFilters.length === 0) {
-      setFilteredActivities(activities);
-    } else {
-      setFilteredActivities(activities.filter(activity => 
-        activeFilters.includes(activity.type)
-      ));
-    }
-  }, [activeFilters, activities]);
-
-  const handleFilterChange = (type: ActivityType) => {
-    setActiveFilters(prev => {
-      if (prev.includes(type)) {
-        return prev.filter(t => t !== type);
-      } else {
-        return [...prev, type];
-      }
-    });
-  };
-
-  const clearFilters = () => {
-    setActiveFilters([]);
-  };
-
-  const handleMarkAsRead = async (id: string) => {
-    if (!user) return;
-    
-    try {
-      const { error } = await supabase
-        .from('activities')
-        .update({ read: true })
-        .eq('id', id)
-        .eq('user_id', user.id);
-        
-      if (error) {
-        console.error('Error marking activity as read:', error);
-        return;
-      }
-      
-      // Update local state
-      setActivities(prev => 
-        prev.map(activity => 
-          activity.id === id ? { ...activity, read: true } : activity
-        )
-      );
-    } catch (err) {
-      console.error('Unexpected error:', err);
-    }
-  };
-
-  const handleMarkAllAsRead = async () => {
-    if (!user) return;
-    
-    try {
-      const { error } = await supabase
-        .from('activities')
-        .update({ read: true })
-        .eq('user_id', user.id)
-        .eq('read', false);
-        
-      if (error) {
-        console.error('Error marking all activities as read:', error);
-        toast({
-          title: 'Error',
-          description: 'Failed to mark activities as read',
-          variant: 'destructive',
-        });
-        return;
-      }
-      
-      // Update local state
-      setActivities(prev => 
-        prev.map(activity => ({ ...activity, read: true }))
-      );
-      
-      toast({
-        title: 'Success',
-        description: 'All activities marked as read',
-      });
-    } catch (err) {
-      console.error('Unexpected error:', err);
-    }
-  };
-
-  const getActivityIcon = (type: ActivityType) => {
+  const getActivityIcon = (type: string): LucideIcon => {
     switch (type) {
-      case 'like':
-        return <Heart className="h-5 w-5 text-red-500" />;
-      case 'comment':
-        return <MessageCircle className="h-5 w-5 text-blue-500" />;
-      case 'follow':
-        return <User className="h-5 w-5 text-green-500" />;
-      case 'message':
-        return <MessageCircle className="h-5 w-5 text-purple-500" />;
+      case 'friend_request':
+        return User;
+      case 'friend_request_accepted':
+        return Users;
+      case 'event':
+        return CalendarDays;
       default:
-        return <ActivityIcon className="h-5 w-5 text-gray-500" />;
+        return ListChecks;
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
       <Sidebar />
       <Header />
       
-      <div className="pl-[280px] pt-16 pr-4 pb-10 transition-all duration-300" style={{ paddingLeft: 'var(--sidebar-width, 280px)' }}>
+      <div className="pl-[280px] pt-16 pr-4 pb-36 md:pb-10 transition-all duration-300" style={{ paddingLeft: 'var(--sidebar-width, 280px)' }}>
         <div className="max-w-screen-xl mx-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 bg-white rounded-lg p-6">
-              <div className="flex justify-between items-center mb-6">
-                <div>
-                  <h1 className="text-2xl font-semibold">Activity</h1>
-                  <div className="border-b-2 border-purple-500 w-16 mt-1"></div>
-                </div>
-                
-                <div className="flex gap-2">
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={handleMarkAllAsRead}
-                    disabled={!activities.some(a => !a.read)}
-                  >
-                    Mark All as Read
-                  </Button>
-                  
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button 
-                        variant={activeFilters.length > 0 ? "default" : "outline"}
-                        size="sm"
-                        className="flex items-center gap-1"
-                      >
-                        <Filter className="w-4 h-4" />
-                        <span>Filter {activeFilters.length > 0 ? `(${activeFilters.length})` : ''}</span>
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-80">
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-between">
-                          <h3 className="font-medium text-sm">Filter Activities</h3>
-                          {activeFilters.length > 0 && (
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              onClick={clearFilters}
-                              className="h-8 text-xs text-gray-500 flex items-center"
-                            >
-                              <X className="h-3 w-3 mr-1" />
-                              Clear all
-                            </Button>
-                          )}
-                        </div>
-                        
-                        <Separator />
-                        
-                        <div className="space-y-2">
-                          <div className="flex items-center space-x-2">
-                            <Checkbox 
-                              id="filter-likes" 
-                              checked={activeFilters.includes('like')} 
-                              onCheckedChange={() => handleFilterChange('like')}
-                            />
-                            <Label htmlFor="filter-likes">Likes</Label>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <Checkbox 
-                              id="filter-comments" 
-                              checked={activeFilters.includes('comment')} 
-                              onCheckedChange={() => handleFilterChange('comment')}
-                            />
-                            <Label htmlFor="filter-comments">Comments</Label>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <Checkbox 
-                              id="filter-follows" 
-                              checked={activeFilters.includes('follow')} 
-                              onCheckedChange={() => handleFilterChange('follow')}
-                            />
-                            <Label htmlFor="filter-follows">Follows</Label>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <Checkbox 
-                              id="filter-messages" 
-                              checked={activeFilters.includes('message')} 
-                              onCheckedChange={() => handleFilterChange('message')}
-                            />
-                            <Label htmlFor="filter-messages">Messages</Label>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <Checkbox 
-                              id="filter-system" 
-                              checked={activeFilters.includes('system')} 
-                              onCheckedChange={() => handleFilterChange('system')}
-                            />
-                            <Label htmlFor="filter-system">System</Label>
-                          </div>
-                        </div>
-                      </div>
-                    </PopoverContent>
-                  </Popover>
-                </div>
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 mb-6">
+            <h1 className="text-2xl font-semibold dark:text-white mb-6">Activity</h1>
+            <div className="border-b-2 border-purple-500 w-16 mt-1 mb-4"></div>
+            
+            {loading ? (
+              <div className="flex flex-col items-center justify-center py-12">
+                <div className="w-16 h-16 border-4 border-purple-200 border-t-purple-500 rounded-full animate-spin mb-4"></div>
+                <p className="text-gray-500 dark:text-gray-400">Loading activities...</p>
               </div>
-              
-              {isLoading ? (
-                <div className="flex justify-center py-12">
-                  <LoadingSpinner />
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {filteredActivities.length === 0 ? (
-                    <div className="text-center py-12">
-                      <ActivityIcon className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                      <p className="text-gray-500">No activities to display</p>
-                      {activeFilters.length > 0 && (
-                        <Button 
-                          variant="link" 
-                          onClick={clearFilters}
-                          className="mt-2"
-                        >
-                          Clear filters
-                        </Button>
-                      )}
-                    </div>
-                  ) : (
-                    filteredActivities.map(activity => (
-                      <div 
-                        key={activity.id} 
-                        className={`flex items-start gap-3 p-3 ${!activity.read ? 'bg-purple-50' : ''} hover:bg-gray-50 rounded-lg transition cursor-pointer`}
-                        onClick={() => handleMarkAsRead(activity.id)}
-                      >
-                        <div className="h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center overflow-hidden">
-                          {activity.user?.avatar ? (
-                            <img src={activity.user.avatar} alt={activity.user.name} className="w-full h-full object-cover" />
-                          ) : (
-                            getActivityIcon(activity.type)
-                          )}
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-1 flex-wrap">
-                            {activity.user && (
-                              <span className="font-medium">{activity.user.name}</span>
-                            )}
-                            <span>{activity.content}</span>
-                          </div>
-                          <p className="text-xs text-gray-500 mt-1">{activity.timestamp}</p>
-                        </div>
-                        {!activity.read && (
-                          <div className="h-2 w-2 rounded-full bg-purple-600 mt-2"></div>
-                        )}
-                      </div>
-                    ))
-                  )}
-                </div>
-              )}
-            </div>
+            ) : activities.length > 0 ? (
+              <ul className="space-y-4">
+                {activities.map((activity) => {
+                  // Update the actor data extraction part:
+                  const actor = activity.actor ? {
+                    id: activity.actor.id,
+                    full_name: activity.actor.full_name || 'Unknown User',
+                    avatar_url: activity.actor.avatar_url || '',
+                  } : null;
 
-            <div className="space-y-6">
-              <AdDisplay className="h-auto" />
-              {/* Additional sidebar content can be added here */}
-            </div>
+                  return (
+                    <li key={activity.id} className="flex items-center gap-4 p-4 rounded-lg bg-gray-50 dark:bg-gray-700">
+                      {actor && (
+                        <Link to={`/profile/${actor.id}`} className="flex-shrink-0">
+                          <div className="h-10 w-10 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center overflow-hidden">
+                            {actor.avatar_url ? (
+                              <img src={actor.avatar_url} alt={actor.full_name} className="h-full w-full object-cover" />
+                            ) : (
+                              <User className="h-5 w-5 text-gray-500 dark:text-gray-300" />
+                            )}
+                          </div>
+                        </Link>
+                      )}
+                      <div>
+                        <div className="text-sm font-medium dark:text-white">
+                          {actor ? (
+                            <Link to={`/profile/${actor.id}`} className="hover:underline">
+                              {actor.full_name}
+                            </Link>
+                          ) : 'System'} {activity.description}
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                          {formatDistanceToNow(new Date(activity.created_at), { addSuffix: true })}
+                        </div>
+                      </div>
+                    </li >
+                  );
+                })}
+              </ul>
+            ) : (
+              <Alert className="bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800">
+                <Info className="h-4 w-4" />
+                <AlertDescription>
+                  No activities found. Check back later for updates.
+                </AlertDescription>
+              </Alert>
+            )}
           </div>
         </div>
       </div>

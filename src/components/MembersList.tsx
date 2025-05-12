@@ -1,7 +1,7 @@
 
 import { useEffect, useState } from "react";
 import { User } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/contexts/auth/AuthProvider";
 import { Link } from "react-router-dom";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -56,7 +56,7 @@ const MembersList = () => {
           const profile = rel.profiles;
           
           // Calculate time ago string
-          const lastActive = profile.last_sign_in_at ? new Date(profile.last_sign_in_at) : null;
+          const lastActive = profile?.last_sign_in_at ? new Date(profile.last_sign_in_at) : null;
           const now = new Date();
           let timeAgo = 'Unknown';
           
@@ -78,13 +78,13 @@ const MembersList = () => {
           }
           
           return {
-            id: profile.id,
-            name: profile.full_name || profile.username,
-            username: `@${profile.username}`,
+            id: profile?.id,
+            name: profile?.full_name || profile?.username,
+            username: `@${profile?.username}`,
             timeAgo,
-            avatar: profile.avatar_url,
-            profilePicture: profile.profile_picture_url,
-            isLocal: !!profile.location,
+            avatar: profile?.avatar_url,
+            profilePicture: profile?.profile_picture_url,
+            isLocal: !!profile?.location,
             isHotlist: false, // Implement hotlist logic as needed
             isFriend: true
           };

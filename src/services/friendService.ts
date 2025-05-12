@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { FriendProfile } from "./userService";
 import { createActivity } from "./activityService";
@@ -149,11 +148,11 @@ export const getPendingFriendRequests = async (userId: string): Promise<FriendPr
     return (relationships || []).map(rel => {
       const profile = rel.profiles;
       return {
-        id: profile.id,
-        username: profile.username,
-        full_name: profile.full_name,
-        avatar_url: profile.avatar_url,
-        status: profile.status === 'online' ? 'online' : 'offline'
+        id: profile?.id,
+        username: profile?.username,
+        full_name: profile?.full_name,
+        avatar_url: profile?.avatar_url,
+        status: profile?.status === 'online' ? 'online' : 'offline'
       };
     });
   } catch (error) {
@@ -225,16 +224,16 @@ export const getFriends = async (userId: string): Promise<FriendProfile[]> => {
     // Transform the data into the FriendProfile format
     return (relationships || []).map(rel => {
       const profile = rel.profiles;
-      const isRecent = profile.last_sign_in_at 
+      const isRecent = profile?.last_sign_in_at 
         ? (new Date().getTime() - new Date(profile.last_sign_in_at).getTime()) < 15 * 60 * 1000 // 15 minutes
         : false;
-        
+      
       return {
-        id: profile.id,
-        username: profile.username,
-        full_name: profile.full_name,
-        avatar_url: profile.avatar_url,
-        last_active: profile.last_sign_in_at,
+        id: profile?.id,
+        username: profile?.username,
+        full_name: profile?.full_name,
+        avatar_url: profile?.avatar_url,
+        last_active: profile?.last_sign_in_at,
         status: isRecent ? 'online' : 'offline'
       };
     });

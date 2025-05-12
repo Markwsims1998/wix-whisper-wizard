@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 export interface Post {
@@ -474,11 +473,11 @@ export const getLikesForPost = async (postId: string) => {
 
     // Transform data to expected format
     return data.map(like => ({
-      id: like.user.id,
-      username: like.user.username,
-      full_name: like.user.full_name,
-      avatar_url: like.user.avatar_url,
-      profile_picture_url: like.user.profile_picture_url
+      id: like.user?.id,
+      username: like.user?.username,
+      full_name: like.user?.full_name,
+      avatar_url: like.user?.avatar_url,
+      profile_picture_url: like.user?.profile_picture_url
     }));
   } catch (error) {
     console.error('Error in getLikesForPost:', error);

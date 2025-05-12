@@ -19,8 +19,8 @@ const Watermark: React.FC<WatermarkProps> = ({
     <div className={`absolute inset-0 overflow-hidden pointer-events-none ${className}`}>
       <div className="absolute inset-0 w-full h-full flex items-center justify-center">
         <div 
-          className={`font-bold text-white text-${fontSize} opacity-${Math.round(opacity * 100)} transform -rotate-12 select-none whitespace-nowrap`}
-          style={{ opacity: opacity }}
+          className={`font-bold text-white text-${fontSize} transform -rotate-12 select-none whitespace-nowrap`}
+          style={{ opacity }}
         >
           © HappyKinks
         </div>

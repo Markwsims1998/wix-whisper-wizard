@@ -11,6 +11,7 @@ export interface Video {
   views: number;
   likes_count: number;
   created_at: string;
+  postId?: string; // Added postId as optional property
   user: {
     id: string;
     username: string;

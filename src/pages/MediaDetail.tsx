@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams, Link } from "react-router-dom";
 import { Heart, User, ChevronLeft, MessageCircle } from "lucide-react";

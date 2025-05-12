@@ -21,6 +21,15 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Info } from "lucide-react";
 import { fetchMedia, convertToVideoFormat } from "@/services/mediaService";
 
+// Properly define the LikeUser type if it's not already well-defined in feedService.ts
+interface MediaDetailLikeUser {
+  id: string;
+  username: string | null;
+  full_name: string | null;
+  avatar_url: string | null;
+  profile_picture_url: string | null;
+}
+
 const MediaDetail = () => {
   const params = useParams();
   const [searchParams] = useSearchParams();
@@ -32,7 +41,7 @@ const MediaDetail = () => {
   const [isLiked, setIsLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(0);
   const [commentsCount, setCommentsCount] = useState(0);
-  const [likeUsers, setLikeUsers] = useState<LikeUser[]>([]);
+  const [likeUsers, setLikeUsers] = useState<MediaDetailLikeUser[]>([]);
   const [showAllLikes, setShowAllLikes] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
@@ -396,21 +405,21 @@ const MediaDetail = () => {
                 <div className="mt-8">
                   <h3 className="text-md font-medium mb-3">Who loved this ({likesCount})</h3>
                   <div className="flex flex-wrap gap-2">
-                    {displayedLikes.map((likeUser: LikeUser) => (
+                    {displayedLikes.map((likeUser) => (
                       <Link 
-                        to={getProfileUrl(likeUser.id || '', likeUser.username)} 
-                        key={likeUser.id}
-                        title={likeUser.full_name || ''}
+                        to={getProfileUrl(likeUser?.id || '', likeUser?.username || '')} 
+                        key={likeUser?.id || Math.random().toString()}
+                        title={likeUser?.full_name || ''}
                       >
                         <Avatar className="h-8 w-8 border-2 border-white dark:border-gray-800">
-                          {(likeUser.profile_picture_url || likeUser.avatar_url) ? (
+                          {(likeUser?.profile_picture_url || likeUser?.avatar_url) ? (
                             <AvatarImage 
-                              src={likeUser.profile_picture_url || likeUser.avatar_url || ''} 
-                              alt={likeUser.full_name || ''} 
+                              src={likeUser?.profile_picture_url || likeUser?.avatar_url || ''} 
+                              alt={likeUser?.full_name || ''} 
                             />
                           ) : (
                             <AvatarFallback className="bg-purple-100 text-purple-600 dark:bg-purple-900 dark:text-purple-300">
-                              {likeUser.full_name?.charAt(0) || 'U'}
+                              {(likeUser?.full_name || '').charAt(0) || 'U'}
                             </AvatarFallback>
                           )}
                         </Avatar>

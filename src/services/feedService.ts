@@ -1,6 +1,30 @@
 import { supabase } from "@/lib/supabaseClient";
 
-import { Post } from "@/components/profile/types";
+// Export the Post type so it can be used in other files
+export interface Post {
+  id: string;
+  content: string;
+  created_at: string;
+  updated_at?: string;
+  user_id: string;
+  likes_count?: number;
+  comments_count?: number;
+  is_liked?: boolean;
+  media?: Array<{
+    id: string;
+    file_url: string;
+    media_type: string;
+    thumbnail_url?: string;
+  }>;
+  author?: {
+    id: string;
+    username?: string;
+    full_name?: string;
+    avatar_url?: string;
+    profile_picture_url?: string;
+    subscription_tier?: string;
+  };
+}
 
 // Function to create a new post
 export const createPost = async (
@@ -465,15 +489,140 @@ export const getPostsByUserId = async (
   }
 };
 
-// I don't have the full content of this file, but I'll provide the fix for the part mentioned in the error
+// Add the missing functions used in other components
+export const getFeedPosts = async (
+  feedType: 'all' | 'local' | 'hotlist' | 'friends',
+  userId: string,
+  location?: string
+): Promise<Post[]> => {
+  try {
+    let query = supabase
+      .from('posts')
+      .select(`
+        *,
+        media(*),
+        profiles (
+          id,
+          username,
+          full_name,
+          avatar_url,
+          profile_picture_url,
+          subscription_tier
+        )
+      `)
+      .order('created_at', { ascending: false });
+    
+    // Apply filter based on feed type
+    if (feedType === 'local' && location) {
+      // Filter for local posts based on location
+      query = query
+        .eq('profiles.location', location)
+        .limit(20);
+    } else if (feedType === 'hotlist') {
+      // For hotlist, we could sort by popularity (e.g., likes count)
+      query = query
+        .limit(20);
+    } else if (feedType === 'friends') {
+      // For friends, filter by posts from user's friends
+      const { data: friendships } = await supabase
+        .from('relationships')
+        .select('followed_id')
+        .eq('follower_id', userId)
+        .eq('status', 'accepted');
+        
+      if (friendships && friendships.length > 0) {
+        const friendIds = friendships.map(f => f.followed_id);
+        query = query
+          .in('user_id', friendIds)
+          .limit(20);
+      } else {
+        return []; // No friends, return empty array
+      }
+    } else {
+      // Default "all" feed
+      query = query.limit(20);
+    }
+    
+    const { data, error } = await query;
+    
+    if (error) {
+      console.error('Error fetching feed posts:', error);
+      return [];
+    }
+    
+    // For each post, check if the current user has liked it
+    const postsWithLikeStatus = await Promise.all((data || []).map(async (post) => {
+      // Get like count
+      const { data: likes, count } = await supabase
+        .from('post_likes')
+        .select('*', { count: 'exact' })
+        .eq('post_id', post.id);
+      
+      // Check if user liked this post
+      const { data: userLike } = await supabase
+        .from('post_likes')
+        .select('*')
+        .eq('post_id', post.id)
+        .eq('user_id', userId)
+        .maybeSingle();
+        
+      // Get comment count
+      const { count: commentCount } = await supabase
+        .from('comments')
+        .select('*', { count: 'exact' })
+        .eq('post_id', post.id);
+      
+      return {
+        ...post,
+        likes_count: count || 0,
+        comments_count: commentCount || 0,
+        is_liked: !!userLike
+      } as Post;
+    }));
+    
+    return postsWithLikeStatus;
+  } catch (error) {
+    console.error('Error in getFeedPosts:', error);
+    return [];
+  }
+};
 
-// In the feedService.ts file, you need to modify the part that tries to access properties on an array object
-// I'll update only the relevant part (around line 476-480) with the proper object access:
+export const getLikesForPost = async (postId: string): Promise<any[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('post_likes')
+      .select(`
+        user_id,
+        profiles (
+          id,
+          username,
+          full_name,
+          avatar_url,
+          profile_picture_url
+        )
+      `)
+      .eq('post_id', postId);
+      
+    if (error) {
+      console.error('Error fetching likes for post:', error);
+      return [];
+    }
+    
+    // Map the data to the expected format
+    return data.map(like => ({
+      id: like.profiles.id,
+      username: like.profiles.username,
+      full_name: like.profiles.full_name,
+      avatar_url: like.profiles.avatar_url,
+      profile_picture_url: like.profiles.profile_picture_url
+    }));
+  } catch (error) {
+    console.error('Error in getLikesForPost:', error);
+    return [];
+  }
+};
 
-// This would typically be part of a function that processes profiles data from Supabase
-// Since I don't have the full content, I'll write the pattern for fixing it
-
-// For example:
+// Keep the helper function to process profile data
 const processProfileData = (profile: any) => {
   if (!profile || typeof profile !== 'object') return {};
   
@@ -485,7 +634,3 @@ const processProfileData = (profile: any) => {
     profile_picture_url: profile && typeof profile === 'object' && 'profile_picture_url' in profile ? profile.profile_picture_url || '' : ''
   };
 };
-
-// Note: Since I don't have the full content of the feedService.ts file,
-// you'll need to apply the pattern above to the specific function/code around line 476-480
-// where the errors are occurring, following this same approach.

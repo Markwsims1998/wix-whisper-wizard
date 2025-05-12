@@ -149,10 +149,10 @@ export const getPendingFriendRequests = async (userId: string): Promise<FriendPr
     return (relationships || []).map(rel => {
       const profile = rel.profiles;
       return {
-        id: profile && typeof profile === 'object' && 'id' in profile ? profile.id || '' : '',
-        username: profile && typeof profile === 'object' && 'username' in profile ? profile.username || '' : '',
-        full_name: profile && typeof profile === 'object' && 'full_name' in profile ? profile.full_name || '' : '',
-        avatar_url: profile && typeof profile === 'object' && 'avatar_url' in profile ? profile.avatar_url || '' : '',
+        id: profile && typeof profile === 'object' && 'id' in profile ? String(profile.id || '') : '',
+        username: profile && typeof profile === 'object' && 'username' in profile ? String(profile.username || '') : '',
+        full_name: profile && typeof profile === 'object' && 'full_name' in profile ? String(profile.full_name || '') : '',
+        avatar_url: profile && typeof profile === 'object' && 'avatar_url' in profile ? String(profile.avatar_url || '') : '',
         status: profile && typeof profile === 'object' && 'status' in profile && profile.status === 'online' ? 'online' : 'offline'
       };
     });
@@ -228,15 +228,16 @@ export const getFriends = async (userId: string): Promise<FriendProfile[]> => {
       let isRecent = false;
       
       if (profile && typeof profile === 'object' && 'last_sign_in_at' in profile && profile.last_sign_in_at) {
-        isRecent = (new Date().getTime() - new Date(profile.last_sign_in_at).getTime()) < 15 * 60 * 1000; // 15 minutes
+        const lastSignInValue = profile.last_sign_in_at as string;
+        isRecent = (new Date().getTime() - new Date(lastSignInValue).getTime()) < 15 * 60 * 1000; // 15 minutes
       }
       
       return {
-        id: profile && typeof profile === 'object' && 'id' in profile ? profile.id || '' : '',
-        username: profile && typeof profile === 'object' && 'username' in profile ? profile.username || '' : '',
-        full_name: profile && typeof profile === 'object' && 'full_name' in profile ? profile.full_name || '' : '',
-        avatar_url: profile && typeof profile === 'object' && 'avatar_url' in profile ? profile.avatar_url || '' : '',
-        last_active: profile && typeof profile === 'object' && 'last_sign_in_at' in profile ? profile.last_sign_in_at || '' : '',
+        id: profile && typeof profile === 'object' && 'id' in profile ? String(profile.id || '') : '',
+        username: profile && typeof profile === 'object' && 'username' in profile ? String(profile.username || '') : '',
+        full_name: profile && typeof profile === 'object' && 'full_name' in profile ? String(profile.full_name || '') : '',
+        avatar_url: profile && typeof profile === 'object' && 'avatar_url' in profile ? String(profile.avatar_url || '') : '',
+        last_active: profile && typeof profile === 'object' && 'last_sign_in_at' in profile ? String(profile.last_sign_in_at || '') : '',
         status: isRecent ? 'online' : 'offline'
       };
     });

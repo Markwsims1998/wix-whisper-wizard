@@ -1,3 +1,4 @@
+
 import { Separator } from "@/components/ui/separator";
 import { User, Heart, MessageCircle, Lock, Gift } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -8,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import MediaViewer from "@/components/media/MediaViewer";
 import { useAuth } from "@/contexts/auth/AuthProvider";
-import { getFeedPosts, likePost, Post as PostType } from "@/services/feedService";
+import { getPosts, getFeedPosts, likePost, Post as PostType } from "@/services/feedService";
 import { format } from "date-fns";
 import RefreshableFeed from "./RefreshableFeed";
 

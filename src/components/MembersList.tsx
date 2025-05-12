@@ -12,7 +12,7 @@ type Member = {
   username: string;
   timeAgo: string;
   avatar?: string;
-  profilePicture?: string; // Added to handle profile_picture_url
+  profilePicture?: string;
   isLocal?: boolean;
   isHotlist?: boolean;
   isFriend?: boolean;
@@ -60,7 +60,8 @@ const MembersList = () => {
           let timeAgo = 'Unknown';
           
           if (profile && typeof profile === 'object' && 'last_sign_in_at' in profile && profile.last_sign_in_at) {
-            lastActive = new Date(profile.last_sign_in_at);
+            const lastSignInValue = profile.last_sign_in_at as string;
+            lastActive = new Date(lastSignInValue);
             const now = new Date();
             const diffHours = Math.floor((now.getTime() - lastActive.getTime()) / (1000 * 60 * 60));
             const diffDays = Math.floor(diffHours / 24);
@@ -79,14 +80,14 @@ const MembersList = () => {
           }
           
           return {
-            id: profile && typeof profile === 'object' && 'id' in profile ? profile.id || '' : '',
+            id: profile && typeof profile === 'object' && 'id' in profile ? String(profile.id || '') : '',
             name: profile && typeof profile === 'object' 
-              ? ('full_name' in profile && profile.full_name) || ('username' in profile && profile.username) || '' 
+              ? String('full_name' in profile && profile.full_name) || String('username' in profile && profile.username) || '' 
               : '',
-            username: profile && typeof profile === 'object' && 'username' in profile ? `@${profile.username || ''}` : '',
+            username: profile && typeof profile === 'object' && 'username' in profile ? `@${String(profile.username || '')}` : '',
             timeAgo,
-            avatar: profile && typeof profile === 'object' && 'avatar_url' in profile ? profile.avatar_url || '' : '',
-            profilePicture: profile && typeof profile === 'object' && 'profile_picture_url' in profile ? profile.profile_picture_url || '' : '',
+            avatar: profile && typeof profile === 'object' && 'avatar_url' in profile ? String(profile.avatar_url || '') : '',
+            profilePicture: profile && typeof profile === 'object' && 'profile_picture_url' in profile ? String(profile.profile_picture_url || '') : '',
             isLocal: profile && typeof profile === 'object' && 'location' in profile ? !!profile.location : false,
             isHotlist: false, // Implement hotlist logic as needed
             isFriend: true

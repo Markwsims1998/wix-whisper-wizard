@@ -396,21 +396,21 @@ const MediaDetail = () => {
                 <div className="mt-8">
                   <h3 className="text-md font-medium mb-3">Who loved this ({likesCount})</h3>
                   <div className="flex flex-wrap gap-2">
-                    {displayedLikes.map((user: LikeUser) => (
+                    {displayedLikes.map((likeUser: LikeUser) => (
                       <Link 
-                        to={getProfileUrl(user?.id || '', user?.username)} 
-                        key={user?.id}
-                        title={user?.full_name || ''}
+                        to={getProfileUrl(likeUser.id || '', likeUser.username)} 
+                        key={likeUser.id}
+                        title={likeUser.full_name || ''}
                       >
                         <Avatar className="h-8 w-8 border-2 border-white dark:border-gray-800">
-                          {(user?.profile_picture_url || user?.avatar_url) ? (
+                          {(likeUser.profile_picture_url || likeUser.avatar_url) ? (
                             <AvatarImage 
-                              src={user?.profile_picture_url || user?.avatar_url || ''} 
-                              alt={user?.full_name || ''} 
+                              src={likeUser.profile_picture_url || likeUser.avatar_url || ''} 
+                              alt={likeUser.full_name || ''} 
                             />
                           ) : (
                             <AvatarFallback className="bg-purple-100 text-purple-600 dark:bg-purple-900 dark:text-purple-300">
-                              {user?.full_name?.charAt(0) || 'U'}
+                              {likeUser.full_name?.charAt(0) || 'U'}
                             </AvatarFallback>
                           )}
                         </Avatar>

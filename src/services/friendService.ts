@@ -152,8 +152,8 @@ export const getPendingFriendRequests = async (userId: string): Promise<FriendPr
       
       // Get avatar from either avatar_url or profile_picture_url
       const avatarUrl = profile && typeof profile === 'object' ? 
-        (('avatar_url' in profile && profile.avatar_url) || 
-        ('profile_picture_url' in profile && profile.profile_picture_url) || 
+        (('avatar_url' in profile && profile.avatar_url as string) || 
+        ('profile_picture_url' in profile && profile.profile_picture_url as string) || 
         '') : '';
         
       return {
@@ -244,8 +244,8 @@ export const getFriends = async (userId: string): Promise<FriendProfile[]> => {
       
       // Get avatar from either avatar_url or profile_picture_url
       const avatarUrl = profile && typeof profile === 'object' ? 
-        (('avatar_url' in profile && profile.avatar_url) || 
-        ('profile_picture_url' in profile && profile.profile_picture_url) || 
+        (('avatar_url' in profile && profile.avatar_url as string) || 
+        ('profile_picture_url' in profile && profile.profile_picture_url as string) || 
         '') : '';
       
       return {

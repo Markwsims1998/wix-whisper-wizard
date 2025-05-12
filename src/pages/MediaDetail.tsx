@@ -162,8 +162,8 @@ const MediaDetail = () => {
         }
         
         // Only proceed with likes/comments if we have a post_id
-        if (media?.postId || data.post_id) {
-          const postIdToUse = media?.postId || data.post_id;
+        if (formattedMedia.postId || data.post_id) {
+          const postIdToUse = formattedMedia.postId || data.post_id;
           
           // Check if the current user has liked this media
           if (user?.id) {

@@ -19,12 +19,14 @@ import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { useToast } from "@/hooks/use-toast";
 import data from '@emoji-mart/data';
 import Picker from '@emoji-mart/react';
+import { uploadMedia } from '@/services/mediaService';
+import { useAuth } from '@/contexts/auth/AuthProvider';
 
 interface ContentUploaderProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   type?: 'photo' | 'video';
-  onSuccess?: () => void; // Added the onSuccess callback prop
+  onSuccess?: () => void;
 }
 
 // Mock users for tagging
@@ -37,6 +39,7 @@ const suggestedUsers = [
 ];
 
 const ContentUploader = ({ open, onOpenChange, type = 'photo', onSuccess }: ContentUploaderProps) => {
+  const { user } = useAuth();
   const [contentType, setContentType] = useState<'photo' | 'video'>(type);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -53,6 +56,7 @@ const ContentUploader = ({ open, onOpenChange, type = 'photo', onSuccess }: Cont
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [filePreview, setFilePreview] = useState<string | null>(null);
   const [formValid, setFormValid] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
 
   const { toast } = useToast();
   
@@ -65,6 +69,11 @@ const ContentUploader = ({ open, onOpenChange, type = 'photo', onSuccess }: Cont
   // Sample albums
   const albums = ['My Album', 'Community Events', 'Workshop Photos', 'Vacation 2025'];
   
+  // Reset state when the content type changes
+  useEffect(() => {
+    setContentType(type);
+  }, [type]);
+  
   // Check form validity
   useEffect(() => {
     const isValid = 
@@ -73,7 +82,7 @@ const ContentUploader = ({ open, onOpenChange, type = 'photo', onSuccess }: Cont
       selectedFile !== null;
     
     setFormValid(isValid);
-  }, [title, description, selectedCategory, selectedFile]);
+  }, [title, selectedCategory, selectedFile]);
 
   // Handle file selection
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -146,34 +155,61 @@ const ContentUploader = ({ open, onOpenChange, type = 'photo', onSuccess }: Cont
       )
     : [];
   
-  const handleSubmit = () => {
-    // In a real app, this would upload the content and save metadata
-    console.log({
-      type: contentType,
-      title,
-      description,
-      category: selectedCategory,
-      location,
-      album: createNewAlbum ? newAlbumName : album,
-      hashtags,
-      taggedUsers,
-      file: selectedFile
-    });
-    
-    // Show toast
-    toast({
-      title: `${contentType.charAt(0).toUpperCase() + contentType.slice(1)} Uploaded`,
-      description: "Your content has been successfully uploaded.",
-    });
-    
-    // Call onSuccess callback if provided
-    if (onSuccess) {
-      onSuccess();
+  const handleSubmit = async () => {
+    if (!user?.id || !selectedFile || !selectedCategory) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill in all required fields and select a file.",
+        variant: "destructive"
+      });
+      return;
     }
     
-    // Close the dialog and reset form
-    resetForm();
-    onOpenChange(false);
+    setIsUploading(true);
+    
+    try {
+      // Upload the media file and save metadata
+      const result = await uploadMedia(
+        selectedFile,
+        {
+          title: title || `Untitled ${contentType}`,
+          description,
+          category: selectedCategory,
+          userId: user.id,
+          contentType,
+          location,
+          tags: hashtags
+        }
+      );
+      
+      if (result) {
+        // Show success message
+        toast({
+          title: `${contentType.charAt(0).toUpperCase() + contentType.slice(1)} Uploaded`,
+          description: "Your content has been successfully uploaded.",
+        });
+        
+        // Call the onSuccess callback if provided
+        if (onSuccess) {
+          onSuccess();
+        }
+        
+        // Close the dialog and reset form
+        resetForm();
+        onOpenChange(false);
+      } else {
+        throw new Error("Upload failed");
+      }
+    } catch (error) {
+      console.error("Error during upload:", error);
+      toast({
+        title: "Upload Failed",
+        description: "There was a problem uploading your content. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const resetForm = () => {
@@ -504,9 +540,15 @@ const ContentUploader = ({ open, onOpenChange, type = 'photo', onSuccess }: Cont
         </div>
         
         <DialogFooter>
-          <Button variant="outline" onClick={handleClose}>Cancel</Button>
-          <Button onClick={handleSubmit} disabled={!formValid}>
-            Upload {contentType === 'photo' ? 'Photo' : 'Video'}
+          <Button variant="outline" onClick={handleClose} disabled={isUploading}>Cancel</Button>
+          <Button 
+            onClick={handleSubmit} 
+            disabled={!formValid || isUploading}
+          >
+            {isUploading ? 
+              <>Uploading...</> : 
+              <>Upload {contentType === 'photo' ? 'Photo' : 'Video'}</>
+            }
           </Button>
         </DialogFooter>
       </DialogContent>

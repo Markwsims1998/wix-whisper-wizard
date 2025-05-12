@@ -77,3 +77,135 @@ export const convertToVideoFormat = (mediaItems: MediaItem[]): Video[] => {
     }
   }));
 };
+
+// NEW FUNCTIONS FOR UPLOADING MEDIA
+
+/**
+ * Upload a media file to Supabase storage
+ */
+export const uploadMediaFile = async (
+  file: File,
+  contentType: 'photo' | 'video',
+  userId: string
+): Promise<{ url: string; thumbnailUrl?: string } | null> => {
+  try {
+    if (!file || !userId) {
+      console.error('Missing required parameters for upload');
+      return null;
+    }
+
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${userId}/${Date.now()}.${fileExt}`;
+    const bucketName = contentType === 'photo' ? 'photos' : 'videos';
+    
+    // Upload file to storage
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from(bucketName)
+      .upload(fileName, file, {
+        cacheControl: '3600',
+        upsert: false
+      });
+      
+    if (uploadError) {
+      console.error(`Error uploading ${contentType}:`, uploadError);
+      return null;
+    }
+    
+    // Get public URL for the file
+    const { data: urlData } = supabase.storage
+      .from(bucketName)
+      .getPublicUrl(fileName);
+      
+    const fileUrl = urlData?.publicUrl;
+    
+    // For videos, we could generate a thumbnail here
+    // For simplicity, we'll just use the video itself as the thumbnail
+    let thumbnailUrl = contentType === 'video' ? fileUrl : undefined;
+    
+    return { 
+      url: fileUrl, 
+      thumbnailUrl 
+    };
+  } catch (error) {
+    console.error(`Error in uploadMediaFile:`, error);
+    return null;
+  }
+};
+
+/**
+ * Save media metadata to the database
+ */
+export const saveMediaMetadata = async (
+  mediaData: {
+    title: string;
+    description?: string;
+    category: string;
+    userId: string;
+    fileUrl: string;
+    thumbnailUrl?: string;
+    contentType: 'photo' | 'video';
+    location?: string;
+    tags?: string[];
+  }
+): Promise<MediaItem | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('media')
+      .insert({
+        title: mediaData.title,
+        category: mediaData.category.toLowerCase(),
+        user_id: mediaData.userId,
+        file_url: mediaData.fileUrl,
+        thumbnail_url: mediaData.thumbnailUrl,
+        content_type: mediaData.contentType,
+        media_type: mediaData.contentType === 'photo' ? 'image' : 'video'
+      })
+      .select('*, user:user_id(id, username, full_name, avatar_url)')
+      .single();
+      
+    if (error) {
+      console.error('Error saving media metadata:', error);
+      return null;
+    }
+    
+    console.log('Media saved successfully:', data);
+    return data;
+  } catch (error) {
+    console.error('Error in saveMediaMetadata:', error);
+    return null;
+  }
+};
+
+/**
+ * Full media upload process - uploads file and saves metadata
+ */
+export const uploadMedia = async (
+  file: File,
+  metadata: {
+    title: string;
+    description?: string;
+    category: string;
+    userId: string;
+    contentType: 'photo' | 'video';
+    location?: string;
+    tags?: string[];
+  }
+): Promise<MediaItem | null> => {
+  try {
+    // Step 1: Upload the file to storage
+    const uploadResult = await uploadMediaFile(file, metadata.contentType, metadata.userId);
+    if (!uploadResult) return null;
+    
+    // Step 2: Save metadata to database
+    const mediaData = await saveMediaMetadata({
+      ...metadata,
+      fileUrl: uploadResult.url,
+      thumbnailUrl: uploadResult.thumbnailUrl
+    });
+    
+    return mediaData;
+  } catch (error) {
+    console.error('Error in uploadMedia:', error);
+    return null;
+  }
+};

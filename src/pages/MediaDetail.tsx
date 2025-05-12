@@ -21,13 +21,13 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Info } from "lucide-react";
 import { fetchMedia, convertToVideoFormat } from "@/services/mediaService";
 
-// Properly define the LikeUser type if it's not already well-defined in feedService.ts
+// Properly define the MediaDetailLikeUser type to be compatible with LikeUser
 interface MediaDetailLikeUser {
   id: string;
   username: string | null;
   full_name: string | null;
   avatar_url: string | null;
-  profile_picture_url: string | null;
+  profile_picture_url?: string | null; // Made optional to match LikeUser
 }
 
 const MediaDetail = () => {
@@ -156,7 +156,17 @@ const MediaDetail = () => {
         // Count likes and get users who liked
         const likes = await getLikesForPost(mediaId);
         console.log("Likes data:", likes);
-        setLikeUsers(likes);
+        
+        // Map the likes to MediaDetailLikeUser type
+        const mappedLikeUsers: MediaDetailLikeUser[] = likes.map(user => ({
+          id: user.id,
+          username: user.username,
+          full_name: user.full_name,
+          avatar_url: user.avatar_url,
+          profile_picture_url: user.profile_picture_url
+        }));
+        
+        setLikeUsers(mappedLikeUsers);
         setLikesCount(likes.length);
         
         // Update view count
@@ -199,10 +209,10 @@ const MediaDetail = () => {
         
         // Update like users
         if (newIsLiked && user) {
-          const currentUser: LikeUser = {
+          const currentUser: MediaDetailLikeUser = {
             id: user.id,
-            username: user.username || '',
-            full_name: user.name || '',
+            username: user.username || null,
+            full_name: user.name || null,
             avatar_url: user.profilePicture || null,
             profile_picture_url: user.profilePicture || null
           };
@@ -407,19 +417,19 @@ const MediaDetail = () => {
                   <div className="flex flex-wrap gap-2">
                     {displayedLikes.map((likeUser) => (
                       <Link 
-                        to={getProfileUrl(likeUser?.id || '', likeUser?.username || '')} 
-                        key={likeUser?.id || Math.random().toString()}
-                        title={likeUser?.full_name || ''}
+                        to={getProfileUrl(likeUser.id || '', likeUser.username || '')} 
+                        key={likeUser.id || Math.random().toString()}
+                        title={likeUser.full_name || ''}
                       >
                         <Avatar className="h-8 w-8 border-2 border-white dark:border-gray-800">
-                          {(likeUser?.profile_picture_url || likeUser?.avatar_url) ? (
+                          {(likeUser.profile_picture_url || likeUser.avatar_url) ? (
                             <AvatarImage 
-                              src={likeUser?.profile_picture_url || likeUser?.avatar_url || ''} 
-                              alt={likeUser?.full_name || ''} 
+                              src={likeUser.profile_picture_url || likeUser.avatar_url || ''} 
+                              alt={likeUser.full_name || ''} 
                             />
                           ) : (
                             <AvatarFallback className="bg-purple-100 text-purple-600 dark:bg-purple-900 dark:text-purple-300">
-                              {(likeUser?.full_name || '').charAt(0) || 'U'}
+                              {(likeUser.full_name || '').charAt(0) || 'U'}
                             </AvatarFallback>
                           )}
                         </Avatar>

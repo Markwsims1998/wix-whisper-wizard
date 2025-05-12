@@ -81,13 +81,14 @@ const ContentUploader: React.FC<ContentUploaderProps> = ({
     setUploading(true);
     
     try {
+      console.log('[ContentUploader] Starting upload process for content type:', contentType);
       let fileUrl = '';
       let thumbnailUrl = '';
       let watermarkedUrl = '';  // Add variable for watermarked URL
       let postId = '';
 
       // Create a post first to get the post ID
-      console.log('Creating post for content upload');
+      console.log('[ContentUploader] Creating post for content upload');
       const { data: postData, error: postError } = await supabase
         .from('posts')
         .insert({
@@ -98,17 +99,17 @@ const ContentUploader: React.FC<ContentUploaderProps> = ({
         .single();
         
       if (postError) {
-        console.error('Error creating post:', postError);
+        console.error('[ContentUploader] Error creating post:', postError);
         throw new Error('Failed to create post');
       }
       
       postId = postData.id;
-      console.log('Created post with ID:', postId);
+      console.log('[ContentUploader] Created post with ID:', postId);
       
       if (selectedFile) {
         // Handle file upload based on content type
         if (contentType === 'photo') {
-          console.log('Uploading photo with secure upload process');
+          console.log('[ContentUploader] Uploading photo with secure upload process');
           // Use secure photo upload with watermarking for photos
           const result = await uploadSecurePhoto(
             selectedFile,
@@ -117,17 +118,17 @@ const ContentUploader: React.FC<ContentUploaderProps> = ({
           );
           
           if (!result) {
-            console.error('Secure photo upload failed');
+            console.error('[ContentUploader] Secure photo upload failed');
             throw new Error('Failed to upload photo');
           }
           
-          console.log('Secure photo upload successful:', result);
+          console.log('[ContentUploader] Secure photo upload successful:', result);
           fileUrl = result.url;
           // Store watermarked URL explicitly
           watermarkedUrl = result.watermarkedUrl;
           thumbnailUrl = result.url; // Use premium URL for thumbnail for premium users
           
-          console.log('Upload URLs:', {
+          console.log('[ContentUploader] Upload URLs:', {
             fileUrl,
             watermarkedUrl,
             thumbnailUrl
@@ -142,10 +143,12 @@ const ContentUploader: React.FC<ContentUploaderProps> = ({
         }
         
         // Save media metadata to database
-        console.log('Saving media metadata with URLs:', {
+        console.log('[ContentUploader] Saving media metadata with URLs:', {
           fileUrl,
           thumbnailUrl,
-          watermarkedUrl
+          watermarkedUrl,
+          postId,
+          mediaType: selectedFile.type // Use actual file type
         });
         
         const mediaData = await saveMediaMetadata({
@@ -157,14 +160,15 @@ const ContentUploader: React.FC<ContentUploaderProps> = ({
           thumbnailUrl,
           watermarkedUrl,  // Include the watermarked URL
           contentType,
-          existingPostId: postId
+          existingPostId: postId,
+          mediaType: selectedFile.type // Pass the actual file type
         });
         
         if (!mediaData) {
           throw new Error(`Failed to save ${contentType} metadata`);
         }
         
-        console.log('Media metadata saved successfully:', mediaData.id);
+        console.log('[ContentUploader] Media metadata saved successfully:', mediaData.id);
       }
       
       toast({
@@ -186,7 +190,7 @@ const ContentUploader: React.FC<ContentUploaderProps> = ({
         onSuccess();
       }
     } catch (error) {
-      console.error(`Error uploading ${type}:`, error);
+      console.error(`[ContentUploader] Error uploading ${type}:`, error);
       toast({
         title: "Upload Failed",
         description: `There was a problem uploading your ${type}. Please try again.`,

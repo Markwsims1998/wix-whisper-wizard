@@ -1,3 +1,4 @@
+
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/contexts/auth/AuthProvider';
 
@@ -7,19 +8,19 @@ import { useAuth } from '@/contexts/auth/AuthProvider';
 export const addWatermark = async (file: File): Promise<Blob> => {
   return new Promise((resolve, reject) => {
     try {
-      console.log('Starting watermark process for file:', file.name);
+      console.log('[addWatermark] Starting watermark process for file:', file.name, 'size:', file.size);
       const img = new Image();
       img.crossOrigin = 'anonymous'; // Handle CORS issues
       const objectUrl = URL.createObjectURL(file);
       img.src = objectUrl;
       
       img.onload = () => {
-        console.log('Image loaded successfully, dimensions:', img.width, 'x', img.height);
+        console.log('[addWatermark] Image loaded successfully, dimensions:', img.width, 'x', img.height);
         // Create canvas
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
         if (!ctx) {
-          console.error('Could not create canvas context');
+          console.error('[addWatermark] Could not create canvas context');
           URL.revokeObjectURL(objectUrl);
           reject(new Error('Could not create canvas context'));
           return;
@@ -28,7 +29,7 @@ export const addWatermark = async (file: File): Promise<Blob> => {
         // Set canvas dimensions
         canvas.width = img.width;
         canvas.height = img.height;
-        console.log('Canvas created with dimensions:', canvas.width, 'x', canvas.height);
+        console.log('[addWatermark] Canvas created with dimensions:', canvas.width, 'x', canvas.height);
         
         // Draw original image
         ctx.drawImage(img, 0, 0);
@@ -39,29 +40,29 @@ export const addWatermark = async (file: File): Promise<Blob> => {
         ctx.textAlign = 'right';
         ctx.textBaseline = 'bottom';
         ctx.fillText('© HappyKinks', canvas.width - 20, canvas.height - 20);
-        console.log('Watermark added to image');
+        console.log('[addWatermark] Watermark added to image');
         
         // Convert to blob
         canvas.toBlob((blob) => {
           if (blob) {
-            console.log('Successfully created watermarked blob, size:', blob.size);
+            console.log('[addWatermark] Successfully created watermarked blob, size:', blob.size);
             URL.revokeObjectURL(objectUrl);
             resolve(blob);
           } else {
-            console.error('Failed to create blob from canvas');
+            console.error('[addWatermark] Failed to create blob from canvas');
             URL.revokeObjectURL(objectUrl);
             reject(new Error('Failed to create blob from canvas'));
           }
-        }, 'image/jpeg');
+        }, file.type); // Use original file type instead of hardcoded 'image/jpeg'
       };
       
       img.onerror = (error) => {
-        console.error('Failed to load image:', error);
+        console.error('[addWatermark] Failed to load image:', error);
         URL.revokeObjectURL(objectUrl);
         reject(new Error('Failed to load image'));
       };
     } catch (error) {
-      console.error('Error in addWatermark:', error);
+      console.error('[addWatermark] Error in addWatermark:', error);
       reject(error);
     }
   });
@@ -76,81 +77,84 @@ export const uploadWithWatermark = async (
   folder?: string
 ): Promise<{ premiumUrl: string; watermarkedUrl: string } | null> => {
   try {
-    console.log('Starting uploadWithWatermark process', {
+    console.log('[uploadWithWatermark] Starting process', {
       fileName: file.name,
       fileSize: file.size,
+      fileType: file.type,
       userId,
       folder
     });
     
     if (!file || !userId) {
-      console.error('Missing required parameters for upload');
+      console.error('[uploadWithWatermark] Missing required parameters for upload');
       return null;
     }
 
     const fileExt = file.name.split('.').pop();
-    const fileName = `${userId}/${Date.now()}.${fileExt}`;
+    const fileName = `${userId}_${Date.now()}.${fileExt}`;
     const filePath = folder ? `${folder}/${fileName}` : fileName;
     
-    console.log('Generated file path:', filePath);
+    console.log('[uploadWithWatermark] Generated file path:', filePath);
     
     // Step 1: First, upload the original to the premium bucket
-    console.log('Uploading original file to premium bucket...');
+    console.log('[uploadWithWatermark] Uploading original file to premium bucket...');
     const { data: premiumData, error: premiumError } = await supabase.storage
       .from('photos-premium')
       .upload(filePath, file, {
         cacheControl: '3600',
-        upsert: false
+        contentType: file.type,
+        upsert: true
       });
       
     if (premiumError) {
-      console.error('Error uploading to premium bucket:', premiumError);
+      console.error('[uploadWithWatermark] Error uploading to premium bucket:', premiumError);
       return null;
     }
     
-    console.log('Successfully uploaded to premium bucket:', premiumData?.path);
+    console.log('[uploadWithWatermark] Successfully uploaded to premium bucket:', premiumData?.path);
     
     // Step 2: Create a watermarked version
-    console.log('Creating watermarked version...');
+    console.log('[uploadWithWatermark] Creating watermarked version...');
     let watermarkedBlob: Blob;
     try {
       watermarkedBlob = await addWatermark(file);
-      console.log('Watermarked blob created successfully');
+      console.log('[uploadWithWatermark] Watermarked blob created successfully');
     } catch (err) {
-      console.error('Failed to create watermarked image:', err);
+      console.error('[uploadWithWatermark] Failed to create watermarked image:', err);
       // If watermarking fails, use original file as fallback
-      console.warn('Using original file as fallback for watermarked version');
+      console.warn('[uploadWithWatermark] Using original file as fallback for watermarked version');
       watermarkedBlob = file;
     }
     
-    const watermarkedFile = new File([watermarkedBlob], file.name, { 
-      type: 'image/jpeg' 
+    const watermarkedFile = new File([watermarkedBlob], fileName, { 
+      type: file.type 
     });
     
     // Step 3: Upload the watermarked version
-    console.log('Uploading watermarked file...', { size: watermarkedFile.size });
+    console.log('[uploadWithWatermark] Uploading watermarked file...', { size: watermarkedFile.size });
     const { data: watermarkedData, error: watermarkedError } = await supabase.storage
       .from('photos-watermarked')
       .upload(filePath, watermarkedFile, {
         cacheControl: '3600',
-        upsert: false
+        contentType: file.type,
+        upsert: true
       });
       
     if (watermarkedError) {
-      console.error('Error uploading to watermarked bucket:', watermarkedError);
+      console.error('[uploadWithWatermark] Error uploading to watermarked bucket:', watermarkedError);
       // Even if watermarked upload fails, we can still return the premium URL
       const { data: premiumUrlData } = supabase.storage
         .from('photos-premium')
         .getPublicUrl(filePath);
         
-      console.warn('Returning only premium URL due to watermarking failure');
+      console.warn('[uploadWithWatermark] Returning only premium URL due to watermarking failure');
       return {
         premiumUrl: premiumUrlData.publicUrl,
         watermarkedUrl: premiumUrlData.publicUrl // Fallback to premium URL
       };
     }
     
-    console.log('Successfully uploaded to watermarked bucket:', watermarkedData?.path);
+    console.log('[uploadWithWatermark] Successfully uploaded to watermarked bucket:', watermarkedData?.path);
     
     // Step 4: Get URLs for both files
     const { data: premiumUrlData } = supabase.storage
@@ -166,10 +170,10 @@ export const uploadWithWatermark = async (
       watermarkedUrl: watermarkedUrlData.publicUrl
     };
     
-    console.log('Upload with watermark completed successfully', result);
+    console.log('[uploadWithWatermark] Upload completed successfully', result);
     return result;
   } catch (error) {
-    console.error('Error in uploadWithWatermark:', error);
+    console.error('[uploadWithWatermark] Error in uploadWithWatermark:', error);
     return null;
   }
 };
@@ -208,14 +212,14 @@ export const checkIsSubscribed = async (userId: string): Promise<boolean> => {
       .single();
       
     if (error) {
-      console.error('Error checking subscription status:', error);
+      console.error('[checkIsSubscribed] Error checking subscription status:', error);
       return false;
     }
     
     // Check if user has a premium subscription tier
     return ['bronze', 'silver', 'gold'].includes(data?.subscription_tier || 'free');
   } catch (error) {
-    console.error('Error in checkIsSubscribed:', error);
+    console.error('[checkIsSubscribed] Error in checkIsSubscribed:', error);
     return false;
   }
 };

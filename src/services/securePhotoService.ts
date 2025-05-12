@@ -14,7 +14,7 @@ export const getSecurePhotoUrl = async (
   watermarkedUrl?: string | null
 ): Promise<string> => {
   try {
-    console.log('getSecurePhotoUrl called with:', {
+    console.log('[getSecurePhotoUrl] Called with:', {
       photoId,
       subscriptionTier,
       originalUrl,
@@ -26,13 +26,13 @@ export const getSecurePhotoUrl = async (
     
     // For premium users, return the premium URL
     if (hasPremiumAccess) {
-      console.log('User has premium access, returning original URL');
+      console.log('[getSecurePhotoUrl] User has premium access, returning original URL');
       return originalUrl;
     }
     
     // If watermarked URL is provided directly, use it
     if (watermarkedUrl) {
-      console.log('Using provided watermarked URL');
+      console.log('[getSecurePhotoUrl] Using provided watermarked URL');
       return watermarkedUrl;
     }
     
@@ -46,7 +46,7 @@ export const getSecurePhotoUrl = async (
       ? path.split(premiumPrefix)[1]
       : path.split('/').slice(-2).join('/'); // Fallback to last 2 segments
     
-    console.log('Extracted file path:', filePath);
+    console.log('[getSecurePhotoUrl] Extracted file path:', filePath);
     
     // Check if watermarked version exists
     const { data: watermarkedData, error: watermarkedError } = await supabase.storage
@@ -56,11 +56,11 @@ export const getSecurePhotoUrl = async (
       });
     
     if (watermarkedError) {
-      console.error('Error checking for watermarked image:', watermarkedError);
+      console.error('[getSecurePhotoUrl] Error checking for watermarked image:', watermarkedError);
       return originalUrl;
     }
     
-    console.log('Watermarked files found:', watermarkedData);
+    console.log('[getSecurePhotoUrl] Watermarked files found:', watermarkedData);
     
     // Find the matching watermarked file
     const fileName = filePath.split('/').pop() || '';
@@ -71,15 +71,15 @@ export const getSecurePhotoUrl = async (
         .from('photos-watermarked')
         .getPublicUrl(filePath);
       
-      console.log('Found watermarked file, returning URL:', data.publicUrl);
+      console.log('[getSecurePhotoUrl] Found watermarked file, returning URL:', data.publicUrl);
       return data.publicUrl;
     }
     
     // If no watermarked version exists, return the original URL
-    console.log('No watermarked version found, returning original URL');
+    console.log('[getSecurePhotoUrl] No watermarked version found, returning original URL');
     return originalUrl;
   } catch (error) {
-    console.error('Error getting secure photo URL:', error);
+    console.error('[getSecurePhotoUrl] Error getting secure photo URL:', error);
     return originalUrl;
   }
 };
@@ -91,22 +91,22 @@ export const securePhotos = async (
   photos: Photo[], 
   subscriptionTier: string
 ): Promise<Photo[]> => {
-  console.log('securePhotos called with tier:', subscriptionTier);
+  console.log('[securePhotos] Called with tier:', subscriptionTier);
   
   // If user has a premium subscription, return original photos
   if (['bronze', 'silver', 'gold'].includes(subscriptionTier)) {
-    console.log('User has premium subscription, keeping original URLs');
+    console.log('[securePhotos] User has premium subscription, keeping original URLs');
     return photos;
   }
   
-  console.log('Processing photos for non-premium user:', photos.length);
+  console.log('[securePhotos] Processing photos for non-premium user:', photos.length);
   
   // Try to replace URLs with watermarked versions
   const updatedPhotos = await Promise.all(photos.map(async (photo) => {
     try {
       // Check if we already have a watermarked_url in the database
       if (photo.watermarkedUrl) {
-        console.log('Using stored watermarked URL for photo:', photo.id);
+        console.log('[securePhotos] Using stored watermarked URL for photo:', photo.id);
         return {
           ...photo,
           image: photo.watermarkedUrl,
@@ -114,7 +114,7 @@ export const securePhotos = async (
         };
       }
       
-      console.log('No stored watermarked URL for photo:', photo.id, '. Trying to find one.');
+      console.log('[securePhotos] No stored watermarked URL for photo:', photo.id, '. Trying to find one.');
       
       // Fall back to the older method if watermarkedUrl is not available
       const image = photo.image;
@@ -126,12 +126,12 @@ export const securePhotos = async (
         thumbnail: photo.thumbnail ? watermarkedUrl : undefined
       };
     } catch (error) {
-      console.error('Error processing photo:', photo.id, error);
+      console.error('[securePhotos] Error processing photo:', photo.id, error);
       return photo; // On error, return the original photo
     }
   }));
   
-  console.log('Processed photos for non-premium user, returning:', updatedPhotos.length);
+  console.log('[securePhotos] Processed photos for non-premium user, returning:', updatedPhotos.length);
   return updatedPhotos;
 };
 
@@ -154,9 +154,10 @@ export const uploadSecurePhoto = async (
   subscriptionTier: string
 ): Promise<{url: string, watermarkedUrl: string} | null> => {
   try {
-    console.log('uploadSecurePhoto started with:', { 
+    console.log('[uploadSecurePhoto] Started with:', { 
       fileName: file.name,
       fileSize: file.size,
+      fileType: file.type,
       userId, 
       subscriptionTier 
     });
@@ -165,11 +166,11 @@ export const uploadSecurePhoto = async (
     const result = await uploadWithWatermark(file, userId);
     
     if (!result) {
-      console.error('Upload with watermark failed');
+      console.error('[uploadSecurePhoto] Upload with watermark failed');
       return null;
     }
     
-    console.log('Upload completed successfully', result);
+    console.log('[uploadSecurePhoto] Upload completed successfully', result);
     
     // Return the appropriate URL based on subscription
     const isPremium = ['bronze', 'silver', 'gold'].includes(subscriptionTier);
@@ -179,7 +180,7 @@ export const uploadSecurePhoto = async (
       watermarkedUrl: result.watermarkedUrl
     };
   } catch (error) {
-    console.error('Error in uploadSecurePhoto:', error);
+    console.error('[uploadSecurePhoto] Error in uploadSecurePhoto:', error);
     return null;
   }
 };

@@ -22,19 +22,19 @@ export interface Photo {
 
 export const fetchPhotos = async (category: string = 'all'): Promise<Photo[]> => {
   try {
-    console.log(`Fetching photos for category: ${category}`);
+    console.log(`[fetchPhotos] Fetching photos for category: ${category}`);
     
     // Fetch photos from the database
     const mediaItems = await fetchMedia('photo', category);
     
     if (mediaItems.length > 0) {
-      console.log(`Found ${mediaItems.length} photos in database`);
+      console.log(`[fetchPhotos] Found ${mediaItems.length} photos in database`);
       const photos = mediaItems.map(item => {
         // Log watermarked URL for debugging
         if (item.watermarked_url) {
-          console.log(`Photo ${item.id} has watermarked URL: ${item.watermarked_url}`);
+          console.log(`[fetchPhotos] Photo ${item.id} has watermarked URL: ${item.watermarked_url}`);
         } else {
-          console.log(`Photo ${item.id} has NO watermarked URL`);
+          console.log(`[fetchPhotos] Photo ${item.id} has NO watermarked URL`);
         }
         
         return {
@@ -55,10 +55,10 @@ export const fetchPhotos = async (category: string = 'all'): Promise<Photo[]> =>
     }
     
     // If no photos found, return an empty array
-    console.log('No photos found in database');
+    console.log('[fetchPhotos] No photos found in database');
     return [];
   } catch (err) {
-    console.error('Error in fetchPhotos:', err);
+    console.error('[fetchPhotos] Error in fetchPhotos:', err);
     return [];
   }
 };

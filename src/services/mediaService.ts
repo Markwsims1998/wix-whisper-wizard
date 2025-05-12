@@ -204,14 +204,16 @@ export const saveMediaMetadata = async (
     location?: string;
     tags?: string[];
     existingPostId?: string;
+    mediaType?: string; // Add mediaType parameter
   }
 ): Promise<MediaItem | null> => {
   try {
-    console.log('Saving media metadata with:', { 
+    console.log('[saveMediaMetadata] Saving media metadata with:', { 
       title: mediaData.title,
       category: mediaData.category,
       contentType: mediaData.contentType,
-      hasWatermarkedUrl: !!mediaData.watermarkedUrl
+      hasWatermarkedUrl: !!mediaData.watermarkedUrl,
+      mediaType: mediaData.mediaType
     });
     
     let postId = mediaData.existingPostId;
@@ -229,15 +231,21 @@ export const saveMediaMetadata = async (
         .single();
         
       if (postError) {
-        console.error('Error creating post for media:', postError);
+        console.error('[saveMediaMetadata] Error creating post for media:', postError);
         return null;
       }
       
-      console.log('Created post for media:', postData.id);
+      console.log('[saveMediaMetadata] Created post for media:', postData.id);
       postId = postData.id;
     } else {
-      console.log('Using existing post ID for media:', postId);
+      console.log('[saveMediaMetadata] Using existing post ID for media:', postId);
     }
+    
+    // Determine the correct media_type value - ensure this matches your database constraint
+    const media_type = mediaData.mediaType || 
+      (mediaData.contentType === 'photo' ? 'image/jpeg' : 'video/mp4');
+    
+    console.log('[saveMediaMetadata] Using media_type:', media_type);
     
     // Then save the media linked to the post
     const { data, error } = await supabase
@@ -250,21 +258,21 @@ export const saveMediaMetadata = async (
         thumbnail_url: mediaData.thumbnailUrl,
         watermarked_url: mediaData.watermarkedUrl, // Explicitly store the watermarked URL
         content_type: mediaData.contentType,
-        media_type: mediaData.contentType === 'photo' ? 'image/jpeg' : 'video/mp4',
+        media_type: media_type, // Use the determined media_type
         post_id: postId // Link media to the post
       })
       .select('*, user:user_id(id, username, full_name, avatar_url)')
       .single();
       
     if (error) {
-      console.error('Error saving media metadata:', error);
+      console.error('[saveMediaMetadata] Error saving media metadata:', error);
       return null;
     }
     
-    console.log('Media saved successfully to database:', data.id);
+    console.log('[saveMediaMetadata] Media saved successfully to database:', data.id);
     return data;
   } catch (error) {
-    console.error('Error in saveMediaMetadata:', error);
+    console.error('[saveMediaMetadata] Error in saveMediaMetadata:', error);
     return null;
   }
 };
@@ -296,7 +304,8 @@ export const uploadMedia = async (
       fileUrl: uploadResult.url,
       thumbnailUrl: uploadResult.thumbnailUrl,
       watermarkedUrl: uploadResult.watermarkedUrl, // Add the watermarked URL
-      existingPostId: metadata.existingPostId
+      existingPostId: metadata.existingPostId,
+      mediaType: file.type
     });
     
     return mediaData;

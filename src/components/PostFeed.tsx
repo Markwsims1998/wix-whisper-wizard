@@ -1,3 +1,4 @@
+
 import { Separator } from "@/components/ui/separator";
 import { User, Heart, MessageCircle, Lock, Gift, Play, Pause, X } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -393,8 +394,10 @@ const PostFeed = () => {
                                 alt="Post image" 
                                 className="rounded-lg w-full"
                               />
-                              {shouldShowWatermark(post.media[0].file_url) && (
-                                <Watermark />
+                              {/* Show watermark for free users or if image is watermarked */}
+                              {(subscriptionDetails.tier === 'free' || 
+                                shouldShowWatermark(post.media[0].file_url)) && (
+                                <Watermark opacity={0.5} />
                               )}
                             </div>
                           </div>
@@ -421,8 +424,10 @@ const PostFeed = () => {
                                   <X size={16} />
                                 </Button>
                                 
-                                {shouldShowWatermark(post.media[0].file_url) && (
-                                  <Watermark />
+                                {/* Show watermark for free users or if video is watermarked */}
+                                {(subscriptionDetails.tier === 'free' || 
+                                  shouldShowWatermark(post.media[0].file_url)) && (
+                                  <Watermark opacity={0.5} />
                                 )}
                               </div>
                             ) : (
@@ -449,8 +454,10 @@ const PostFeed = () => {
                                   </div>
                                 </div>
                                 
-                                {shouldShowWatermark(post.media[0].file_url) && (
-                                  <Watermark />
+                                {/* Show watermark for free users or if video thumbnail is watermarked */}
+                                {(subscriptionDetails.tier === 'free' || 
+                                  shouldShowWatermark(post.media[0].thumbnail_url || post.media[0].file_url)) && (
+                                  <Watermark opacity={0.5} />
                                 )}
                               </div>
                             )}
@@ -459,7 +466,7 @@ const PostFeed = () => {
                         
                         {post.media[0].media_type === 'gif' && (
                           <div 
-                          className="mt-2 mb-4 rounded-lg overflow-hidden cursor-pointer"
+                          className="mt-2 mb-4 rounded-lg overflow-hidden cursor-pointer relative"
                           onClick={() => handleMediaClick(post)}
                           >
                             <img 
@@ -467,6 +474,11 @@ const PostFeed = () => {
                               alt="GIF" 
                               className="w-full max-h-80 object-contain rounded-lg bg-gray-100 dark:bg-gray-900"
                             />
+                            {/* Show watermark for free users or if GIF is watermarked */}
+                            {(subscriptionDetails.tier === 'free' || 
+                              shouldShowWatermark(post.media[0].file_url)) && (
+                              <Watermark opacity={0.5} />
+                            )}
                           </div>
                         )}
                       </div>

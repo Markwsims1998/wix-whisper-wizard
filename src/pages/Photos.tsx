@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
@@ -11,7 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Filter, Heart, Info } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
-import { Photo, fetchPhotos } from "@/services/photoService";
+import { Photo, getPhotosByCategory } from "@/services/photoService";
 import { useAuth } from "@/contexts/auth/AuthProvider";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { shouldShowWatermark } from "@/services/securePhotoService";
@@ -72,7 +71,17 @@ const Photos: React.FC = () => {
   const loadPhotos = async (category: string) => {
     setLoading(true);
     try {
-      let fetchedPhotos = await fetchPhotos(category);
+      let fetchedPhotos = await getPhotosByCategory(category);
+      
+      // Apply watermarks based on subscription status
+      if (!subscriptionDetails.canViewPhotos || subscriptionDetails.tier === 'free') {
+        // If free user, mark photos for watermark display
+        fetchedPhotos = fetchedPhotos.map(photo => ({
+          ...photo,
+          needsWatermark: true
+        }));
+      }
+      
       setPhotos(fetchedPhotos);
       
       // Set up like count tracking for each photo
@@ -271,9 +280,14 @@ const Photos: React.FC = () => {
                       <Badge className="absolute top-3 right-3 bg-gray-800/80 text-white">
                         {photo.category || 'Uncategorized'}
                       </Badge>
-                      {shouldShowWatermark(photo.image) && (
-                        <Watermark />
+                      
+                      {/* Add watermark for free users or if image is from watermarked source */}
+                      {(subscriptionDetails.tier === 'free' || 
+                        shouldShowWatermark(photo.image) || 
+                        photo.needsWatermark) && (
+                        <Watermark opacity={0.5} />
                       )}
+                      
                       <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-200 flex items-center justify-center opacity-0 group-hover:opacity-100">
                         <div className="text-white font-medium">View Photo</div>
                       </div>

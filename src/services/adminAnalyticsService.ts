@@ -9,6 +9,10 @@ export interface DashboardStats {
   premiumUsers: number;
   contentCount: number;
   reportsCount: number;
+  totalUsers: number; // Added for AdminDashboard component
+  newUsersThisWeek: number; // Added for AdminDashboard component
+  totalPosts: number; // Added for AdminDashboard component
+  averageSessionTime: number; // Added for AdminDashboard component
 }
 
 // Define type for chart data points
@@ -40,6 +44,12 @@ export const fetchDashboardStats = async (): Promise<DashboardStats> => {
       .from('profiles')
       .select('*', { count: 'exact', head: true })
       .gte('last_sign_in_at', sevenDaysAgo.toISOString());
+
+    // Get new users this week count (for AdminDashboard)
+    const { count: newUsersThisWeek, error: newUsersThisWeekError } = await supabase
+      .from('profiles')
+      .select('*', { count: 'exact', head: true })
+      .gte('created_at', sevenDaysAgo.toISOString());
       
     // Get premium user count
     const { count: premiumUsers, error: premiumError } = await supabase
@@ -52,25 +62,41 @@ export const fetchDashboardStats = async (): Promise<DashboardStats> => {
       .from('media')
       .select('*', { count: 'exact', head: true });
       
+    // Get total posts count (for AdminDashboard)
+    const { count: totalPosts, error: totalPostsError } = await supabase
+      .from('posts')
+      .select('*', { count: 'exact', head: true });
+      
     // Reports count (placeholder for now)
     const reportsCount = 0;
     
+    // Calculate average session time (placeholder)
+    const averageSessionTime = 15; // 15 minutes average session time (placeholder)
+    
     return {
       userCount: userCount || 0,
+      totalUsers: userCount || 0, // Same as userCount for now
       newUsersToday: newUsersToday || 0,
+      newUsersThisWeek: newUsersThisWeek || 0,
       activeUsers: activeUsers || 0,
       premiumUsers: premiumUsers || 0,
       contentCount: contentCount || 0,
+      totalPosts: totalPosts || 0,
+      averageSessionTime,
       reportsCount
     };
   } catch (error) {
     console.error('Error fetching dashboard stats:', error);
     return {
       userCount: 0,
+      totalUsers: 0,
       newUsersToday: 0,
+      newUsersThisWeek: 0,
       activeUsers: 0,
       premiumUsers: 0,
       contentCount: 0,
+      totalPosts: 0,
+      averageSessionTime: 0,
       reportsCount: 0
     };
   }
@@ -214,8 +240,8 @@ export const fetchRecentActivity = async (): Promise<ActivityItem[]> => {
         type: 'post' as const,
         user: {
           id: post.user_id,
-          name: post.profiles.full_name || post.profiles.username || 'Unknown User',
-          avatar: post.profiles.avatar_url || undefined
+          name: post.profiles?.full_name || post.profiles?.username || 'Unknown User',
+          avatar: post.profiles?.avatar_url || undefined
         },
         timestamp: post.created_at,
         description: 'created a new post'
@@ -225,8 +251,8 @@ export const fetchRecentActivity = async (): Promise<ActivityItem[]> => {
         type: 'media' as const,
         user: {
           id: item.user_id,
-          name: item.profiles.full_name || item.profiles.username || 'Unknown User',
-          avatar: item.profiles.avatar_url || undefined
+          name: item.profiles?.full_name || item.profiles?.username || 'Unknown User',
+          avatar: item.profiles?.avatar_url || undefined
         },
         timestamp: item.created_at,
         description: `uploaded a new ${item.content_type}`

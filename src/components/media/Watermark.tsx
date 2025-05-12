@@ -16,7 +16,7 @@ const Watermark: React.FC<WatermarkProps> = ({
   className = '',
 }) => {
   return (
-    <div className={`absolute inset-0 overflow-hidden pointer-events-none ${className}`}>
+    <div className={`absolute inset-0 overflow-hidden pointer-events-none z-10 ${className}`}>
       <div className="absolute inset-0 w-full h-full flex items-center justify-center">
         <div 
           className={`font-bold text-white text-${fontSize} transform -rotate-12 select-none whitespace-nowrap`}

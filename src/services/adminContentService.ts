@@ -1,12 +1,11 @@
-
 import { supabase } from '@/lib/supabaseClient';
 
-// Define content item interface
+// Define types for content items
 export interface ContentItem {
   id: string;
-  type: 'photo' | 'video' | 'post' | 'comment';
-  title?: string;
+  type: 'post' | 'photo' | 'video';
   content?: string;
+  title?: string;
   url?: string;
   thumbnail_url?: string;
   created_at: string;
@@ -17,289 +16,322 @@ export interface ContentItem {
     avatar_url?: string;
   };
   post_id?: string;
-  status: 'pending' | 'approved' | 'rejected' | 'reported';
+  status: 'pending' | 'approved' | 'rejected';
 }
 
-// Fetch all content for admin review
-export const fetchAllContent = async (
-  contentType: string = 'all',
-  status: string = 'all',
-  page: number = 1,
-  pageSize: number = 10
-): Promise<{ content: ContentItem[]; total: number }> => {
+export const fetchPendingContent = async (): Promise<ContentItem[]> => {
   try {
-    let contentItems: ContentItem[] = [];
-    let total = 0;
-    
-    // Calculate pagination
-    const from = (page - 1) * pageSize;
-    const to = from + pageSize - 1;
-    
-    // Fetch posts
-    if (contentType === 'all' || contentType === 'post') {
-      const postQuery = supabase
-        .from('posts')
-        .select(`
-          id,
-          content,
-          created_at,
-          user_id,
-          profiles:user_id (
-            username,
-            full_name,
-            avatar_url
-          )
-        `, { count: 'exact' });
-        
-      // Apply filters if needed
-      if (status !== 'all') {
-        postQuery.eq('status', status);
-      }
+    // Fetch posts pending approval
+    const { data: postData, error: postError } = await supabase
+      .from('posts')
+      .select(`
+        id, 
+        content, 
+        created_at, 
+        user_id, 
+        profiles:user_id (
+          username, 
+          full_name,
+          avatar_url
+        )
+      `)
+      .is('approved', null)
+      .order('created_at', { ascending: false });
       
-      // Apply pagination if not getting total count
-      const { data: posts, count: postsCount, error: postsError } = await postQuery
-        .range(from, to)
-        .order('created_at', { ascending: false });
-        
-      if (postsError) {
-        console.error('Error fetching posts:', postsError);
-      } else if (posts) {
-        const formattedPosts: ContentItem[] = posts.map(post => ({
-          id: post.id,
-          type: 'post',
-          content: post.content,
-          created_at: post.created_at,
-          user_id: post.user_id,
-          user: {
-            username: post.profiles?.username || 'unknown',
-            full_name: post.profiles?.full_name || undefined,
-            avatar_url: post.profiles?.avatar_url || undefined
-          },
-          status: 'approved' // Default status for posts
-        }));
-        
-        contentItems = [...contentItems, ...formattedPosts];
-        total += postsCount || 0;
-      }
-    }
+    if (postError) throw postError;
     
-    // Fetch media (photos and videos)
-    if (contentType === 'all' || contentType === 'photo' || contentType === 'video') {
-      const mediaQuery = supabase
-        .from('media')
-        .select(`
-          id,
-          title,
-          file_url,
-          thumbnail_url,
-          content_type,
-          created_at,
-          user_id,
-          post_id,
-          profiles:user_id (
-            username,
-            full_name,
-            avatar_url
-          )
-        `, { count: 'exact' });
-        
-      // Filter by content type if needed
-      if (contentType === 'photo') {
-        mediaQuery.eq('content_type', 'photo');
-      } else if (contentType === 'video') {
-        mediaQuery.eq('content_type', 'video');
-      }
+    const pendingPosts: ContentItem[] = postData.map(post => ({
+      id: post.id,
+      type: 'post',
+      content: post.content,
+      created_at: post.created_at,
+      user_id: post.user_id,
+      user: {
+        username: post.profiles?.username || 'Unknown',
+        full_name: post.profiles?.full_name || undefined,
+        avatar_url: post.profiles?.avatar_url || undefined
+      },
+      status: 'pending'
+    }));
+
+    // Fetch media pending approval
+    const { data: mediaData, error: mediaError } = await supabase
+      .from('media')
+      .select(`
+        id, 
+        title,
+        file_url, 
+        thumbnail_url,
+        created_at, 
+        user_id,
+        content_type,
+        post_id,
+        profiles:user_id (
+          username, 
+          full_name,
+          avatar_url
+        )
+      `)
+      .is('approved', null)
+      .order('created_at', { ascending: false });
       
-      // Apply pagination if not getting total count
-      const { data: media, count: mediaCount, error: mediaError } = await mediaQuery
-        .range(from, to)
-        .order('created_at', { ascending: false });
-        
-      if (mediaError) {
-        console.error('Error fetching media:', mediaError);
-      } else if (media) {
-        const formattedMedia: ContentItem[] = media.map(item => ({
-          id: item.id,
-          type: item.content_type as 'photo' | 'video',
-          title: item.title || undefined,
-          url: item.file_url,
-          thumbnail_url: item.thumbnail_url || undefined,
-          created_at: item.created_at,
-          user_id: item.user_id,
-          user: {
-            username: item.profiles?.username || 'unknown',
-            full_name: item.profiles?.full_name || undefined,
-            avatar_url: item.profiles?.avatar_url || undefined
-          },
-          post_id: item.post_id || undefined,
-          status: 'approved' // Default status for media
-        }));
-        
-        contentItems = [...contentItems, ...formattedMedia];
-        total += mediaCount || 0;
-      }
-    }
+    if (mediaError) throw mediaError;
     
-    // Fetch comments if needed
-    if (contentType === 'all' || contentType === 'comment') {
-      const commentQuery = supabase
-        .from('comments')
-        .select(`
-          id,
-          content,
-          created_at,
-          user_id,
-          post_id,
-          profiles:user_id (
-            username,
-            full_name,
-            avatar_url
-          )
-        `, { count: 'exact' });
-        
-      // Apply status filter if needed
-      if (status !== 'all') {
-        commentQuery.eq('status', status);
-      }
-      
-      // Apply pagination if not getting total count
-      const { data: comments, count: commentsCount, error: commentsError } = await commentQuery
-        .range(from, to)
-        .order('created_at', { ascending: false });
-        
-      if (commentsError) {
-        console.error('Error fetching comments:', commentsError);
-      } else if (comments) {
-        const formattedComments: ContentItem[] = comments.map(comment => ({
-          id: comment.id,
-          type: 'comment',
-          content: comment.content,
-          created_at: comment.created_at,
-          user_id: comment.user_id,
-          user: {
-            username: comment.profiles?.username || 'unknown',
-            full_name: comment.profiles?.full_name || undefined,
-            avatar_url: comment.profiles?.avatar_url || undefined
-          },
-          post_id: comment.post_id,
-          status: 'approved' // Default status for comments
-        }));
-        
-        contentItems = [...contentItems, ...formattedComments];
-        total += commentsCount || 0;
-      }
-    }
+    const pendingMedia: ContentItem[] = mediaData.map(media => ({
+      id: media.id,
+      type: media.content_type === 'photo' ? 'photo' : 'video',
+      title: media.title || undefined,
+      url: media.file_url,
+      thumbnail_url: media.thumbnail_url || undefined,
+      created_at: media.created_at,
+      user_id: media.user_id,
+      user: {
+        username: media.profiles?.username || 'Unknown',
+        full_name: media.profiles?.full_name || undefined,
+        avatar_url: media.profiles?.avatar_url || undefined
+      },
+      post_id: media.post_id || undefined,
+      status: 'pending'
+    }));
     
-    return { 
-      content: contentItems,
-      total
-    };
+    // Combine and return results
+    return [...pendingPosts, ...pendingMedia];
   } catch (error) {
-    console.error('Error in fetchAllContent:', error);
-    return { content: [], total: 0 };
+    console.error('Error fetching pending content:', error);
+    return [];
   }
 };
 
-// Function to approve, reject, or delete content
-export const updateContentStatus = async (
-  contentId: string,
-  contentType: string,
-  status: 'approved' | 'rejected' | 'deleted'
-): Promise<boolean> => {
+export const fetchApprovedContent = async (): Promise<ContentItem[]> => {
   try {
-    let table: string;
+    // Fetch approved posts
+    const { data: postData, error: postError } = await supabase
+      .from('posts')
+      .select(`
+        id, 
+        content, 
+        created_at, 
+        user_id, 
+        profiles:user_id (
+          username, 
+          full_name,
+          avatar_url
+        )
+      `)
+      .eq('approved', true)
+      .order('created_at', { ascending: false })
+      .limit(20);
+      
+    if (postError) throw postError;
     
-    // Determine which table to update based on content type
-    if (contentType === 'post') {
-      table = 'posts';
-    } else if (contentType === 'comment') {
-      table = 'comments';
-    } else if (contentType === 'photo' || contentType === 'video') {
-      table = 'media';
-    } else {
-      console.error('Invalid content type:', contentType);
+    const approvedPosts: ContentItem[] = postData.map(post => ({
+      id: post.id,
+      type: 'post',
+      content: post.content,
+      created_at: post.created_at,
+      user_id: post.user_id,
+      user: {
+        username: post.profiles?.username || 'Unknown',
+        full_name: post.profiles?.full_name || undefined,
+        avatar_url: post.profiles?.avatar_url || undefined
+      },
+      status: 'approved'
+    }));
+    
+    // Fetch approved media
+    const { data: mediaData, error: mediaError } = await supabase
+      .from('media')
+      .select(`
+        id, 
+        title,
+        file_url, 
+        thumbnail_url,
+        created_at, 
+        user_id,
+        content_type,
+        post_id,
+        profiles:user_id (
+          username, 
+          full_name,
+          avatar_url
+        )
+      `)
+      .eq('approved', true)
+      .order('created_at', { ascending: false })
+      .limit(20);
+      
+    if (mediaError) throw mediaError;
+    
+    const approvedMedia: ContentItem[] = mediaData.map(media => ({
+      id: media.id,
+      type: media.content_type === 'photo' ? 'photo' : 'video',
+      title: media.title || undefined,
+      url: media.file_url,
+      thumbnail_url: media.thumbnail_url || undefined,
+      created_at: media.created_at,
+      user_id: media.user_id,
+      user: {
+        username: media.profiles?.username || 'Unknown',
+        full_name: media.profiles?.full_name || undefined,
+        avatar_url: media.profiles?.avatar_url || undefined
+      },
+      post_id: media.post_id || undefined,
+      status: 'approved'
+    }));
+    
+    // Combine and return results
+    return [...approvedPosts, ...approvedMedia];
+  } catch (error) {
+    console.error('Error fetching approved content:', error);
+    return [];
+  }
+};
+
+export const fetchAllContent = async (): Promise<ContentItem[]> => {
+  try {
+    // Fetch all posts
+    const { data: postData, error: postError } = await supabase
+      .from('posts')
+      .select(`
+        id, 
+        content, 
+        created_at, 
+        user_id,
+        approved,
+        profiles:user_id (
+          username, 
+          full_name,
+          avatar_url
+        )
+      `)
+      .order('created_at', { ascending: false })
+      .limit(20);
+      
+    if (postError) throw postError;
+    
+    const allPosts: ContentItem[] = postData.map(post => ({
+      id: post.id,
+      type: 'post',
+      content: post.content,
+      created_at: post.created_at,
+      user_id: post.user_id,
+      user: {
+        username: post.profiles?.username || 'Unknown',
+        full_name: post.profiles?.full_name || undefined,
+        avatar_url: post.profiles?.avatar_url || undefined
+      },
+      post_id: undefined,
+      status: post.approved === true ? 'approved' : post.approved === false ? 'rejected' : 'pending'
+    }));
+    
+    // Fetch all media
+    const { data: mediaData, error: mediaError } = await supabase
+      .from('media')
+      .select(`
+        id, 
+        title,
+        file_url, 
+        thumbnail_url,
+        created_at, 
+        user_id,
+        content_type,
+        approved,
+        post_id,
+        profiles:user_id (
+          username, 
+          full_name,
+          avatar_url
+        )
+      `)
+      .order('created_at', { ascending: false })
+      .limit(20);
+      
+    if (mediaError) throw mediaError;
+    
+    const allMedia: ContentItem[] = mediaData.map(media => ({
+      id: media.id,
+      type: media.content_type === 'photo' ? 'photo' : 'video',
+      title: media.title || undefined,
+      url: media.file_url,
+      thumbnail_url: media.thumbnail_url || undefined,
+      created_at: media.created_at,
+      user_id: media.user_id,
+      user: {
+        username: media.profiles?.username || 'Unknown',
+        full_name: media.profiles?.full_name || undefined,
+        avatar_url: media.profiles?.avatar_url || undefined
+      },
+      post_id: media.post_id || undefined,
+      status: media.approved === true ? 'approved' : media.approved === false ? 'rejected' : 'pending'
+    }));
+    
+    // Combine and return results
+    return [...allPosts, ...allMedia];
+  } catch (error) {
+    console.error('Error fetching all content:', error);
+    return [];
+  }
+};
+
+export const approveContent = async (contentId: string, contentType: 'post' | 'media'): Promise<boolean> => {
+  try {
+    const tableName = contentType === 'post' ? 'posts' : 'media';
+    
+    const { error } = await supabase
+      .from(tableName)
+      .update({ approved: true })
+      .eq('id', contentId);
+      
+    if (error) {
+      console.error(`Error approving ${contentType} with id ${contentId}:`, error);
       return false;
-    }
-    
-    if (status === 'deleted') {
-      // Delete the content
-      const { error } = await supabase
-        .from(table)
-        .delete()
-        .eq('id', contentId);
-        
-      if (error) {
-        console.error(`Error deleting ${contentType}:`, error);
-        return false;
-      }
-    } else {
-      // Update status
-      const { error } = await supabase
-        .from(table)
-        .update({ status })
-        .eq('id', contentId);
-        
-      if (error) {
-        console.error(`Error updating ${contentType} status:`, error);
-        return false;
-      }
     }
     
     return true;
   } catch (error) {
-    console.error('Error in updateContentStatus:', error);
+    console.error(`Error approving ${contentType} with id ${contentId}:`, error);
     return false;
   }
 };
 
-// Function to fetch content statistics for dashboard
-export const getContentStats = async (): Promise<{
-  total: number;
-  photos: number;
-  videos: number;
-  posts: number;
-  comments: number;
-}> => {
+export const rejectContent = async (contentId: string, contentType: 'post' | 'media'): Promise<boolean> => {
   try {
-    // Get count of all posts
-    const { count: postsCount, error: postsError } = await supabase
-      .from('posts')
-      .select('*', { count: 'exact', head: true });
-      
-    // Get count of all photos
-    const { count: photosCount, error: photosError } = await supabase
-      .from('media')
-      .select('*', { count: 'exact', head: true })
-      .eq('content_type', 'photo');
-      
-    // Get count of all videos
-    const { count: videosCount, error: videosError } = await supabase
-      .from('media')
-      .select('*', { count: 'exact', head: true })
-      .eq('content_type', 'video');
-      
-    // Get count of all comments
-    const { count: commentsCount, error: commentsError } = await supabase
-      .from('comments')
-      .select('*', { count: 'exact', head: true });
-      
-    const total = (postsCount || 0) + (photosCount || 0) + (videosCount || 0) + (commentsCount || 0);
+    const tableName = contentType === 'post' ? 'posts' : 'media';
     
-    return {
-      total,
-      photos: photosCount || 0,
-      videos: videosCount || 0,
-      posts: postsCount || 0,
-      comments: commentsCount || 0
-    };
+    const { error } = await supabase
+      .from(tableName)
+      .update({ approved: false })
+      .eq('id', contentId);
+      
+    if (error) {
+      console.error(`Error rejecting ${contentType} with id ${contentId}:`, error);
+      return false;
+    }
+    
+    return true;
   } catch (error) {
-    console.error('Error getting content stats:', error);
-    return {
-      total: 0,
-      photos: 0,
-      videos: 0,
-      posts: 0,
-      comments: 0
-    };
+    console.error(`Error rejecting ${contentType} with id ${contentId}:`, error);
+    return false;
+  }
+};
+
+export const deleteContent = async (contentId: string, contentType: 'post' | 'media'): Promise<boolean> => {
+  try {
+    const tableName = contentType === 'post' ? 'posts' : 'media';
+    
+    const { error } = await supabase
+      .from(tableName)
+      .delete()
+      .eq('id', contentId);
+      
+    if (error) {
+      console.error(`Error deleting ${contentType} with id ${contentId}:`, error);
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error(`Error deleting ${contentType} with id ${contentId}:`, error);
+    return false;
   }
 };

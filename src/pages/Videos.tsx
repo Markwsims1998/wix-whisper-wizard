@@ -11,7 +11,7 @@ import ContentUploader from "@/components/media/ContentUploader";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { fetchVideos, Video, syncVideoLikes } from "@/services/videoService";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -22,14 +22,15 @@ const Videos = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [videos, setVideos] = useState<Video[]>([]);
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [videoLikes, setVideoLikes] = useState<Record<string, number>>({});
 
   // Categories for filtering
   const categories = [
     { id: "all", name: "All" },
-    { id: "events", name: "Events" },
-    { id: "tutorials", name: "Tutorials" },
+    { id: "tutorial", name: "Tutorials" },
     { id: "lifestyle", name: "Lifestyle" },
+    { id: "events", name: "Events" },
     { id: "entertainment", name: "Entertainment" },
     { id: "other", name: "Other" }
   ];
@@ -175,6 +176,28 @@ const Videos = () => {
     return (video.user.full_name || video.user.username || "?").charAt(0).toUpperCase();
   };
 
+  // Handle video click with subscription check
+  const handleVideoClick = (video: Video) => {
+    if (!subscriptionDetails.canViewVideos) {
+      toast({
+        title: "Subscription Required",
+        description: "You need a Silver or Gold subscription to view videos.",
+      });
+      navigate('/shop');
+      return;
+    }
+    
+    if (video.postId) {
+      navigate(`/post?postId=${video.postId}&type=video`);
+    } else {
+      toast({
+        title: "Video Unavailable",
+        description: "This video cannot be viewed at this time.",
+        variant: "destructive"
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
       <Sidebar />
@@ -232,10 +255,10 @@ const Videos = () => {
             ) : videos.length > 0 ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                 {videos.map(video => (
-                  <Link 
+                  <div 
                     key={video.id} 
-                    to={`/media/${video.id}?type=video`}
-                    className="bg-gray-50 dark:bg-gray-700 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition block group"
+                    className="bg-gray-50 dark:bg-gray-700 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition block group cursor-pointer"
+                    onClick={() => handleVideoClick(video)}
                   >
                     <div className="relative aspect-video">
                       <img 
@@ -275,7 +298,7 @@ const Videos = () => {
                         </Avatar>
                         <div className="flex-1">
                           <h3 className="font-medium text-sm line-clamp-1">{video.title || 'Untitled Video'}</h3>
-                          <p className="text-xs text-gray-500 dark:text-gray-300">{video.user?.full_name || video.user?.username || 'Unknown'}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-300">{video.user?.full_name || 'Unknown'}</p>
                         </div>
                       </div>
                       <div className="flex items-center justify-end mt-2">
@@ -284,7 +307,7 @@ const Videos = () => {
                         </div>
                       </div>
                     </div>
-                  </Link>
+                  </div>
                 ))}
               </div>
             ) : (

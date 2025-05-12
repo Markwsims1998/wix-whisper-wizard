@@ -1,8 +1,9 @@
+
 import { Heart, MessageCircle, User } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Post } from "./types";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/lib/supabaseClient";
@@ -16,6 +17,7 @@ type PostItemProps = {
 
 const PostItem = ({ post, handleLikePost }: PostItemProps) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [isLiked, setIsLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(post.likes_count || 0);
   const [commentsCount, setCommentsCount] = useState(post.comments_count || 0);
@@ -237,10 +239,10 @@ const PostItem = ({ post, handleLikePost }: PostItemProps) => {
     return postMedia[0].thumbnail_url || postMedia[0].file_url;
   };
 
-  // Format media ID
-  const getMediaId = () => {
-    if (!hasMedia) return null;
-    return postMedia[0].id;
+  // Get media type for routing
+  const getMediaTypeParam = () => {
+    if (!hasMedia) return '';
+    return isImage ? 'photo' : isVideo ? 'video' : 'gif';
   };
   
   const avatarUrl = getAvatarUrl();
@@ -287,21 +289,27 @@ const PostItem = ({ post, handleLikePost }: PostItemProps) => {
       {/* Post content */}
       {post.content && <p className="mb-3 text-gray-700 dark:text-gray-200">{post.content}</p>}
       
-      {/* Media display - enhanced with proper linking to media detail page */}
+      {/* Media display - updated to link to /post instead of /media */}
       {hasMedia && (
         <div className="mb-4 rounded-md overflow-hidden">
           {isImage && (
-            <Link to={`/media/${getMediaId()}?type=photo`} className="block">
+            <div 
+              className="block cursor-pointer"
+              onClick={() => navigate(`/post?postId=${post.id}&type=photo`)}
+            >
               <img 
                 src={getMediaUrl()} 
                 alt="Photo attachment" 
-                className="w-full h-auto rounded-md hover:opacity-95 transition-opacity cursor-pointer object-contain max-h-[600px]"
+                className="w-full h-auto rounded-md hover:opacity-95 transition-opacity object-contain max-h-[600px]"
               />
-            </Link>
+            </div>
           )}
           
           {isVideo && (
-            <Link to={`/media/${getMediaId()}?type=video`} className="block relative aspect-video bg-black">
+            <div 
+              className="block relative aspect-video bg-black cursor-pointer"
+              onClick={() => navigate(`/post?postId=${post.id}&type=video`)}
+            >
               <img 
                 src={getThumbnailUrl()}
                 alt="Video thumbnail" 
@@ -314,7 +322,7 @@ const PostItem = ({ post, handleLikePost }: PostItemProps) => {
                   </div>
                 </div>
               </div>
-            </Link>
+            </div>
           )}
         </div>
       )}
@@ -346,12 +354,10 @@ const PostItem = ({ post, handleLikePost }: PostItemProps) => {
                 variant="ghost" 
                 size="sm"
                 className="flex items-center gap-1 hover:text-blue-500 px-2"
-                asChild
+                onClick={() => navigate(`/post?postId=${post.id}`)}
               >
-                <Link to={`/comments?postId=${post.id}`}>
-                  <MessageCircle className="w-4 h-4" />
-                  <span>{commentsCount}</span>
-                </Link>
+                <MessageCircle className="w-4 h-4" />
+                <span>{commentsCount}</span>
               </Button>
             </TooltipTrigger>
             <TooltipContent side="bottom">

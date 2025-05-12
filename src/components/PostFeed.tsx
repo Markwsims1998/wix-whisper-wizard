@@ -1,4 +1,3 @@
-
 import { Separator } from "@/components/ui/separator";
 import { User, Heart, MessageCircle, Lock, Gift, Play } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -7,17 +6,14 @@ import { useNavigate, Link } from "react-router-dom";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import MediaViewer from "@/components/media/MediaViewer";
 import { useAuth } from "@/contexts/auth/AuthProvider";
 import { getPosts, likePost, Post as PostType } from "@/services/feedService";
 import { format } from "date-fns";
 import RefreshableFeed from "./RefreshableFeed";
 import { supabase } from "@/lib/supabaseClient";
-import CommentSection from "./comments/CommentSection";
 
 const PostFeed = () => {
   const [activeTab, setActiveTab] = useState("all");
-  const [selectedMedia, setSelectedMedia] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [posts, setPosts] = useState<PostType[]>([]);
   const { subscriptionDetails } = useSubscription();
@@ -138,32 +134,24 @@ const PostFeed = () => {
     }
   };
   
-  // In the handleMediaClick function, ensure that we properly check for media
+  // Modified to navigate to post page instead of showing media viewer
   const handleMediaClick = (post: PostType) => {
-    // Only allow viewing if user has appropriate subscription
     if (!post.media || post.media.length === 0) return;
     
     const media = post.media[0];
     // Check if media_type is present and determine the media type
-    const mediaType = media.media_type?.startsWith('image/') || media.media_type === 'image' ? 'image' : 
+    const mediaType = media.media_type?.startsWith('image/') || media.media_type === 'image' ? 'photo' : 
                      media.media_type?.startsWith('video/') || media.media_type === 'video' ? 'video' : 
                      'gif';
     
     const canView = 
       (mediaType === 'video' && subscriptionDetails.canViewVideos) || 
-      (mediaType === 'image' && subscriptionDetails.canViewPhotos) ||
+      (mediaType === 'photo' && subscriptionDetails.canViewPhotos) ||
       (mediaType === 'gif'); // GIFs are always viewable
     
     if (canView) {
-      setSelectedMedia({
-        type: mediaType,
-        ...media,
-        title: post.content,
-        author: post.author?.full_name || 'Unknown',
-        likes: post.likes_count,
-        user: post.author,
-        postId: post.id
-      });
+      // Navigate to post page with postId and media type
+      navigate(`/post?postId=${post.id}&type=${mediaType}`);
     } else {
       toast({
         title: "Subscription Required",
@@ -244,18 +232,6 @@ const PostFeed = () => {
         variant: "destructive",
       });
     }
-  };
-
-  const handleCommentCountChange = (postId: string, newCount: number) => {
-    setPosts(prevPosts => prevPosts.map(p => {
-      if (p.id === postId) {
-        return {
-          ...p,
-          comments_count: newCount
-        };
-      }
-      return p;
-    }));
   };
 
   const getSubscriptionBadge = (post: PostType) => {
@@ -483,19 +459,14 @@ const PostFeed = () => {
                       >
                         <Heart className={`h-4 w-4 ${post.is_liked ? 'fill-current' : ''}`} /> {post.likes_count || 0}
                       </button>
-                      <button 
+                      {/* Updated to use /post instead of /comments */}
+                      <Link
+                        to={`/post?postId=${post.id}`}
                         className="flex items-center gap-1 text-gray-500 text-sm hover:text-blue-500"
-                        onClick={() => navigate(`/comments?postId=${post.id}`)}
                       >
                         <MessageCircle className="h-4 w-4" /> {post.comments_count || 0}
-                      </button>
+                      </Link>
                     </div>
-                    
-                    <CommentSection 
-                      postId={post.id} 
-                      commentsCount={post.comments_count || 0}
-                      onCommentCountChange={(newCount) => handleCommentCountChange(post.id, newCount)}
-                    />
                     
                     {post.id !== posts[posts.length - 1].id && <Separator className="my-6" />}
                   </div>
@@ -505,16 +476,6 @@ const PostFeed = () => {
           </RefreshableFeed>
         </Tabs>
       </div>
-
-      {selectedMedia && (
-        <MediaViewer
-          type={selectedMedia.type}
-          media={selectedMedia}
-          onClose={() => setSelectedMedia(null)}
-          onLike={() => selectedMedia.postId && handleLikePost(selectedMedia.postId)}
-          postId={selectedMedia.postId}
-        />
-      )}
     </div>
   );
 };

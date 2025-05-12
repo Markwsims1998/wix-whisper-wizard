@@ -9,7 +9,6 @@ import Login from "./pages/Login";
 import HomePage from "./pages/HomePage";
 import Messages from "./pages/Messages";
 import Activity from "./pages/Activity";
-import Comments from "./pages/Comments";
 import Settings from "./pages/Settings";
 import Videos from "./pages/Videos";
 import Photos from "./pages/Photos";
@@ -22,7 +21,7 @@ import Notifications from "./pages/Notifications";
 import Feedback from "./pages/Feedback";
 import Winks from "./pages/Winks";
 import Friends from "./pages/Friends";
-import MediaDetail from "./pages/MediaDetail";
+import Post from "./pages/Post";
 import { useAuth } from "@/contexts/auth/AuthProvider";
 import Footer from "./components/Footer";
 import { useEffect } from "react";
@@ -75,13 +74,12 @@ function App() {
             <Route path="/profile" element={isAuthenticated ? <Profile /> : <Navigate to="/login" replace />} />
             <Route path="/profile/:userId" element={isAuthenticated ? <Profile /> : <Navigate to="/login" replace />} />
             
-            {/* Media detail page */}
-            <Route path="/media/:id" element={isAuthenticated ? <MediaDetail /> : <Navigate to="/login" replace />} />
+            {/* Post page - replacing both Media and Comments pages */}
+            <Route path="/post" element={isAuthenticated ? <Post /> : <Navigate to="/login" replace />} />
             
             {/* Protected routes - redirect to login if not authenticated */}
             <Route path="/messages" element={isAuthenticated ? <Messages /> : <Navigate to="/login" replace />} />
             <Route path="/activity" element={isAuthenticated ? <Activity /> : <Navigate to="/login" replace />} />
-            <Route path="/comments" element={isAuthenticated ? <Comments /> : <Navigate to="/login" replace />} />
             <Route path="/settings" element={isAuthenticated ? <Settings /> : <Navigate to="/login" replace />} />
             <Route path="/videos" element={isAuthenticated ? <Videos /> : <Navigate to="/login" replace />} />
             <Route path="/photos" element={isAuthenticated ? <Photos /> : <Navigate to="/login" replace />} />

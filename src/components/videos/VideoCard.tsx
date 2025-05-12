@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Play, Heart, User } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -5,7 +6,7 @@ import { Video } from '@/services/videoService';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { useSubscription } from '@/contexts/SubscriptionContext';
-import { shouldShowWatermark } from '@/services/securePhotoService';
+import { shouldShowWatermark, canViewVideo } from '@/services/securePhotoService';
 import VideoSubscriptionLock from '@/components/media/VideoSubscriptionLock';
 
 export interface VideoCardProps {

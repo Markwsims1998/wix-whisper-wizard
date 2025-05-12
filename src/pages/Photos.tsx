@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/auth/AuthProvider';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { Photo } from '@/services/photoService';
 import { fetchPhotos, deletePhoto } from '@/services/photoService';
-import { securePhotos } from '@/services/securePhotoService';
+import { securePhotos, shouldShowWatermark } from '@/services/securePhotoService';
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -15,7 +15,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
@@ -25,7 +24,6 @@ import ContentUploader from '@/components/media/ContentUploader';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import AdDisplay from '@/components/AdDisplay';
-import { shouldShowWatermark } from '@/services/securePhotoService';
 import Watermark from '@/components/media/Watermark';
 
 const Photos = () => {
@@ -215,4 +213,3 @@ const Photos = () => {
 };
 
 export default Photos;
-

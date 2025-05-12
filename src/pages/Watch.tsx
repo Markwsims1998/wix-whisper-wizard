@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { fetchVideoById, Video, syncVideoLikes } from "@/services/videoService";
@@ -18,7 +19,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { fetchVideos } from "@/services/videoService";
 import VideoCard from "@/components/videos/VideoCard";
 import { useSubscription } from "@/contexts/SubscriptionContext";
-import { shouldShowWatermark } from "@/services/securePhotoService";
+import { shouldShowWatermark, canViewVideo } from "@/services/securePhotoService";
 import VideoSubscriptionLock from '@/components/media/VideoSubscriptionLock';
 import Watermark from '@/components/media/Watermark';
 

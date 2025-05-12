@@ -1,6 +1,6 @@
 
 import React, { useEffect } from 'react';
-import { X, Heart, ChevronLeft, ChevronRight, Play, ArrowUpRight } from 'lucide-react';
+import { X, Heart, ChevronLeft, ChevronRight, Play, ArrowUpRight, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { Link } from 'react-router-dom';
@@ -18,6 +18,7 @@ interface MediaViewerProps {
 const MediaViewer = ({ type, media, onClose, onLike, onPrev, onNext, postId }: MediaViewerProps) => {
   const { subscriptionTier } = useSubscription();
   const isGoldMember = subscriptionTier === 'gold';
+  const hasRequiredSubscription = ['gold', 'silver', 'bronze'].includes(subscriptionTier);
   
   // Close on escape key
   useEffect(() => {
@@ -55,6 +56,44 @@ const MediaViewer = ({ type, media, onClose, onLike, onPrev, onNext, postId }: M
   const displayUrl = type === 'image' 
     ? media.image || media.file_url 
     : media.thumbnail || media.thumbnail_url || '';
+    
+  // If user doesn't have a required subscription, show subscription needed view
+  if (!hasRequiredSubscription) {
+    return (
+      <div 
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-90" 
+        onClick={handleBackgroundClick}
+      >
+        <div className="absolute inset-0 bg-gradient-to-b from-[rgba(15,15,20,0.97)] to-[rgba(15,15,25,0.95)]"></div>
+        
+        <div className="absolute top-4 right-4 z-10">
+          <button 
+            onClick={handleCloseButtonClick}
+            className="p-2 bg-white/10 backdrop-blur-md text-white rounded-full hover:bg-white/20 transition-all"
+            aria-label="Close"
+          >
+            <X className="w-6 h-6" />
+          </button>
+        </div>
+        
+        <div className="relative z-10 max-w-md w-full bg-white/10 backdrop-blur-lg rounded-lg p-8 text-center">
+          <Lock className="w-16 h-16 mx-auto text-white mb-4" />
+          <h2 className="text-white text-2xl font-bold mb-2">Premium Content</h2>
+          <p className="text-white/80 mb-6">
+            You need a Bronze, Silver, or Gold subscription to view this content in full screen.
+          </p>
+          <div className="flex justify-center gap-4">
+            <Button variant="outline" className="border-white/20 text-white hover:bg-white/10" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button asChild>
+              <Link to="/shop">View Subscription Plans</Link>
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
   
   return (
     <div 

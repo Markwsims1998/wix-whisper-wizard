@@ -18,9 +18,10 @@ import { supabase } from "@/lib/supabaseClient";
 import { Video } from "@/services/videoService";
 import { Photo } from "@/services/photoService";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Info } from "lucide-react";
+import { Info, Lock } from "lucide-react";
 import { fetchMedia, convertToVideoFormat } from "@/services/mediaService";
 import CommentInput from "@/components/comments/CommentInput";
+import { useSubscription } from "@/contexts/SubscriptionContext";
 
 // Properly define the MediaDetailLikeUser type to be compatible with LikeUser
 interface MediaDetailLikeUser {
@@ -44,8 +45,13 @@ const MediaDetail = () => {
   const [commentsCount, setCommentsCount] = useState(0);
   const [likeUsers, setLikeUsers] = useState<MediaDetailLikeUser[]>([]);
   const [showAllLikes, setShowAllLikes] = useState(false);
+  const [subscriptionRequired, setSubscriptionRequired] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
+  const { subscriptionTier, subscriptionDetails } = useSubscription();
+  
+  // Check if user has required subscription tier
+  const hasRequiredSubscription = ['gold', 'silver', 'bronze'].includes(subscriptionTier);
 
   useEffect(() => {
     const loadMedia = async () => {
@@ -210,6 +216,11 @@ const MediaDetail = () => {
           .update({ views: (data.views || 0) + 1 })
           .eq('id', mediaId);
         
+        // Check if media type requires subscription
+        if (mediaType === 'video' && !hasRequiredSubscription) {
+          setSubscriptionRequired(true);
+        }
+        
       } catch (error) {
         console.error("Error loading media:", error);
         toast({
@@ -223,7 +234,7 @@ const MediaDetail = () => {
     };
 
     loadMedia();
-  }, [mediaId, mediaType, user?.id, toast]);
+  }, [mediaId, mediaType, user?.id, toast, hasRequiredSubscription]);
 
   const getAvatarUrl = (user: any) => {
     if (!user) return null;
@@ -264,6 +275,20 @@ const MediaDetail = () => {
           setLikeUsers(prev => [currentUser, ...prev]);
         } else {
           setLikeUsers(prev => prev.filter(u => u.id !== user.id));
+        }
+        
+        // Update media likes count in the underlying document
+        // This ensures that when we go back to the photos/videos list, the likes count is updated
+        if (mediaType === 'video') {
+          // Update the media object to reflect the new like count
+          await supabase
+            .from('media')
+            .update({ 
+              // We're updating metadata, not a real column
+              // This is just to trigger a refresh
+              updated_at: new Date().toISOString() 
+            })
+            .eq('id', mediaId);
         }
       } else {
         toast({
@@ -407,19 +432,46 @@ const MediaDetail = () => {
                           className="max-h-full object-contain"
                         />
                         <div className="absolute inset-0 flex items-center justify-center">
-                          <div className="w-16 h-16 rounded-full bg-white/30 flex items-center justify-center">
-                            <div className="w-12 h-12 rounded-full bg-white/80 flex items-center justify-center">
-                              <div className="w-0 h-0 border-t-6 border-b-6 border-l-10 border-t-transparent border-b-transparent border-l-red-600 ml-1"></div>
+                          {!hasRequiredSubscription ? (
+                            <div className="w-full h-full flex flex-col items-center justify-center bg-black/70">
+                              <Lock className="w-16 h-16 text-white mb-4" />
+                              <h3 className="text-white text-xl font-semibold mb-2">Premium Content</h3>
+                              <p className="text-white/80 mb-4 max-w-xs text-center">
+                                This content requires a Bronze, Silver, or Gold subscription
+                              </p>
+                              <Button asChild variant="secondary">
+                                <Link to="/shop">View Subscription Plans</Link>
+                              </Button>
                             </div>
-                          </div>
+                          ) : (
+                            <div className="w-16 h-16 rounded-full bg-white/30 flex items-center justify-center">
+                              <div className="w-12 h-12 rounded-full bg-white/80 flex items-center justify-center">
+                                <div className="w-0 h-0 border-t-6 border-b-6 border-l-10 border-t-transparent border-b-transparent border-l-red-600 ml-1"></div>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
                     ) : (
-                      <img 
-                        src={getDisplayUrl()}
-                        alt={media.title}
-                        className="w-full h-full object-contain"
-                      />
+                      <div className="relative">
+                        <img 
+                          src={getDisplayUrl()}
+                          alt={media.title}
+                          className="w-full h-full object-contain"
+                        />
+                        {!hasRequiredSubscription && (
+                          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70">
+                            <Lock className="w-16 h-16 text-white mb-4" />
+                            <h3 className="text-white text-xl font-semibold mb-2">Premium Content</h3>
+                            <p className="text-white/80 mb-4 max-w-xs text-center">
+                              Full view requires a Bronze, Silver, or Gold subscription
+                            </p>
+                            <Button asChild variant="secondary">
+                              <Link to="/shop">View Subscription Plans</Link>
+                            </Button>
+                          </div>
+                        )}
+                      </div>
                     )}
                   </div>
                   

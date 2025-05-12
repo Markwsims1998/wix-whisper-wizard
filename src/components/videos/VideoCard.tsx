@@ -1,8 +1,10 @@
+
 import { User, Heart, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Video } from "@/services/videoService";
 import { Link } from "react-router-dom";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 interface VideoCardProps {
   video: Video;
@@ -11,6 +13,18 @@ interface VideoCardProps {
 }
 
 const VideoCard = ({ video, canViewVideos, onVideoClick }: VideoCardProps) => {
+  // Helper function to get the best avatar URL
+  const getAvatarUrl = () => {
+    if (!video.user) return null;
+    return video.user.avatar_url;
+  };
+  
+  // Get first letter of user name for avatar fallback
+  const getInitial = () => {
+    if (!video.user) return "?";
+    return (video.user.full_name || video.user.username || "?").charAt(0).toUpperCase();
+  };
+
   if (!canViewVideos) {
     // For users without access, keep click handler for subscription prompt
     return (
@@ -46,27 +60,29 @@ const VideoCard = ({ video, canViewVideos, onVideoClick }: VideoCardProps) => {
         </div>
         <div className="p-4 dark:text-gray-100">
           <div className="flex items-start gap-3">
-            <div className="h-12 w-12 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center overflow-hidden">
-              {video.user?.avatar_url ? (
-                <img 
-                  src={video.user.avatar_url} 
-                  alt={video.user.full_name} 
+            <Avatar className="h-12 w-12 bg-gray-200 dark:bg-gray-600">
+              {getAvatarUrl() ? (
+                <AvatarImage 
+                  src={getAvatarUrl() || ''} 
+                  alt={video.user?.full_name || 'User'} 
                   className="h-full w-full object-cover"
                 />
               ) : (
-                <User className="h-5 w-5 text-gray-500 dark:text-gray-300" />
+                <AvatarFallback className="text-gray-500 dark:text-gray-300">
+                  {getInitial()}
+                </AvatarFallback>
               )}
-            </div>
+            </Avatar>
             <div className="flex-1">
               <h3 className="font-medium">{video.title}</h3>
               <p className="text-sm text-gray-500 dark:text-gray-300">
-                {video.user?.full_name || 'Unknown User'} • {video.views} views
+                {video.user?.full_name || video.user?.username || 'Unknown User'} • {video.views} views
               </p>
             </div>
           </div>
           <div className="flex items-center mt-3">
             <div className="flex items-center text-gray-500 dark:text-gray-300 text-sm bg-gray-100 dark:bg-gray-600 px-3 py-1 rounded-full">
-              <Heart className="h-4 w-4 mr-1 text-red-400" /> {video.likes_count}
+              <Heart className="h-4 w-4 mr-1 text-red-400" /> {video.likes_count || 0}
             </div>
           </div>
         </div>
@@ -100,27 +116,29 @@ const VideoCard = ({ video, canViewVideos, onVideoClick }: VideoCardProps) => {
       </div>
       <div className="p-4 dark:text-gray-100">
         <div className="flex items-start gap-3">
-          <div className="h-12 w-12 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center overflow-hidden">
-            {video.user?.avatar_url ? (
-              <img 
-                src={video.user.avatar_url} 
-                alt={video.user.full_name} 
+          <Avatar className="h-12 w-12 bg-gray-200 dark:bg-gray-600">
+            {getAvatarUrl() ? (
+              <AvatarImage 
+                src={getAvatarUrl() || ''} 
+                alt={video.user?.full_name || 'User'} 
                 className="h-full w-full object-cover"
               />
             ) : (
-              <User className="h-5 w-5 text-gray-500 dark:text-gray-300" />
+              <AvatarFallback className="text-gray-500 dark:text-gray-300">
+                {getInitial()}
+              </AvatarFallback>
             )}
-          </div>
+          </Avatar>
           <div className="flex-1">
             <h3 className="font-medium">{video.title}</h3>
             <p className="text-sm text-gray-500 dark:text-gray-300">
-              {video.user?.full_name || 'Unknown User'} • {video.views} views
+              {video.user?.full_name || video.user?.username || 'Unknown User'} • {video.views} views
             </p>
           </div>
         </div>
         <div className="flex items-center mt-3">
           <div className="flex items-center text-gray-500 dark:text-gray-300 text-sm bg-gray-100 dark:bg-gray-600 px-3 py-1 rounded-full">
-            <Heart className="h-4 w-4 mr-1 text-red-400" /> {video.likes_count}
+            <Heart className="h-4 w-4 mr-1 text-red-400" /> {video.likes_count || 0}
           </div>
         </div>
       </div>

@@ -115,7 +115,7 @@ const Activity = () => {
                 {activities.map((activity) => {
                   // Update the actor data extraction part:
                   const actor = activity.actor ? {
-                    id: activity.actor.id,
+                    id: activity.actor.id || '',
                     full_name: activity.actor.full_name || 'Unknown User',
                     avatar_url: activity.actor.avatar_url || '',
                   } : null;

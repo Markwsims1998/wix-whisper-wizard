@@ -78,9 +78,9 @@ const MembersList = () => {
           }
           
           return {
-            id: profile?.id,
-            name: profile?.full_name || profile?.username,
-            username: `@${profile?.username}`,
+            id: profile?.id || '',
+            name: profile?.full_name || profile?.username || '',
+            username: `@${profile?.username || ''}`,
             timeAgo,
             avatar: profile?.avatar_url,
             profilePicture: profile?.profile_picture_url,

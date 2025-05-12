@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams, Link } from "react-router-dom";
 import { Heart, User, ChevronLeft } from "lucide-react";
@@ -171,7 +170,6 @@ const MediaDetail = () => {
     loadMedia();
   }, [mediaId, mediaType, user?.id, toast]);
 
-  // Get avatar URL with fallback support
   const getAvatarUrl = (user: any) => {
     if (!user) return null;
     return user.profile_picture_url || user.avatar_url || null;
@@ -411,7 +409,7 @@ const MediaDetail = () => {
                             />
                           ) : (
                             <AvatarFallback className="bg-purple-100 text-purple-600 dark:bg-purple-900 dark:text-purple-300">
-                              {user.full_name.charAt(0)}
+                              {user.full_name?.charAt(0) || 'U'}
                             </AvatarFallback>
                           )}
                         </Avatar>

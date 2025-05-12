@@ -15,7 +15,7 @@ export interface Video {
   user: {
     id: string;
     username: string;
-    full_name: string;
+    full_name: string | null;
     avatar_url: string | null;
   } | null;
 }

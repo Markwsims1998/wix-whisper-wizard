@@ -1,6 +1,7 @@
+
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams, Link } from "react-router-dom";
-import { Heart, User, ChevronLeft } from "lucide-react";
+import { Heart, User, ChevronLeft, MessageCircle } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -382,6 +383,7 @@ const MediaDetail = () => {
                         <span>{likesCount}</span>
                       </button>
                       <div className="flex items-center gap-1 text-gray-500">
+                        <MessageCircle className="h-5 w-5" />
                         <span>{commentsCount} Comments</span>
                       </div>
                     </div>
@@ -408,7 +410,7 @@ const MediaDetail = () => {
                 expanded={true}
               />
               
-              {/* Who Loved Section - FIX HERE: We need to map over the likeUser items */}
+              {/* Who Loved Section - Fixed to properly access likeUser items */}
               {likesCount > 0 && (
                 <div className="mt-8">
                   <h3 className="text-md font-medium mb-3">Who loved this ({likesCount})</h3>

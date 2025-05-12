@@ -98,7 +98,7 @@ const Photos: React.FC<PhotosProps> = () => {
 
   const getAvatarUrl = (photo: Photo) => {
     if (!photo.user) return null;
-    return photo.user.profile_picture_url || photo.user.avatar_url || null;
+    return photo.user.avatar_url || null;
   };
 
   return (

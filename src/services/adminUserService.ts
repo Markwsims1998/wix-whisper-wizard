@@ -111,7 +111,7 @@ export const getUserById = async (userId: string): Promise<UserData | null> => {
       .from('profiles')
       .select('*')
       .eq('id', userId)
-      .single();
+      .maybeSingle();
     
     if (error || !data) {
       console.error('Error fetching user:', error);
@@ -186,67 +186,4 @@ export const updateUserRole = async (
   role: string
 ): Promise<boolean> => {
   return updateUser(userId, { role });
-};
-
-/**
- * Get user statistics
- */
-export const getUserStats = async (): Promise<UserStats> => {
-  try {
-    // Get total users
-    const { count: totalUsers } = await supabase
-      .from('profiles')
-      .select('id', { count: 'exact', head: true });
-    
-    // Get premium users
-    const { count: premiumUsers } = await supabase
-      .from('profiles')
-      .select('id', { count: 'exact', head: true })
-      .in('subscription_tier', ['bronze', 'silver', 'gold']);
-    
-    // Get active users
-    const { count: activeUsers } = await supabase
-      .from('profiles')
-      .select('id', { count: 'exact', head: true })
-      .eq('status', 'active');
-    
-    // Get new users this week
-    const oneWeekAgo = new Date();
-    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-    
-    const { count: newUsersThisWeek } = await supabase
-      .from('profiles')
-      .select('id', { count: 'exact', head: true })
-      .gte('created_at', oneWeekAgo.toISOString());
-    
-    // Get new users this month
-    const oneMonthAgo = new Date();
-    oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
-    
-    const { count: newUsersThisMonth } = await supabase
-      .from('profiles')
-      .select('id', { count: 'exact', head: true })
-      .gte('created_at', oneMonthAgo.toISOString());
-    
-    return {
-      total: totalUsers || 0,
-      active: activeUsers || 0,
-      premium: premiumUsers || 0,
-      new: {
-        thisWeek: newUsersThisWeek || 0,
-        thisMonth: newUsersThisMonth || 0
-      }
-    };
-  } catch (error) {
-    console.error('Error in getUserStats:', error);
-    return {
-      total: 0,
-      active: 0,
-      premium: 0,
-      new: {
-        thisWeek: 0,
-        thisMonth: 0
-      }
-    };
-  }
 };

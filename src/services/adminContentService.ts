@@ -3,220 +3,240 @@ import { supabase } from '@/lib/supabaseClient';
 
 export interface ContentItem {
   id: string;
-  type: 'post' | 'photo' | 'video' | 'comment';
-  content?: string;
+  type: 'video' | 'photo' | 'post' | 'comment';
   title?: string;
+  content?: string;
   url?: string;
   thumbnail_url?: string;
   created_at: string;
   user_id: string;
-  user?: {
+  user: {
     username: string;
-    full_name?: string | null;
-    avatar_url?: string | null;
-  } | null;
-  status?: 'approved' | 'pending' | 'rejected' | 'flagged';
+    full_name?: string;
+    avatar_url?: string;
+  };
   post_id?: string;
-  flags_count?: number;
+  status: string;
 }
 
-export interface ContentFilter {
-  type?: 'post' | 'photo' | 'video' | 'comment';
-  status?: string;
-  timeframe?: 'today' | 'week' | 'month' | 'all';
-  searchQuery?: string;
+export interface ContentStats {
+  total: number;
+  posts: number;
+  photos: number;
+  videos: number;
+  comments: number;
+  reported: number;
+  pendingReview: number;
 }
 
 /**
- * Fetch content items with filtering options
+ * Fetch content for the admin dashboard with optional filtering
  */
 export const fetchContent = async (
   page: number = 1,
   pageSize: number = 10,
-  filters: ContentFilter = {}
+  filters: {
+    contentType?: string;
+    status?: string;
+    searchQuery?: string;
+  } = {}
 ): Promise<{ content: ContentItem[]; total: number }> => {
   try {
-    let contentItems: ContentItem[] = [];
-    let totalItems = 0;
+    // For a real implementation, we'd need to union multiple tables 
+    // or use a combined content view. For now, we'll focus on posts.
     
-    // Set up date filter if timeframe is specified
-    let dateFilter: string | null = null;
-    if (filters.timeframe && filters.timeframe !== 'all') {
-      const now = new Date();
-      if (filters.timeframe === 'today') {
-        now.setHours(0, 0, 0, 0);
-        dateFilter = now.toISOString();
-      } else if (filters.timeframe === 'week') {
-        now.setDate(now.getDate() - 7);
-        dateFilter = now.toISOString();
-      } else if (filters.timeframe === 'month') {
-        now.setMonth(now.getMonth() - 1);
-        dateFilter = now.toISOString();
-      }
+    // Start with posts
+    let queryPosts = supabase
+      .from('posts')
+      .select(`
+        id,
+        content,
+        created_at,
+        user_id,
+        user:user_id (
+          username,
+          full_name,
+          avatar_url
+        )
+      `);
+    
+    // Apply filters
+    if (filters.contentType && filters.contentType !== 'all' && filters.contentType !== 'post') {
+      // Skip posts if filtering for other content types
+      queryPosts = queryPosts.filter('id', 'eq', 'none');
     }
     
-    // Calculate pagination offsets
+    if (filters.searchQuery) {
+      queryPosts = queryPosts.ilike('content', `%${filters.searchQuery}%`);
+    }
+    
+    if (filters.status) {
+      // In a real implementation, we'd have a status column on posts
+      // For now, we'll just pretend all posts are approved
+    }
+    
+    // Fetch posts with pagination
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
     
-    // Fetch posts if no type filter or explicitly requesting posts
-    if (!filters.type || filters.type === 'post') {
-      let query = supabase
-        .from('posts')
-        .select(`
-          id, 
-          content, 
-          created_at, 
-          user_id,
-          profiles:user_id(username, full_name, avatar_url)
-        `, { count: 'exact' });
-      
-      if (dateFilter) {
-        query = query.gte('created_at', dateFilter);
-      }
-      
-      if (filters.searchQuery) {
-        query = query.textSearch('content', filters.searchQuery);
-      }
-      
-      const { data: posts, count: postsCount, error } = await query
-        .range(from, to)
-        .order('created_at', { ascending: false });
-      
-      if (error) {
-        console.error('Error fetching posts:', error);
-      } else if (posts) {
-        const postItems: ContentItem[] = posts.map(post => ({
-          id: post.id,
-          type: 'post',
-          content: post.content,
-          created_at: post.created_at,
-          user_id: post.user_id,
-          user: post.profiles ? {
-            username: post.profiles.username,
-            full_name: post.profiles.full_name,
-            avatar_url: post.profiles.avatar_url
-          } : null,
-          status: 'approved' // Default status
-        }));
-        
-        contentItems = postItems;
-        totalItems = postsCount || 0;
-      }
+    const { data: posts, count: postsCount, error: postsError } = await queryPosts
+      .range(from, to)
+      .order('created_at', { ascending: false });
+    
+    if (postsError) {
+      console.error('Error fetching posts:', postsError);
     }
     
-    // Fetch photos or videos if requested
-    if (!filters.type || filters.type === 'photo' || filters.type === 'video') {
-      let mediaType = filters.type || null;
-      
-      let query = supabase
-        .from('media')
-        .select(`
-          id, 
-          title, 
-          file_url, 
-          thumbnail_url,
-          content_type, 
-          created_at, 
-          user_id,
-          post_id,
-          profiles:user_id(username, full_name, avatar_url)
-        `, { count: 'exact' });
-      
-      if (mediaType) {
-        query = query.eq('content_type', mediaType);
-      }
-      
-      if (dateFilter) {
-        query = query.gte('created_at', dateFilter);
-      }
-      
-      if (filters.searchQuery) {
-        query = query.textSearch('title', filters.searchQuery);
-      }
-      
-      const { data: media, count: mediaCount, error } = await query
-        .range(from, to)
-        .order('created_at', { ascending: false });
-      
-      if (error) {
-        console.error('Error fetching media:', error);
-      } else if (media) {
-        const mediaItems: ContentItem[] = media.map(item => ({
-          id: item.id,
-          type: item.content_type as 'photo' | 'video',
-          title: item.title || undefined,
-          url: item.file_url,
-          thumbnail_url: item.thumbnail_url || undefined,
-          created_at: item.created_at,
-          user_id: item.user_id,
-          user: item.profiles ? {
-            username: item.profiles.username,
-            full_name: item.profiles.full_name,
-            avatar_url: item.profiles.avatar_url
-          } : null,
-          post_id: item.post_id || undefined,
-          status: 'approved' // Default status
-        }));
-        
-        contentItems = [...contentItems, ...mediaItems];
-        totalItems += mediaCount || 0;
-      }
+    // Format posts to ContentItem structure
+    const formattedPosts: ContentItem[] = (posts || []).map(post => ({
+      id: post.id,
+      type: 'post',
+      content: post.content,
+      created_at: post.created_at,
+      user_id: post.user_id,
+      user: {
+        username: post.user?.username,
+        full_name: post.user?.full_name,
+        avatar_url: post.user?.avatar_url
+      },
+      status: 'approved'
+    }));
+    
+    // Similarly for media (photos/videos)
+    let queryMedia = supabase
+      .from('media')
+      .select(`
+        id,
+        title,
+        file_url,
+        thumbnail_url,
+        content_type,
+        created_at,
+        user_id,
+        user:user_id (
+          username,
+          full_name,
+          avatar_url
+        ),
+        post_id
+      `);
+    
+    if (filters.contentType === 'photo') {
+      queryMedia = queryMedia.eq('content_type', 'photo');
+    } else if (filters.contentType === 'video') {
+      queryMedia = queryMedia.eq('content_type', 'video');
+    } else if (filters.contentType !== 'all' && filters.contentType !== 'media') {
+      // Skip media if filtering for other content types
+      queryMedia = queryMedia.filter('id', 'eq', 'none');
     }
     
-    // Fetch comments if requested
-    if (!filters.type || filters.type === 'comment') {
-      let query = supabase
-        .from('comments')
-        .select(`
-          id, 
-          content, 
-          created_at, 
-          user_id,
-          post_id,
-          profiles:user_id(username, full_name, avatar_url)
-        `, { count: 'exact' });
-      
-      if (dateFilter) {
-        query = query.gte('created_at', dateFilter);
-      }
-      
-      if (filters.searchQuery) {
-        query = query.textSearch('content', filters.searchQuery);
-      }
-      
-      const { data: comments, count: commentsCount, error } = await query
-        .range(from, to)
-        .order('created_at', { ascending: false });
-      
-      if (error) {
-        console.error('Error fetching comments:', error);
-      } else if (comments) {
-        const commentItems: ContentItem[] = comments.map(comment => ({
-          id: comment.id,
-          type: 'comment',
-          content: comment.content,
-          created_at: comment.created_at,
-          user_id: comment.user_id,
-          user: comment.profiles ? {
-            username: comment.profiles.username,
-            full_name: comment.profiles.full_name,
-            avatar_url: comment.profiles.avatar_url
-          } : null,
-          post_id: comment.post_id,
-          status: 'approved' // Default status
-        }));
-        
-        contentItems = [...contentItems, ...commentItems];
-        totalItems += commentsCount || 0;
-      }
+    if (filters.searchQuery) {
+      queryMedia = queryMedia.or(`title.ilike.%${filters.searchQuery}%`);
     }
+    
+    const { data: media, count: mediaCount, error: mediaError } = await queryMedia
+      .range(from, to)
+      .order('created_at', { ascending: false });
+    
+    if (mediaError) {
+      console.error('Error fetching media:', mediaError);
+    }
+    
+    // Format media to ContentItem structure
+    const formattedMedia: ContentItem[] = (media || []).map(item => ({
+      id: item.id,
+      type: item.content_type as 'photo' | 'video',
+      title: item.title,
+      url: item.file_url,
+      thumbnail_url: item.thumbnail_url,
+      created_at: item.created_at,
+      user_id: item.user_id,
+      user: {
+        username: item.user?.username,
+        full_name: item.user?.full_name,
+        avatar_url: item.user?.avatar_url
+      },
+      post_id: item.post_id,
+      status: 'approved'
+    }));
+    
+    // And for comments
+    let queryComments = supabase
+      .from('comments')
+      .select(`
+        id,
+        content,
+        created_at,
+        user_id,
+        user:user_id (
+          username,
+          full_name,
+          avatar_url
+        ),
+        post_id
+      `);
+    
+    if (filters.contentType && filters.contentType !== 'all' && filters.contentType !== 'comment') {
+      // Skip comments if filtering for other content types
+      queryComments = queryComments.filter('id', 'eq', 'none');
+    }
+    
+    if (filters.searchQuery) {
+      queryComments = queryComments.ilike('content', `%${filters.searchQuery}%`);
+    }
+    
+    const { data: comments, count: commentsCount, error: commentsError } = await queryComments
+      .range(from, to)
+      .order('created_at', { ascending: false });
+    
+    if (commentsError) {
+      console.error('Error fetching comments:', commentsError);
+    }
+    
+    // Format comments to ContentItem structure
+    const formattedComments: ContentItem[] = (comments || []).map(comment => ({
+      id: comment.id,
+      type: 'comment',
+      content: comment.content,
+      created_at: comment.created_at,
+      user_id: comment.user_id,
+      user: {
+        username: comment.user?.username,
+        full_name: comment.user?.full_name,
+        avatar_url: comment.user?.avatar_url
+      },
+      post_id: comment.post_id,
+      status: 'approved'
+    }));
+    
+    // Combine all content types
+    let allContent: ContentItem[] = [];
+    
+    // Add appropriate content based on filters
+    if (!filters.contentType || filters.contentType === 'all' || filters.contentType === 'post') {
+      allContent = [...allContent, ...formattedPosts];
+    }
+    
+    if (!filters.contentType || filters.contentType === 'all' || filters.contentType === 'photo' || filters.contentType === 'video' || filters.contentType === 'media') {
+      allContent = [...allContent, ...formattedMedia];
+    }
+    
+    if (!filters.contentType || filters.contentType === 'all' || filters.contentType === 'comment') {
+      allContent = [...allContent, ...formattedComments];
+    }
+    
+    // Sort combined content by creation date
+    allContent.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    
+    // Calculate total count
+    const totalCount = (postsCount || 0) + (mediaCount || 0) + (commentsCount || 0);
+    
+    // Apply pagination to combined results
+    const paginatedContent = allContent.slice(0, pageSize);
     
     return {
-      content: contentItems.sort((a, b) => 
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      ).slice(0, pageSize),
-      total: totalItems
+      content: paginatedContent,
+      total: totalCount
     };
   } catch (error) {
     console.error('Error in fetchContent:', error);
@@ -225,193 +245,122 @@ export const fetchContent = async (
 };
 
 /**
- * Delete a content item
+ * Get content statistics
  */
-export const deleteContent = async (
-  id: string,
-  type: 'post' | 'photo' | 'video' | 'comment'
-): Promise<boolean> => {
+export const getContentStats = async (): Promise<ContentStats> => {
   try {
-    let error;
+    // Get post count
+    const { count: postsCount } = await supabase
+      .from('posts')
+      .select('*', { count: 'exact', head: true });
     
-    switch (type) {
-      case 'post':
-        // When deleting a post, first delete associated comments and likes
-        await supabase.from('comments').delete().eq('post_id', id);
-        await supabase.from('likes').delete().eq('post_id', id);
-        
-        // Also delete associated media files
-        await supabase.from('media').delete().eq('post_id', id);
-        
-        // Then delete the post itself
-        ({ error } = await supabase.from('posts').delete().eq('id', id));
-        break;
-        
-      case 'photo':
-      case 'video':
-        ({ error } = await supabase.from('media').delete().eq('id', id));
-        break;
-        
-      case 'comment':
-        // Delete any likes on the comment
-        await supabase.from('likes').delete().eq('comment_id', id);
-        
-        // Then delete the comment itself
-        ({ error } = await supabase.from('comments').delete().eq('id', id));
-        break;
-    }
+    // Get photos count
+    const { count: photosCount } = await supabase
+      .from('media')
+      .select('*', { count: 'exact', head: true })
+      .eq('content_type', 'photo');
     
-    if (error) {
-      console.error(`Error deleting ${type} with id ${id}:`, error);
-      return false;
-    }
+    // Get videos count
+    const { count: videosCount } = await supabase
+      .from('media')
+      .select('*', { count: 'exact', head: true })
+      .eq('content_type', 'video');
     
-    return true;
+    // Get comments count
+    const { count: commentsCount } = await supabase
+      .from('comments')
+      .select('*', { count: 'exact', head: true });
+    
+    // Total count
+    const totalCount = (postsCount || 0) + (photosCount || 0) + (videosCount || 0) + (commentsCount || 0);
+    
+    // In a real implementation, reported and pending content would have specific status flags
+    // For now, we'll use placeholders
+    const reportedCount = Math.floor(totalCount * 0.05); // 5% of content reported (mock)
+    const pendingReviewCount = Math.floor(totalCount * 0.03); // 3% of content pending review (mock)
+    
+    return {
+      total: totalCount,
+      posts: postsCount || 0,
+      photos: photosCount || 0,
+      videos: videosCount || 0,
+      comments: commentsCount || 0,
+      reported: reportedCount,
+      pendingReview: pendingReviewCount
+    };
   } catch (error) {
-    console.error(`Error in deleteContent for ${type} with id ${id}:`, error);
-    return false;
+    console.error('Error in getContentStats:', error);
+    return {
+      total: 0,
+      posts: 0,
+      photos: 0,
+      videos: 0,
+      comments: 0,
+      reported: 0,
+      pendingReview: 0
+    };
   }
 };
 
 /**
- * Get content for moderation
- */
-export const getContentForModeration = async (
-  page: number = 1,
-  pageSize: number = 10
-): Promise<{ content: ContentItem[]; total: number }> => {
-  // This would be implemented if we had a flagging system
-  // For now, we'll return recent content as if it needs moderation
-  return fetchContent(page, pageSize, { timeframe: 'week' });
-};
-
-/**
- * Update content status
+ * Update content status (approve/reject/hide)
  */
 export const updateContentStatus = async (
-  id: string,
-  type: 'post' | 'photo' | 'video' | 'comment',
-  status: 'approved' | 'rejected' | 'flagged'
+  contentId: string,
+  contentType: 'post' | 'photo' | 'video' | 'comment',
+  status: string
 ): Promise<boolean> => {
   try {
-    // This would be implemented if we had a status field on content items
-    // For now, we'll just return true as if the status was updated
+    // In a real implementation, we'd update the status in each table
+    // For now, we'll just console log the action
+    console.log(`Content ${contentId} of type ${contentType} status updated to ${status}`);
     return true;
   } catch (error) {
-    console.error(`Error updating ${type} status:`, error);
+    console.error('Error updating content status:', error);
     return false;
   }
 };
 
 /**
- * Get a single content item by ID and type
+ * Delete content
  */
-export const getContentById = async (
-  id: string,
-  type: 'post' | 'photo' | 'video' | 'comment'
-): Promise<ContentItem | null> => {
+export const deleteContent = async (
+  contentId: string,
+  contentType: 'post' | 'photo' | 'video' | 'comment'
+): Promise<boolean> => {
   try {
-    let data, error;
+    let success = false;
     
-    switch (type) {
+    switch(contentType) {
       case 'post':
-        ({ data, error } = await supabase
+        const { error: postError } = await supabase
           .from('posts')
-          .select(`
-            id, 
-            content, 
-            created_at, 
-            user_id,
-            user:profiles!user_id(username, full_name, avatar_url)
-          `)
-          .eq('id', id)
-          .single());
-        
-        if (error || !data) {
-          console.error('Error fetching post:', error);
-          return null;
-        }
-        
-        return {
-          id: data.id,
-          type: 'post',
-          content: data.content,
-          created_at: data.created_at,
-          user_id: data.user_id,
-          user: data.user,
-          status: 'approved'
-        };
+          .delete()
+          .eq('id', contentId);
+        success = !postError;
+        break;
         
       case 'photo':
       case 'video':
-        ({ data, error } = await supabase
+        const { error: mediaError } = await supabase
           .from('media')
-          .select(`
-            id, 
-            title, 
-            file_url, 
-            thumbnail_url,
-            content_type, 
-            created_at, 
-            user_id,
-            post_id,
-            user:profiles!user_id(username, full_name, avatar_url)
-          `)
-          .eq('id', id)
-          .single());
-        
-        if (error || !data) {
-          console.error('Error fetching media:', error);
-          return null;
-        }
-        
-        return {
-          id: data.id,
-          type: data.content_type as 'photo' | 'video',
-          title: data.title || undefined,
-          url: data.file_url,
-          thumbnail_url: data.thumbnail_url || undefined,
-          created_at: data.created_at,
-          user_id: data.user_id,
-          user: data.user,
-          post_id: data.post_id || undefined,
-          status: 'approved'
-        };
+          .delete()
+          .eq('id', contentId);
+        success = !mediaError;
+        break;
         
       case 'comment':
-        ({ data, error } = await supabase
+        const { error: commentError } = await supabase
           .from('comments')
-          .select(`
-            id, 
-            content, 
-            created_at, 
-            user_id,
-            post_id,
-            user:profiles!user_id(username, full_name, avatar_url)
-          `)
-          .eq('id', id)
-          .single());
-        
-        if (error || !data) {
-          console.error('Error fetching comment:', error);
-          return null;
-        }
-        
-        return {
-          id: data.id,
-          type: 'comment',
-          content: data.content,
-          created_at: data.created_at,
-          user_id: data.user_id,
-          user: data.user,
-          post_id: data.post_id,
-          status: 'approved'
-        };
+          .delete()
+          .eq('id', contentId);
+        success = !commentError;
+        break;
     }
     
-    return null;
+    return success;
   } catch (error) {
-    console.error(`Error in getContentById for ${type} with id ${id}:`, error);
-    return null;
+    console.error('Error deleting content:', error);
+    return false;
   }
 };

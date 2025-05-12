@@ -16,6 +16,7 @@ export interface Photo {
     username: string;
     full_name: string | null;
     avatar_url: string | null;
+    profile_picture_url?: string | null;
   } | null;
 }
 
@@ -49,4 +50,9 @@ export const fetchPhotos = async (category: string = 'all'): Promise<Photo[]> =>
     console.error('Error in fetchPhotos:', err);
     return [];
   }
+};
+
+// Add the missing function that's imported in Photos.tsx
+export const getPhotosByCategory = async (category: string = 'all'): Promise<Photo[]> => {
+  return fetchPhotos(category);
 };

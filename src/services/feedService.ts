@@ -1,3 +1,4 @@
+
 import { supabase } from "@/lib/supabaseClient";
 
 // Export the Post type so it can be used in other files
@@ -338,6 +339,8 @@ export const createPost = async (
 
 export const likePost = async (postId: string, userId: string): Promise<{ success: boolean; error?: string }> => {
   try {
+    console.log(`Like/unlike post ${postId} by user ${userId}`);
+    
     // Check if the user has already liked the post
     const { data: existingLike, error: selectError } = await supabase
       .from('likes')
@@ -353,6 +356,7 @@ export const likePost = async (postId: string, userId: string): Promise<{ succes
 
     if (existingLike) {
       // If the user has already liked the post, unlike it
+      console.log("Unliking post because it was already liked");
       const { error: deleteError } = await supabase
         .from('likes')
         .delete()
@@ -364,9 +368,11 @@ export const likePost = async (postId: string, userId: string): Promise<{ succes
         return { success: false, error: deleteError.message };
       }
 
+      console.log("Successfully unliked post");
       return { success: true };
     } else {
       // If the user has not liked the post, like it
+      console.log("Liking post");
       const { error: insertError } = await supabase
         .from('likes')
         .insert([
@@ -378,6 +384,7 @@ export const likePost = async (postId: string, userId: string): Promise<{ succes
         return { success: false, error: insertError.message };
       }
 
+      console.log("Successfully liked post");
       return { success: true };
     }
   } catch (error) {
@@ -389,6 +396,8 @@ export const likePost = async (postId: string, userId: string): Promise<{ succes
 // Fixed getLikesForPost function with proper typing
 export const getLikesForPost = async (postId: string): Promise<LikeUser[]> => {
   try {
+    console.log(`Fetching likes for post: ${postId}`);
+    
     const { data, error } = await supabase
       .from('likes')
       .select(`
@@ -415,11 +424,13 @@ export const getLikesForPost = async (postId: string): Promise<LikeUser[]> => {
     
     console.log('Raw likes data:', data);
     
-    // Map each item in the array individually and properly typed
-    return data.map(item => {
+    // Map each item in the array and extract user data properly
+    const likeUsers = data.map(item => {
       // Check if user exists
       const profileData = item.user;
+      
       if (!profileData) {
+        console.log('No profile data for a like entry');
         return {
           id: '',
           username: '',
@@ -440,6 +451,9 @@ export const getLikesForPost = async (postId: string): Promise<LikeUser[]> => {
         profile_picture_url: profile?.profile_picture_url || null
       };
     });
+    
+    console.log('Processed like users:', likeUsers);
+    return likeUsers;
   } catch (error) {
     console.error('Error in getLikesForPost:', error);
     return [];

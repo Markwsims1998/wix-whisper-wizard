@@ -18,6 +18,7 @@ export interface Comment {
 
 export const fetchComments = async (postId: string): Promise<Comment[]> => {
   try {
+    console.log("Fetching comments for post ID:", postId);
     const { data, error } = await supabase
       .from('comments')
       .select(`
@@ -68,6 +69,8 @@ export const fetchComments = async (postId: string): Promise<Comment[]> => {
 
 export const createComment = async (postId: string, userId: string, content: string): Promise<{ success: boolean; comment?: Comment }> => {
   try {
+    console.log(`Creating comment: ${content} for post: ${postId} by user: ${userId}`);
+    
     const { data, error } = await supabase
       .from('comments')
       .insert([
@@ -93,6 +96,8 @@ export const createComment = async (postId: string, userId: string, content: str
       return { success: false };
     }
 
+    console.log("New comment created:", data);
+    
     // Process author data
     let authorData = null;
     if (data.author) {

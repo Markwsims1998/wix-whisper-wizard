@@ -167,23 +167,36 @@ const MediaViewer = ({ type, media, onClose, onLike, onPrev, onNext, postId }: M
           
           {type === 'video' && (
             <div className="relative w-full max-w-4xl" onClick={(e) => e.stopPropagation()}>
-              {/* In a real app, this would be a video player */}
+              {/* Use proper video element instead of thumbnail if available */}
               <div className="aspect-video relative flex items-center justify-center rounded-lg overflow-hidden shadow-2xl">
-                <img 
-                  src={displayUrl} 
-                  alt={media.title} 
-                  className="w-full h-full object-contain"
-                />
-                <button 
-                  className="absolute inset-0 flex items-center justify-center"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <div className="w-20 h-20 rounded-full bg-white/30 backdrop-blur-md flex items-center justify-center">
-                    <div className="w-16 h-16 rounded-full bg-white/80 flex items-center justify-center">
-                      <Play className="w-8 h-8 text-red-600 ml-1" />
-                    </div>
-                  </div>
-                </button>
+                {media.video_url || media.file_url ? (
+                  <video 
+                    src={media.video_url || media.file_url}
+                    poster={displayUrl}
+                    controls
+                    className="w-full h-full object-contain"
+                  >
+                    Your browser does not support the video tag.
+                  </video>
+                ) : (
+                  <>
+                    <img 
+                      src={displayUrl} 
+                      alt={media.title} 
+                      className="w-full h-full object-contain"
+                    />
+                    <button 
+                      className="absolute inset-0 flex items-center justify-center"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <div className="w-20 h-20 rounded-full bg-white/30 backdrop-blur-md flex items-center justify-center">
+                        <div className="w-16 h-16 rounded-full bg-white/80 flex items-center justify-center">
+                          <Play className="w-8 h-8 text-red-600 ml-1" />
+                        </div>
+                      </div>
+                    </button>
+                  </>
+                )}
                 {/* Watermark for non-gold members */}
                 {!isGoldMember && (
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-30">
@@ -239,7 +252,7 @@ const MediaViewer = ({ type, media, onClose, onLike, onPrev, onNext, postId }: M
                   }}
                 >
                   <Heart className="w-5 h-5 mr-1 text-red-500" />
-                  {media.likes || 0}
+                  {media.likes_count || media.likes || 0}
                 </Button>
               )}
               

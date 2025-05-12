@@ -410,7 +410,7 @@ const MediaDetail = () => {
                 expanded={true}
               />
               
-              {/* Who Loved Section - Fixed to properly access likeUser items */}
+              {/* Who Loved Section - Fixed to properly access individual user objects */}
               {likesCount > 0 && (
                 <div className="mt-8">
                   <h3 className="text-md font-medium mb-3">Who loved this ({likesCount})</h3>

@@ -1,58 +1,86 @@
 
-import { fetchMedia } from './mediaService';
+import { supabase } from '@/lib/supabaseClient';
 
 export interface Photo {
   id: string;
-  title: string | null;
-  image: string;
-  thumbnail?: string;
-  category: string;
-  author: string;
-  views: string | number;
-  likes: number;
-  postId: string;
+  user_id: string;
+  image_url: string;
+  created_at: string;
+  title?: string;
+  description?: string;
+  category?: string;
   user?: {
     id: string;
-    username: string;
-    full_name: string | null;
-    avatar_url: string | null;
-    profile_picture_url?: string | null;
-  } | null;
+    username?: string;
+    full_name?: string;
+    avatar_url?: string;
+  };
+  likes_count: number; // Added this property
 }
 
-export const fetchPhotos = async (category: string = 'all'): Promise<Photo[]> => {
+export const fetchPhotos = async (): Promise<Photo[]> => {
   try {
-    console.log(`Fetching photos for category: ${category}`);
-    
-    // Fetch photos from the database
-    const mediaItems = await fetchMedia('photo', category);
-    
-    if (mediaItems.length > 0) {
-      console.log(`Found ${mediaItems.length} photos in database`);
-      return mediaItems.map(item => ({
-        id: item.id,
-        title: item.title || 'Untitled Photo',
-        image: item.file_url,
-        thumbnail: item.thumbnail_url || item.file_url,
-        category: item.category || 'uncategorized',
-        author: item.user?.full_name || item.user?.username || 'Unknown User',
-        views: item.views || 0,
-        likes: 0, // We don't have likes in the media table yet
-        postId: item.post_id || item.id,
-        user: item.user
-      }));
-    }
-    
-    // If no photos found, return an empty array
-    console.log('No photos found in database');
-    return [];
-  } catch (err) {
-    console.error('Error in fetchPhotos:', err);
+    // Mock data for demonstration purposes
+    // In a real application, this would fetch from Supabase
+    return [
+      {
+        id: '1',
+        user_id: '1',
+        image_url: 'https://images.unsplash.com/photo-1617575521317-d2974f3b56d2',
+        created_at: '2023-04-15T12:00:00Z',
+        title: 'Sunset by the beach',
+        category: 'Landscape',
+        user: {
+          id: '1',
+          username: 'nature_lover',
+          full_name: 'Nature Photographer',
+          avatar_url: 'https://randomuser.me/api/portraits/women/42.jpg'
+        },
+        likes_count: 24
+      },
+      {
+        id: '2',
+        user_id: '2',
+        image_url: 'https://images.unsplash.com/photo-1579656225245-ef650a6cba0a',
+        created_at: '2023-04-10T14:30:00Z',
+        title: 'City at night',
+        category: 'Urban',
+        user: {
+          id: '2',
+          username: 'urban_shots',
+          full_name: 'Urban Explorer',
+          avatar_url: 'https://randomuser.me/api/portraits/men/32.jpg'
+        },
+        likes_count: 18
+      }
+    ];
+  } catch (error) {
+    console.error('Error fetching photos:', error);
     return [];
   }
 };
 
-// Add the function that's imported in Photos.tsx
-export const getPhotosByCategory = async (category: string = 'all'): Promise<Photo[]> => {
-  return fetchPhotos(category);
+// Add missing fetchPhotoById function
+export const fetchPhotoById = async (id: string): Promise<Photo | null> => {
+  try {
+    // In a real app, we would fetch from Supabase
+    const photos = await fetchPhotos();
+    const photo = photos.find(photo => photo.id === id);
+    return photo || null;
+  } catch (error) {
+    console.error(`Error fetching photo with ID ${id}:`, error);
+    return null;
+  }
+};
+
+// Additional function to like a photo
+export const likePhoto = async (photoId: string): Promise<boolean> => {
+  try {
+    console.log(`Liking photo with ID ${photoId}`);
+    // This would be a Supabase call in a real app
+    return true;
+  } catch (error) {
+    console.error(`Error liking photo with ID ${photoId}:`, error);
+    return false;
+  }
 };

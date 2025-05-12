@@ -14,6 +14,7 @@ import { fetchPhotos, Photo } from "@/services/photoService";
 import { Link } from "react-router-dom";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { supabase } from "@/lib/supabaseClient";
+import { getSecurePhotoUrl, securePhotos } from "@/services/securePhotoService";
 
 const Photos = () => {
   const { subscriptionDetails } = useSubscription();
@@ -68,13 +69,16 @@ const Photos = () => {
       try {
         setIsLoading(true);
         const photosData = await fetchPhotos(selectedCategory);
-        setPhotos(photosData);
+        
+        // Process photos to use secure URLs based on subscription
+        const securedPhotos = await securePhotos(photosData, subscriptionDetails.tier);
+        setPhotos(securedPhotos);
         
         // Set up like count tracking for each photo
         const likesRecord: Record<string, number> = {};
         
         // Get initial likes counts for all photos with post_id
-        await Promise.all(photosData.map(async (photo) => {
+        await Promise.all(securedPhotos.map(async (photo) => {
           if (!photo.postId) return;
           
           try {
@@ -106,7 +110,7 @@ const Photos = () => {
     };
     
     loadPhotos();
-  }, [selectedCategory, toast]);
+  }, [selectedCategory, toast, subscriptionDetails.tier]);
 
   // Set up real-time subscriptions for like updates
   useEffect(() => {

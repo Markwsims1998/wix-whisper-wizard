@@ -126,7 +126,9 @@ export const uploadMediaFile = async (
 
     const fileExt = file.name.split('.').pop();
     const fileName = `${userId}/${Date.now()}.${fileExt}`;
-    const bucketName = contentType === 'photo' ? 'photos' : 'videos';
+    
+    // Use different bucket based on content type
+    const bucketName = contentType === 'photo' ? 'photos-premium' : 'videos';
     
     // Upload file to storage
     const { data: uploadData, error: uploadError } = await supabase.storage

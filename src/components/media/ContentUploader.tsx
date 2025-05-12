@@ -1,556 +1,265 @@
-import { useState, useEffect } from 'react';
-import { Button } from "@/components/ui/button";
+
+import React, { useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogDescription, 
-  DialogFooter, 
-  DialogHeader, 
-  DialogTitle 
-} from "@/components/ui/dialog";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Image, Video, MapPin, Hash, Album, X, Tag, Smile } from "lucide-react";
-import { Badge } from "../ui/badge";
-import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
+import { Loader2, Upload } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import data from '@emoji-mart/data';
-import Picker from '@emoji-mart/react';
-import { uploadMedia } from '@/services/mediaService';
-import { useAuth } from '@/contexts/auth/AuthProvider';
+import { useAuth } from "@/contexts/auth/AuthProvider";
+import { uploadMedia } from "@/services/mediaService";
+import { uploadSecurePhoto } from "@/services/securePhotoService";
+import { useSubscription } from "@/contexts/SubscriptionContext";
 
 interface ContentUploaderProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  type?: 'photo' | 'video';
+  type: 'photo' | 'video' | 'post';
   onSuccess?: () => void;
 }
 
-// Mock users for tagging
-const suggestedUsers = [
-  { id: 1, name: "Alex Johnson", username: "alex_j", avatar: "https://randomuser.me/api/portraits/men/32.jpg" },
-  { id: 2, name: "Samantha Lee", username: "samlee", avatar: "https://randomuser.me/api/portraits/women/44.jpg" },
-  { id: 3, name: "Marcus Wright", username: "marc_wright", avatar: "https://randomuser.me/api/portraits/men/22.jpg" },
-  { id: 4, name: "Jamie Rodriguez", username: "jamierod", avatar: "https://randomuser.me/api/portraits/women/17.jpg" },
-  { id: 5, name: "Taylor Kim", username: "t_kim", avatar: "https://randomuser.me/api/portraits/women/28.jpg" }
-];
-
-const ContentUploader = ({ open, onOpenChange, type = 'photo', onSuccess }: ContentUploaderProps) => {
-  const { user } = useAuth();
-  const [contentType, setContentType] = useState<'photo' | 'video'>(type);
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('');
-  const [location, setLocation] = useState('');
-  const [album, setAlbum] = useState('');
-  const [hashtags, setHashtags] = useState<string[]>([]);
-  const [hashtagInput, setHashtagInput] = useState('');
-  const [taggedUsers, setTaggedUsers] = useState<any[]>([]);
-  const [tagInput, setTagInput] = useState('');
-  const [showTagSuggestions, setShowTagSuggestions] = useState(false);
-  const [createNewAlbum, setCreateNewAlbum] = useState(false);
-  const [newAlbumName, setNewAlbumName] = useState('');
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [filePreview, setFilePreview] = useState<string | null>(null);
-  const [formValid, setFormValid] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
-
+const ContentUploader: React.FC<ContentUploaderProps> = ({ 
+  open, 
+  onOpenChange,
+  type,
+  onSuccess
+}) => {
   const { toast } = useToast();
-  
-  // Sample categories
-  const categories = {
-    photo: ['Events', 'Portraits', 'Fashion', 'Lifestyle', 'Travel'],
-    video: ['Events', 'Tutorials', 'Meetups', 'Workshops', 'Interviews']
-  };
-  
-  // Sample albums
-  const albums = ['My Album', 'Community Events', 'Workshop Photos', 'Vacation 2025'];
-  
-  // Reset state when the content type changes
-  useEffect(() => {
-    setContentType(type);
-  }, [type]);
-  
-  // Check form validity
-  useEffect(() => {
-    const isValid = 
-      title.trim() !== '' && 
-      selectedCategory !== '' &&
-      selectedFile !== null;
+  const { user } = useAuth();
+  const { subscriptionDetails } = useSubscription();
+  const [uploading, setUploading] = useState(false);
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [category, setCategory] = useState("lifestyle");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  const categories = [
+    { id: "events", name: "Events" },
+    { id: "portraits", name: "Portraits" },
+    { id: "fashion", name: "Fashion" },
+    { id: "lifestyle", name: "Lifestyle" },
+    { id: "travel", name: "Travel" }
+  ];
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
     
-    setFormValid(isValid);
-  }, [title, selectedCategory, selectedFile]);
-
-  // Handle file selection
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0] || null;
-    if (file) {
-      setSelectedFile(file);
-      
-      // Create preview
-      const reader = new FileReader();
-      reader.onload = () => {
-        setFilePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
+    setSelectedFile(file);
+    
+    // Create preview URL for image/video
+    const url = URL.createObjectURL(file);
+    setPreviewUrl(url);
   };
   
-  const handleAddHashtag = () => {
-    if (hashtagInput && !hashtags.includes(hashtagInput)) {
-      setHashtags([...hashtags, hashtagInput]);
-      setHashtagInput('');
-    }
-  };
-  
-  const handleRemoveHashtag = (tag: string) => {
-    setHashtags(hashtags.filter(t => t !== tag));
-  };
-  
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && hashtagInput) {
-      e.preventDefault();
-      handleAddHashtag();
-    }
-  };
-  
-  const handleTagUser = (user: any) => {
-    if (!taggedUsers.find(u => u.id === user.id)) {
-      setTaggedUsers([...taggedUsers, user]);
-    }
-    setTagInput('');
-    setShowTagSuggestions(false);
-  };
-  
-  const handleRemoveTag = (userId: number) => {
-    setTaggedUsers(taggedUsers.filter(user => user.id !== userId));
-  };
-  
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setTagInput(e.target.value);
-    setShowTagSuggestions(e.target.value.length > 0);
-  };
-
-  const handleAlbumChange = (value: string) => {
-    if (value === 'create_new') {
-      setCreateNewAlbum(true);
-      setAlbum('');
-    } else {
-      setCreateNewAlbum(false);
-      setAlbum(value);
-    }
-  };
-
-  const addEmoji = (emoji: any) => {
-    setDescription(prev => prev + emoji.native);
-  };
-
-  const filteredUsers = tagInput.length > 0
-    ? suggestedUsers.filter(user => 
-        user.name.toLowerCase().includes(tagInput.toLowerCase()) || 
-        user.username.toLowerCase().includes(tagInput.toLowerCase())
-      )
-    : [];
-  
-  const handleSubmit = async () => {
-    if (!user?.id || !selectedFile || !selectedCategory) {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!user?.id) {
       toast({
-        title: "Missing Information",
-        description: "Please fill in all required fields and select a file.",
-        variant: "destructive"
+        title: "Authentication Required",
+        description: "You must be logged in to upload content.",
+        variant: "destructive",
       });
       return;
     }
     
-    setIsUploading(true);
+    if (!selectedFile) {
+      toast({
+        title: "No File Selected",
+        description: `Please select a ${type === 'photo' ? 'photo' : 'video'} to upload.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setUploading(true);
     
     try {
-      // Upload the media file and save metadata
-      const result = await uploadMedia(
-        selectedFile,
-        {
-          title: title || `Untitled ${contentType}`,
-          description,
-          category: selectedCategory,
-          userId: user.id,
-          contentType,
-          location,
-          tags: hashtags
-        }
-      );
+      let result;
       
-      if (result) {
-        // Show success message
-        toast({
-          title: `${contentType.charAt(0).toUpperCase() + contentType.slice(1)} Uploaded`,
-          description: "Your content has been successfully uploaded.",
+      // Use different upload methods based on content type
+      if (type === 'photo') {
+        // Use secure photo upload for photos
+        result = await uploadSecurePhoto(
+          selectedFile,
+          user.id,
+          subscriptionDetails.tier
+        );
+        
+        if (!result) throw new Error('Failed to upload photo');
+        
+        // Save metadata using the regular media service
+        await uploadMedia(selectedFile, {
+          title,
+          description,
+          category,
+          userId: user.id,
+          contentType: 'photo'
         });
-        
-        // Call the onSuccess callback if provided
-        if (onSuccess) {
-          onSuccess();
-        }
-        
-        // Close the dialog and reset form
-        resetForm();
-        onOpenChange(false);
       } else {
-        throw new Error("Upload failed");
+        // Use regular upload for videos and other content
+        result = await uploadMedia(selectedFile, {
+          title,
+          description,
+          category,
+          userId: user.id,
+          contentType: type
+        });
+      }
+      
+      if (!result) {
+        throw new Error(`Failed to upload ${type}`);
+      }
+      
+      toast({
+        title: "Upload Successful",
+        description: `Your ${type} has been uploaded successfully.`,
+      });
+      
+      // Reset form
+      setTitle("");
+      setDescription("");
+      setSelectedFile(null);
+      setPreviewUrl(null);
+      
+      // Close dialog
+      onOpenChange(false);
+      
+      // Call onSuccess callback
+      if (onSuccess) {
+        onSuccess();
       }
     } catch (error) {
-      console.error("Error during upload:", error);
+      console.error(`Error uploading ${type}:`, error);
       toast({
         title: "Upload Failed",
-        description: "There was a problem uploading your content. Please try again.",
-        variant: "destructive"
+        description: `There was a problem uploading your ${type}. Please try again.`,
+        variant: "destructive",
       });
     } finally {
-      setIsUploading(false);
+      setUploading(false);
     }
   };
 
-  const resetForm = () => {
-    setTitle('');
-    setDescription('');
-    setSelectedCategory('');
-    setLocation('');
-    setAlbum('');
-    setHashtags([]);
-    setHashtagInput('');
-    setTaggedUsers([]);
-    setTagInput('');
-    setCreateNewAlbum(false);
-    setNewAlbumName('');
-    setSelectedFile(null);
-    setFilePreview(null);
-  };
-
-  const handleClose = () => {
-    resetForm();
-    onOpenChange(false);
-  };
-
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Upload {contentType.charAt(0).toUpperCase() + contentType.slice(1)}</DialogTitle>
+          <DialogTitle>Upload {type === 'photo' ? 'Photo' : type === 'video' ? 'Video' : 'Post'}</DialogTitle>
           <DialogDescription>
-            Fill in the details for your {contentType}. Fields marked with * are required.
+            Share your content with the community
           </DialogDescription>
         </DialogHeader>
         
-        <Tabs defaultValue={contentType} onValueChange={(value) => setContentType(value as 'photo' | 'video')}>
-          <TabsList className="grid grid-cols-2 mb-4">
-            <TabsTrigger value="photo" className="flex items-center gap-2">
-              <Image className="w-4 h-4" /> Photo
-            </TabsTrigger>
-            <TabsTrigger value="video" className="flex items-center gap-2">
-              <Video className="w-4 h-4" /> Video
-            </TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="photo" className="space-y-4">
-            <div 
-              className={`border-2 border-dashed rounded-lg p-8 text-center hover:border-gray-400 transition-colors relative ${filePreview ? 'pt-0' : ''}`}
-              onClick={() => document.getElementById('photo-upload')?.click()}
-            >
-              {filePreview ? (
-                <div className="mb-4">
-                  <img 
-                    src={filePreview} 
-                    alt="Preview" 
-                    className="mx-auto max-h-48 rounded-lg shadow-sm" 
-                  />
-                  <button 
-                    type="button" 
-                    className="absolute top-2 right-2 bg-white rounded-full p-1 shadow-md"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setFilePreview(null);
-                      setSelectedFile(null);
-                    }}
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              ) : (
-                <Image className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-              )}
-              <p className="mb-2 text-sm font-medium">{filePreview ? "Click to change photo" : "Drag and drop your photo here"}</p>
-              <p className="text-xs text-gray-500 mb-4">{filePreview ? "PNG, JPG or WEBP up to 10MB" : "PNG, JPG or WEBP up to 10MB"}</p>
-              <Button type="button" variant="outline" size="sm">Browse Files</Button>
-              <input 
-                id="photo-upload" 
-                type="file" 
-                className="hidden" 
-                accept="image/*" 
-                onChange={handleFileChange}
-              />
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="video" className="space-y-4">
-            <div 
-              className={`border-2 border-dashed rounded-lg p-8 text-center hover:border-gray-400 transition-colors relative ${filePreview ? 'pt-0' : ''}`}
-              onClick={() => document.getElementById('video-upload')?.click()}
-            >
-              {filePreview ? (
-                <div className="mb-4">
-                  {contentType === 'video' ? (
-                    <video 
-                      src={filePreview} 
-                      className="mx-auto max-h-48 rounded-lg shadow-sm" 
-                      controls
-                    />
-                  ) : (
-                    <img 
-                      src={filePreview} 
-                      alt="Preview" 
-                      className="mx-auto max-h-48 rounded-lg shadow-sm" 
-                    />
-                  )}
-                  <button 
-                    type="button" 
-                    className="absolute top-2 right-2 bg-white rounded-full p-1 shadow-md"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setFilePreview(null);
-                      setSelectedFile(null);
-                    }}
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              ) : (
-                <Video className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-              )}
-              <p className="mb-2 text-sm font-medium">{filePreview ? "Click to change video" : "Drag and drop your video here"}</p>
-              <p className="text-xs text-gray-500 mb-4">{filePreview ? "MP4, MOV or WebM up to 100MB" : "MP4, MOV or WebM up to 100MB"}</p>
-              <Button type="button" variant="outline" size="sm">Browse Files</Button>
-              <input 
-                id="video-upload" 
-                type="file" 
-                className="hidden" 
-                accept="video/*" 
-                onChange={handleFileChange}
-              />
-            </div>
-          </TabsContent>
-        </Tabs>
-        
-        <div className="grid gap-4 py-4">
-          <div className="grid gap-2">
-            <Label htmlFor="title">Title *</Label>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="title">Title</Label>
             <Input 
-              id="title" 
-              placeholder="Enter a title" 
+              id="title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
+              placeholder="Give your content a title"
+              required
             />
           </div>
           
-          <div className="grid gap-2">
-            <div className="flex justify-between items-center">
-              <Label htmlFor="description">Description</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button size="sm" variant="outline" className="h-8 gap-1">
-                    <Smile className="h-4 w-4" />
-                    Emoji
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-full p-0" side="top">
-                  <Picker 
-                    data={data} 
-                    onEmojiSelect={addEmoji} 
-                    theme="light" 
-                  />
-                </PopoverContent>
-              </Popover>
+          {type !== 'post' && (
+            <div className="space-y-2">
+              <Label htmlFor="file">
+                {type === 'photo' ? 'Photo' : 'Video'}
+              </Label>
+              <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 text-center hover:border-gray-400 dark:hover:border-gray-500 transition cursor-pointer" onClick={() => document.getElementById('file-upload')?.click()}>
+                <input 
+                  id="file-upload"
+                  type="file" 
+                  className="hidden"
+                  accept={type === 'photo' ? "image/*" : "video/*"} 
+                  onChange={handleFileChange}
+                  required
+                />
+                
+                {previewUrl ? (
+                  type === 'photo' ? (
+                    <img 
+                      src={previewUrl} 
+                      alt="Preview" 
+                      className="mx-auto max-h-60 rounded-lg"
+                    />
+                  ) : (
+                    <video 
+                      src={previewUrl}
+                      controls
+                      className="mx-auto max-h-60 w-full"
+                    />
+                  )
+                ) : (
+                  <div className="py-4">
+                    <Upload className="mx-auto h-12 w-12 text-gray-400" />
+                    <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                      Click to select a {type === 'photo' ? 'photo' : 'video'}
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
-            <Textarea 
-              id="description" 
-              placeholder="Write a description" 
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-            />
-          </div>
+          )}
           
-          <div className="grid gap-2">
-            <Label htmlFor="category">Category *</Label>
-            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+          <div className="space-y-2">
+            <Label htmlFor="category">Category</Label>
+            <Select 
+              value={category} 
+              onValueChange={setCategory}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Select a category" />
               </SelectTrigger>
               <SelectContent>
-                {categories[contentType].map(category => (
-                  <SelectItem key={category} value={category.toLowerCase()}>
-                    {category}
+                {categories.map((cat) => (
+                  <SelectItem key={cat.id} value={cat.id}>
+                    {cat.name}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
           
-          <div className="grid gap-2">
-            <Label htmlFor="album">Album</Label>
-            {!createNewAlbum ? (
-              <div className="flex items-center gap-2">
-                <Album className="w-4 h-4 text-gray-500" />
-                <Select value={album} onValueChange={handleAlbumChange}>
-                  <SelectTrigger className="flex-1">
-                    <SelectValue placeholder="Choose an album" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {albums.map(album => (
-                      <SelectItem key={album} value={album}>
-                        {album}
-                      </SelectItem>
-                    ))}
-                    <SelectItem value="create_new">➕ Create New Album</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2">
-                <Album className="w-4 h-4 text-gray-500" />
-                <Input 
-                  placeholder="New album name"
-                  value={newAlbumName}
-                  onChange={(e) => setNewAlbumName(e.target.value)}
-                  className="flex-1"
-                />
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => setCreateNewAlbum(false)}
-                >
-                  Cancel
-                </Button>
-              </div>
-            )}
+          <div className="space-y-2">
+            <Label htmlFor="description">Description (optional)</Label>
+            <Input 
+              id="description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Add a brief description"
+            />
           </div>
           
-          <div className="grid gap-2">
-            <Label htmlFor="location">Location</Label>
-            <div className="flex items-center gap-2">
-              <MapPin className="w-4 h-4 text-gray-500" />
-              <Input 
-                id="location" 
-                placeholder="Add a location (optional)" 
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-              />
-            </div>
-          </div>
-          
-          <div className="grid gap-2">
-            <Label htmlFor="tags">Tag People</Label>
-            <div className="relative">
-              <div className="flex items-center gap-2">
-                <Tag className="w-4 h-4 text-gray-500" />
-                <Input 
-                  id="tags" 
-                  placeholder="Tag people with @" 
-                  value={tagInput}
-                  onChange={handleInputChange}
-                  onFocus={() => tagInput && setShowTagSuggestions(true)}
-                  onBlur={() => setTimeout(() => setShowTagSuggestions(false), 200)}
-                />
-              </div>
-              
-              {showTagSuggestions && filteredUsers.length > 0 && (
-                <div className="absolute z-10 bg-white shadow-lg rounded-md mt-1 left-0 right-0 border border-gray-200 max-h-48 overflow-y-auto">
-                  {filteredUsers.map(user => (
-                    <div 
-                      key={user.id} 
-                      className="flex items-center gap-2 p-2 hover:bg-gray-100 cursor-pointer"
-                      onClick={() => handleTagUser(user)}
-                    >
-                      <div className="w-8 h-8 rounded-full overflow-hidden">
-                        <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium">{user.name}</p>
-                        <p className="text-xs text-gray-500">@{user.username}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+          <div className="flex justify-end gap-2">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => onOpenChange(false)}
+              disabled={uploading}
+            >
+              Cancel
+            </Button>
+            <Button 
+              type="submit"
+              disabled={uploading || !selectedFile}
+            >
+              {uploading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Uploading...
+                </>
+              ) : (
+                'Upload'
               )}
-            </div>
-            
-            {taggedUsers.length > 0 && (
-              <div className="flex flex-wrap gap-2 mt-2">
-                {taggedUsers.map(user => (
-                  <Badge key={user.id} className="gap-1 bg-blue-100 text-blue-800 hover:bg-blue-200">
-                    <div className="flex items-center gap-1">
-                      <div className="w-4 h-4 rounded-full overflow-hidden">
-                        <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
-                      </div>
-                      @{user.username}
-                      <button onClick={() => handleRemoveTag(user.id)} className="ml-1">
-                        <X className="h-3 w-3" />
-                      </button>
-                    </div>
-                  </Badge>
-                ))}
-              </div>
-            )}
+            </Button>
           </div>
-          
-          <div className="grid gap-2">
-            <Label htmlFor="hashtags">Hashtags</Label>
-            <div className="flex items-center gap-2">
-              <Hash className="w-4 h-4 text-gray-500" />
-              <Input 
-                id="hashtags" 
-                placeholder="Add hashtags" 
-                value={hashtagInput}
-                onChange={(e) => setHashtagInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-              />
-              <Button 
-                type="button" 
-                variant="outline" 
-                size="sm"
-                onClick={handleAddHashtag}
-              >
-                Add
-              </Button>
-            </div>
-            
-            {hashtags.length > 0 && (
-              <div className="flex flex-wrap gap-2 mt-2">
-                {hashtags.map(tag => (
-                  <Badge key={tag} className="gap-1 bg-gray-100 hover:bg-gray-200 text-gray-800">
-                    #{tag}
-                    <button onClick={() => handleRemoveHashtag(tag)}>
-                      <X className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-        
-        <DialogFooter>
-          <Button variant="outline" onClick={handleClose} disabled={isUploading}>Cancel</Button>
-          <Button 
-            onClick={handleSubmit} 
-            disabled={!formValid || isUploading}
-          >
-            {isUploading ? 
-              <>Uploading...</> : 
-              <>Upload {contentType === 'photo' ? 'Photo' : 'Video'}</>
-            }
-          </Button>
-        </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

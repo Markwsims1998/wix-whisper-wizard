@@ -29,7 +29,6 @@ export const fetchVideos = async (category: string = 'all'): Promise<Video[]> =>
     }
     
     // If no videos found in database, return an empty array
-    // No more fallback to placeholder data
     console.log('No videos found in database');
     return [];
   } catch (err) {
@@ -37,6 +36,3 @@ export const fetchVideos = async (category: string = 'all'): Promise<Video[]> =>
     return [];
   }
 };
-
-// No longer needed, as we're using database data
-// export const getPlaceholderVideos = (): Video[] => { ... };

@@ -40,7 +40,6 @@ export const fetchPhotos = async (category: string = 'all'): Promise<Photo[]> =>
     }
     
     // If no photos found, return an empty array
-    // No more fallback to placeholder data
     console.log('No photos found in database');
     return [];
   } catch (err) {
@@ -48,6 +47,3 @@ export const fetchPhotos = async (category: string = 'all'): Promise<Photo[]> =>
     return [];
   }
 };
-
-// No longer needed as we're using database data
-// export const getPlaceholderPhotos = (): Photo[] => { ... };

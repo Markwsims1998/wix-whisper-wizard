@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { X, Heart, ChevronLeft, ChevronRight, Play, ArrowUpRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useSubscription } from '@/contexts/SubscriptionContext';
@@ -20,7 +20,7 @@ const MediaViewer = ({ type, media, onClose, onLike, onPrev, onNext, postId }: M
   const isGoldMember = subscriptionTier === 'gold';
   
   // Close on escape key
-  React.useEffect(() => {
+  useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
     };
@@ -32,6 +32,11 @@ const MediaViewer = ({ type, media, onClose, onLike, onPrev, onNext, postId }: M
   // Close on background click
   const handleBackgroundClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === e.currentTarget) onClose();
+  };
+  
+  // Prevent clicks within the content from closing the modal
+  const handleContentClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
   };
   
   // Determine author information
@@ -52,29 +57,41 @@ const MediaViewer = ({ type, media, onClose, onLike, onPrev, onNext, postId }: M
       
       <div className="absolute top-4 right-4 z-10">
         <button 
-          onClick={onClose}
+          onClick={(e) => {
+            e.stopPropagation();
+            onClose();
+          }}
           className="p-2 bg-white/10 backdrop-blur-md text-white rounded-full hover:bg-white/20 transition-all"
+          aria-label="Close"
         >
           <X className="w-6 h-6" />
         </button>
       </div>
       
-      <div className="absolute top-1/2 left-4 z-10">
+      <div className="absolute top-1/2 left-4 z-10 transform -translate-y-1/2">
         {onPrev && (
           <button 
-            onClick={onPrev}
+            onClick={(e) => {
+              e.stopPropagation();
+              onPrev();
+            }}
             className="p-2 bg-white/10 backdrop-blur-md text-white rounded-full hover:bg-white/20 transition-all"
+            aria-label="Previous"
           >
             <ChevronLeft className="w-6 h-6" />
           </button>
         )}
       </div>
       
-      <div className="absolute top-1/2 right-4 z-10">
+      <div className="absolute top-1/2 right-4 z-10 transform -translate-y-1/2">
         {onNext && (
           <button 
-            onClick={onNext}
+            onClick={(e) => {
+              e.stopPropagation();
+              onNext();
+            }}
             className="p-2 bg-white/10 backdrop-blur-md text-white rounded-full hover:bg-white/20 transition-all"
+            aria-label="Next"
           >
             <ChevronRight className="w-6 h-6" />
           </button>
@@ -82,7 +99,7 @@ const MediaViewer = ({ type, media, onClose, onLike, onPrev, onNext, postId }: M
       </div>
 
       <div className="w-full h-full flex flex-col items-center justify-center p-4 md:p-10 relative z-10">
-        <div className="relative max-w-4xl w-full h-full flex items-center justify-center">
+        <div className="relative max-w-4xl w-full h-full flex items-center justify-center" onClick={handleContentClick}>
           {type === 'image' && (
             <div className="relative">
               <img 
@@ -127,7 +144,7 @@ const MediaViewer = ({ type, media, onClose, onLike, onPrev, onNext, postId }: M
         </div>
         
         <div className="absolute bottom-6 left-0 w-full px-6">
-          <div className="max-w-4xl mx-auto flex items-center justify-between bg-white/10 backdrop-blur-md p-4 rounded-lg">
+          <div className="max-w-4xl mx-auto flex items-center justify-between bg-white/10 backdrop-blur-md p-4 rounded-lg" onClick={handleContentClick}>
             <div className="flex items-center gap-3">
               <div className="h-12 w-12 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
                 {media.authorPic || (media.user && media.user.avatar_url) ? (
@@ -148,6 +165,7 @@ const MediaViewer = ({ type, media, onClose, onLike, onPrev, onNext, postId }: M
                 <Link 
                   to={authorUsername ? `/profile?name=${authorUsername}` : '#'}
                   className="text-white font-medium hover:underline"
+                  onClick={(e) => e.stopPropagation()}
                 >
                   {media.title || `By ${authorName}`}
                 </Link>
@@ -171,7 +189,7 @@ const MediaViewer = ({ type, media, onClose, onLike, onPrev, onNext, postId }: M
               )}
               
               {postId && (
-                <Link to={`/post/${postId}`}>
+                <Link to={`/post/${postId}`} onClick={(e) => e.stopPropagation()}>
                   <Button 
                     variant="outline" 
                     size="sm" 

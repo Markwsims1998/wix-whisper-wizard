@@ -1,4 +1,5 @@
-import { supabase } from "@/integrations/supabase/client";
+
+import { supabase } from "@/lib/supabaseClient";
 import { FriendProfile } from "./userService";
 import { createActivity } from "./activityService";
 
@@ -148,11 +149,11 @@ export const getPendingFriendRequests = async (userId: string): Promise<FriendPr
     return (relationships || []).map(rel => {
       const profile = rel.profiles;
       return {
-        id: profile?.id || '',
-        username: profile?.username || '',
-        full_name: profile?.full_name || '',
-        avatar_url: profile?.avatar_url || '',
-        status: profile?.status === 'online' ? 'online' : 'offline'
+        id: profile && typeof profile === 'object' && 'id' in profile ? profile.id || '' : '',
+        username: profile && typeof profile === 'object' && 'username' in profile ? profile.username || '' : '',
+        full_name: profile && typeof profile === 'object' && 'full_name' in profile ? profile.full_name || '' : '',
+        avatar_url: profile && typeof profile === 'object' && 'avatar_url' in profile ? profile.avatar_url || '' : '',
+        status: profile && typeof profile === 'object' && 'status' in profile && profile.status === 'online' ? 'online' : 'offline'
       };
     });
   } catch (error) {
@@ -224,16 +225,18 @@ export const getFriends = async (userId: string): Promise<FriendProfile[]> => {
     // Transform the data into the FriendProfile format
     return (relationships || []).map(rel => {
       const profile = rel.profiles;
-      const isRecent = profile?.last_sign_in_at 
-        ? (new Date().getTime() - new Date(profile.last_sign_in_at).getTime()) < 15 * 60 * 1000 // 15 minutes
-        : false;
+      let isRecent = false;
+      
+      if (profile && typeof profile === 'object' && 'last_sign_in_at' in profile && profile.last_sign_in_at) {
+        isRecent = (new Date().getTime() - new Date(profile.last_sign_in_at).getTime()) < 15 * 60 * 1000; // 15 minutes
+      }
       
       return {
-        id: profile?.id || '',
-        username: profile?.username || '',
-        full_name: profile?.full_name || '',
-        avatar_url: profile?.avatar_url || '',
-        last_active: profile?.last_sign_in_at || '',
+        id: profile && typeof profile === 'object' && 'id' in profile ? profile.id || '' : '',
+        username: profile && typeof profile === 'object' && 'username' in profile ? profile.username || '' : '',
+        full_name: profile && typeof profile === 'object' && 'full_name' in profile ? profile.full_name || '' : '',
+        avatar_url: profile && typeof profile === 'object' && 'avatar_url' in profile ? profile.avatar_url || '' : '',
+        last_active: profile && typeof profile === 'object' && 'last_sign_in_at' in profile ? profile.last_sign_in_at || '' : '',
         status: isRecent ? 'online' : 'offline'
       };
     });

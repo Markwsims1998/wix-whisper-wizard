@@ -56,11 +56,12 @@ const MembersList = () => {
           const profile = rel.profiles;
           
           // Calculate time ago string
-          const lastActive = profile && profile.last_sign_in_at ? new Date(profile.last_sign_in_at) : null;
-          const now = new Date();
+          let lastActive = null;
           let timeAgo = 'Unknown';
           
-          if (lastActive) {
+          if (profile && typeof profile === 'object' && 'last_sign_in_at' in profile && profile.last_sign_in_at) {
+            lastActive = new Date(profile.last_sign_in_at);
+            const now = new Date();
             const diffHours = Math.floor((now.getTime() - lastActive.getTime()) / (1000 * 60 * 60));
             const diffDays = Math.floor(diffHours / 24);
             const diffMonths = Math.floor(diffDays / 30);
@@ -78,13 +79,15 @@ const MembersList = () => {
           }
           
           return {
-            id: profile?.id || '',
-            name: profile?.full_name || profile?.username || '',
-            username: `@${profile?.username || ''}`,
+            id: profile && typeof profile === 'object' && 'id' in profile ? profile.id || '' : '',
+            name: profile && typeof profile === 'object' 
+              ? ('full_name' in profile && profile.full_name) || ('username' in profile && profile.username) || '' 
+              : '',
+            username: profile && typeof profile === 'object' && 'username' in profile ? `@${profile.username || ''}` : '',
             timeAgo,
-            avatar: profile?.avatar_url || '',
-            profilePicture: profile?.profile_picture_url || '',
-            isLocal: !!profile?.location,
+            avatar: profile && typeof profile === 'object' && 'avatar_url' in profile ? profile.avatar_url || '' : '',
+            profilePicture: profile && typeof profile === 'object' && 'profile_picture_url' in profile ? profile.profile_picture_url || '' : '',
+            isLocal: profile && typeof profile === 'object' && 'location' in profile ? !!profile.location : false,
             isHotlist: false, // Implement hotlist logic as needed
             isFriend: true
           };

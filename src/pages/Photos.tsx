@@ -5,17 +5,16 @@ import Sidebar from "@/components/Sidebar";
 import { Image as ImageIcon, User, Heart, Filter, Info } from "lucide-react";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { Button } from "@/components/ui/button";
-import MediaViewer from "@/components/media/MediaViewer";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import ContentUploader from "@/components/media/ContentUploader";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { fetchPhotos, Photo } from "@/services/photoService";
+import { Link } from "react-router-dom";
 
 const Photos = () => {
   const { subscriptionDetails } = useSubscription();
-  const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [uploaderOpen, setUploaderOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -81,23 +80,6 @@ const Photos = () => {
     
     loadPhotos();
   }, [selectedCategory, toast]);
-
-  const handlePhotoClick = (photo: Photo, e?: React.MouseEvent) => {
-    if (e) {
-      // Prevent default navigation behavior
-      e.preventDefault();
-      e.stopPropagation();
-    }
-    
-    // Set the selected photo to open the viewer
-    console.log("Opening photo in viewer:", photo.id);
-    setSelectedPhoto(photo);
-  };
-
-  const handleCloseViewer = () => {
-    // Close the viewer by setting selectedPhoto to null
-    setSelectedPhoto(null);
-  };
 
   const handleOpenUploader = () => {
     setUploaderOpen(true);
@@ -170,10 +152,10 @@ const Photos = () => {
             ) : photos.length > 0 ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                 {photos.map(photo => (
-                  <div 
+                  <Link 
                     key={photo.id} 
-                    className="bg-gray-50 dark:bg-gray-700 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition cursor-pointer group"
-                    onClick={(e) => handlePhotoClick(photo, e)}
+                    to={`/media/${photo.id}?type=photo`}
+                    className="bg-gray-50 dark:bg-gray-700 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition block group"
                   >
                     <div className="relative aspect-square">
                       <img 
@@ -213,7 +195,7 @@ const Photos = () => {
                         </div>
                       </div>
                     </div>
-                  </div>
+                  </Link>
                 ))}
               </div>
             ) : (
@@ -227,16 +209,6 @@ const Photos = () => {
           </div>
         </div>
       </div>
-
-      {/* Full-screen photo viewer */}
-      {selectedPhoto && (
-        <MediaViewer 
-          type="image"
-          media={selectedPhoto}
-          onClose={handleCloseViewer}
-          postId={selectedPhoto.postId}
-        />
-      )}
 
       {/* Content uploader dialog */}
       <ContentUploader 

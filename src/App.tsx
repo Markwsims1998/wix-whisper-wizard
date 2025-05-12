@@ -21,7 +21,8 @@ import Basket from "./pages/Basket";
 import Notifications from "./pages/Notifications";
 import Feedback from "./pages/Feedback";
 import Winks from "./pages/Winks";
-import Friends from "./pages/Friends"; // Add this line
+import Friends from "./pages/Friends";
+import MediaDetail from "./pages/MediaDetail";
 import { useAuth } from "@/contexts/auth/AuthProvider";
 import Footer from "./components/Footer";
 import { useEffect } from "react";
@@ -73,6 +74,9 @@ function App() {
             {/* Profile routes - both for current user and specific users */}
             <Route path="/profile" element={isAuthenticated ? <Profile /> : <Navigate to="/login" replace />} />
             <Route path="/profile/:userId" element={isAuthenticated ? <Profile /> : <Navigate to="/login" replace />} />
+            
+            {/* Media detail page */}
+            <Route path="/media/:id" element={isAuthenticated ? <MediaDetail /> : <Navigate to="/login" replace />} />
             
             {/* Protected routes - redirect to login if not authenticated */}
             <Route path="/messages" element={isAuthenticated ? <Messages /> : <Navigate to="/login" replace />} />

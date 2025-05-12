@@ -6,9 +6,7 @@ import { Play, Filter } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { Button } from "@/components/ui/button";
-import MediaViewer from "@/components/media/MediaViewer";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Info } from "lucide-react";
 import ContentUploader from "@/components/media/ContentUploader";
@@ -19,7 +17,6 @@ import { useToast } from "@/hooks/use-toast";
 const Videos = () => {
   const { subscriptionDetails } = useSubscription();
   const canViewVideos = subscriptionDetails.canViewVideos;
-  const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [uploaderOpen, setUploaderOpen] = useState(false);
   const [videos, setVideos] = useState<Video[]>([]);
@@ -87,19 +84,14 @@ const Videos = () => {
 
   const handleVideoClick = (video: Video) => {
     if (canViewVideos) {
-      // Open the video in the viewer - prevent default navigation
-      console.log("Opening video in viewer:", video.id);
-      setSelectedVideo(video);
+      // Navigate to the video detail page instead of opening a popup
+      navigate(`/media/${video.id}?type=video`);
     } else {
       // Redirect to shop if not subscribed
       navigate("/shop");
     }
   };
   
-  const handleCloseViewer = () => {
-    setSelectedVideo(null);
-  };
-
   const handleUploadSuccess = () => {
     toast({
       title: "Upload successful",
@@ -187,22 +179,6 @@ const Videos = () => {
           </div>
         </div>
       </div>
-
-      {/* Full-screen video viewer */}
-      {selectedVideo && (
-        <MediaViewer 
-          type="video"
-          media={{
-            ...selectedVideo,
-            thumbnail: selectedVideo.thumbnail_url,
-            author: selectedVideo.user?.full_name || 'Unknown',
-            authorPic: selectedVideo.user?.avatar_url || undefined,
-            postId: selectedVideo.id
-          }}
-          onClose={handleCloseViewer}
-          postId={selectedVideo.id}
-        />
-      )}
 
       {/* Content uploader dialog */}
       <ContentUploader 

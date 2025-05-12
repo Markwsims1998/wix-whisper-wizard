@@ -182,6 +182,30 @@ const PostItem = ({ post, handleLikePost }: PostItemProps) => {
     console.log("No avatar URL found for author:", authorData);
     return null;
   };
+
+  // Determine if the post contains a photo or video
+  const hasMedia = post.media && post.media.length > 0;
+  const mediaType = hasMedia ? post.media[0].media_type : null;
+  const isImage = mediaType && mediaType.startsWith('image/');
+  const isVideo = mediaType && mediaType.startsWith('video/');
+  
+  // Get media URL for display
+  const getMediaUrl = () => {
+    if (!hasMedia) return null;
+    return post.media[0].file_url;
+  };
+
+  // Get thumbnail URL for media
+  const getThumbnailUrl = () => {
+    if (!hasMedia) return null;
+    return post.media[0].thumbnail_url || post.media[0].file_url;
+  };
+
+  // Format media ID
+  const getMediaId = () => {
+    if (!hasMedia) return null;
+    return post.media[0].id;
+  };
   
   const avatarUrl = getAvatarUrl();
   const authorName = authorData?.full_name || authorData?.username || "User";
@@ -224,23 +248,38 @@ const PostItem = ({ post, handleLikePost }: PostItemProps) => {
         </div>
       </div>
       
-      <p className="mb-3 text-gray-700 dark:text-gray-200">{post.content}</p>
+      {/* Post content */}
+      {post.content && <p className="mb-3 text-gray-700 dark:text-gray-200">{post.content}</p>}
       
-      {post.media && post.media.length > 0 && (
+      {/* Media display - enhanced with proper linking to media detail page */}
+      {hasMedia && (
         <div className="mb-4 rounded-md overflow-hidden">
-          {post.media[0].media_type.startsWith('image/') ? (
-            <img 
-              src={post.media[0].file_url} 
-              alt="Post attachment" 
-              className="w-full h-auto rounded-md hover:opacity-95 transition-opacity cursor-pointer"
-            />
-          ) : post.media[0].media_type.startsWith('video/') ? (
-            <video 
-              src={post.media[0].file_url} 
-              controls 
-              className="w-full rounded-md"
-            />
-          ) : null}
+          {isImage && (
+            <Link to={`/media/${getMediaId()}?type=photo`} className="block">
+              <img 
+                src={getMediaUrl()} 
+                alt="Photo attachment" 
+                className="w-full h-auto rounded-md hover:opacity-95 transition-opacity cursor-pointer object-contain max-h-[600px]"
+              />
+            </Link>
+          )}
+          
+          {isVideo && (
+            <Link to={`/media/${getMediaId()}?type=video`} className="block relative aspect-video bg-black">
+              <img 
+                src={getThumbnailUrl()}
+                alt="Video thumbnail" 
+                className="w-full h-full object-contain max-h-[600px]"
+              />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-16 h-16 rounded-full bg-black/30 flex items-center justify-center">
+                  <div className="w-12 h-12 rounded-full bg-white/80 flex items-center justify-center">
+                    <div className="w-0 h-0 border-t-8 border-b-8 border-l-12 border-t-transparent border-b-transparent border-l-red-600 ml-1"></div>
+                  </div>
+                </div>
+              </div>
+            </Link>
+          )}
         </div>
       )}
       

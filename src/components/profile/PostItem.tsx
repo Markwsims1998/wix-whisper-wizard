@@ -343,7 +343,7 @@ const PostItem = ({ post, handleLikePost }: PostItemProps) => {
               <img 
                 src={getThumbnailUrl()}
                 alt="Video thumbnail" 
-                className="w-full h-full object-contain max-h-[600px]"
+                className={`w-full h-full object-contain max-h-[600px] ${!userCanViewThisContent ? 'blur-sm filter saturate-50' : ''}`}
               />
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="w-16 h-16 rounded-full bg-black/30 flex items-center justify-center">
@@ -353,8 +353,10 @@ const PostItem = ({ post, handleLikePost }: PostItemProps) => {
                 </div>
               </div>
               
-              {shouldDisplayWatermark && (
-                <Watermark />
+              {!userCanViewThisContent ? (
+                <Watermark showSubscriptionMessage={true} />
+              ) : (
+                shouldDisplayWatermark && <Watermark />
               )}
             </div>
           )}

@@ -1,337 +1,203 @@
 import { supabase } from '@/lib/supabaseClient';
 
-// Define types for content items
-export interface ContentItem {
-  id: string;
-  type: 'post' | 'photo' | 'video';
-  content?: string;
-  title?: string;
-  url?: string;
-  thumbnail_url?: string;
-  created_at: string;
-  user_id: string;
-  user: {
-    username: string;
-    full_name?: string;
-    avatar_url?: string;
-  };
-  post_id?: string;
-  status: 'pending' | 'approved' | 'rejected';
-}
-
-export const fetchPendingContent = async (): Promise<ContentItem[]> => {
+export const getFlaggedPosts = async (page = 1, limit = 10): Promise<any> => {
   try {
-    // Fetch posts pending approval
-    const { data: postData, error: postError } = await supabase
-      .from('posts')
-      .select(`
-        id, 
-        content, 
-        created_at, 
-        user_id, 
-        profiles:user_id (
-          username, 
-          full_name,
-          avatar_url
-        )
-      `)
-      .is('approved', null)
-      .order('created_at', { ascending: false });
-      
-    if (postError) throw postError;
-    
-    const pendingPosts: ContentItem[] = postData.map(post => ({
-      id: post.id,
-      type: 'post',
-      content: post.content,
-      created_at: post.created_at,
-      user_id: post.user_id,
-      user: {
-        username: post.profiles?.username || 'Unknown',
-        full_name: post.profiles?.full_name || undefined,
-        avatar_url: post.profiles?.avatar_url || undefined
-      },
-      status: 'pending'
+    // This is a stub function that would normally fetch data from Supabase
+    // Mock data for demonstration purposes
+    const mockedPosts = Array(20).fill(0).map((_, i) => ({
+      id: `post-${i+1}`,
+      content: `This is flagged post ${i+1}`,
+      created_at: new Date().toISOString(),
+      flags_count: Math.floor(Math.random() * 10) + 1,
+      author: {
+        id: `user-${i % 5}`,
+        username: `user${i % 5}`,
+        full_name: `User ${i % 5}`,
+        avatar_url: null
+      }
     }));
 
-    // Fetch media pending approval
-    const { data: mediaData, error: mediaError } = await supabase
-      .from('media')
-      .select(`
-        id, 
-        title,
-        file_url, 
-        thumbnail_url,
-        created_at, 
-        user_id,
-        content_type,
-        post_id,
-        profiles:user_id (
-          username, 
-          full_name,
-          avatar_url
-        )
-      `)
-      .is('approved', null)
-      .order('created_at', { ascending: false });
-      
-    if (mediaError) throw mediaError;
-    
-    const pendingMedia: ContentItem[] = mediaData.map(media => ({
-      id: media.id,
-      type: media.content_type === 'photo' ? 'photo' : 'video',
-      title: media.title || undefined,
-      url: media.file_url,
-      thumbnail_url: media.thumbnail_url || undefined,
-      created_at: media.created_at,
-      user_id: media.user_id,
-      user: {
-        username: media.profiles?.username || 'Unknown',
-        full_name: media.profiles?.full_name || undefined,
-        avatar_url: media.profiles?.avatar_url || undefined
-      },
-      post_id: media.post_id || undefined,
-      status: 'pending'
-    }));
-    
-    // Combine and return results
-    return [...pendingPosts, ...pendingMedia];
+    // Simulate pagination
+    const startIndex = (page - 1) * limit;
+    const endIndex = page * limit;
+    const paginatedPosts = mockedPosts.slice(startIndex, endIndex);
+
+    return {
+      posts: paginatedPosts,
+      total_count: mockedPosts.length,
+      page,
+      limit,
+      total_pages: Math.ceil(mockedPosts.length / limit)
+    };
   } catch (error) {
-    console.error('Error fetching pending content:', error);
-    return [];
+    console.error('Error getting flagged posts:', error);
+    return {
+      posts: [],
+      total_count: 0,
+      page,
+      limit,
+      total_pages: 0
+    };
   }
 };
 
-export const fetchApprovedContent = async (): Promise<ContentItem[]> => {
+export const getFlaggedComments = async (page = 1, limit = 10): Promise<any> => {
   try {
-    // Fetch approved posts
-    const { data: postData, error: postError } = await supabase
-      .from('posts')
-      .select(`
-        id, 
-        content, 
-        created_at, 
-        user_id, 
-        profiles:user_id (
-          username, 
-          full_name,
-          avatar_url
-        )
-      `)
-      .eq('approved', true)
-      .order('created_at', { ascending: false })
-      .limit(20);
-      
-    if (postError) throw postError;
-    
-    const approvedPosts: ContentItem[] = postData.map(post => ({
-      id: post.id,
-      type: 'post',
-      content: post.content,
-      created_at: post.created_at,
-      user_id: post.user_id,
-      user: {
-        username: post.profiles?.username || 'Unknown',
-        full_name: post.profiles?.full_name || undefined,
-        avatar_url: post.profiles?.avatar_url || undefined
-      },
-      status: 'approved'
+    // Mock data for demonstration purposes
+    const mockedComments = Array(20).fill(0).map((_, i) => ({
+      id: `comment-${i+1}`,
+      content: `This is flagged comment ${i+1}`,
+      created_at: new Date().toISOString(),
+      flags_count: Math.floor(Math.random() * 10) + 1,
+      post_id: `post-${i % 10}`,
+      author: {
+        id: `user-${i % 6}`,
+        username: `user${i % 6}`,
+        full_name: `User ${i % 6}`,
+        avatar_url: null
+      }
     }));
-    
-    // Fetch approved media
-    const { data: mediaData, error: mediaError } = await supabase
-      .from('media')
-      .select(`
-        id, 
-        title,
-        file_url, 
-        thumbnail_url,
-        created_at, 
-        user_id,
-        content_type,
-        post_id,
-        profiles:user_id (
-          username, 
-          full_name,
-          avatar_url
-        )
-      `)
-      .eq('approved', true)
-      .order('created_at', { ascending: false })
-      .limit(20);
-      
-    if (mediaError) throw mediaError;
-    
-    const approvedMedia: ContentItem[] = mediaData.map(media => ({
-      id: media.id,
-      type: media.content_type === 'photo' ? 'photo' : 'video',
-      title: media.title || undefined,
-      url: media.file_url,
-      thumbnail_url: media.thumbnail_url || undefined,
-      created_at: media.created_at,
-      user_id: media.user_id,
-      user: {
-        username: media.profiles?.username || 'Unknown',
-        full_name: media.profiles?.full_name || undefined,
-        avatar_url: media.profiles?.avatar_url || undefined
-      },
-      post_id: media.post_id || undefined,
-      status: 'approved'
-    }));
-    
-    // Combine and return results
-    return [...approvedPosts, ...approvedMedia];
+
+    // Simulate pagination
+    const startIndex = (page - 1) * limit;
+    const endIndex = page * limit;
+    const paginatedComments = mockedComments.slice(startIndex, endIndex);
+
+    return {
+      comments: paginatedComments,
+      total_count: mockedComments.length,
+      page,
+      limit,
+      total_pages: Math.ceil(mockedComments.length / limit)
+    };
   } catch (error) {
-    console.error('Error fetching approved content:', error);
-    return [];
+    console.error('Error getting flagged comments:', error);
+    return {
+      comments: [],
+      total_count: 0,
+      page,
+      limit,
+      total_pages: 0
+    };
   }
 };
 
-export const fetchAllContent = async (): Promise<ContentItem[]> => {
+export const getFlaggedPhotos = async (page = 1, limit = 10): Promise<any> => {
   try {
-    // Fetch all posts
-    const { data: postData, error: postError } = await supabase
-      .from('posts')
-      .select(`
-        id, 
-        content, 
-        created_at, 
-        user_id,
-        approved,
-        profiles:user_id (
-          username, 
-          full_name,
-          avatar_url
-        )
-      `)
-      .order('created_at', { ascending: false })
-      .limit(20);
-      
-    if (postError) throw postError;
-    
-    const allPosts: ContentItem[] = postData.map(post => ({
-      id: post.id,
-      type: 'post',
-      content: post.content,
-      created_at: post.created_at,
-      user_id: post.user_id,
-      user: {
-        username: post.profiles?.username || 'Unknown',
-        full_name: post.profiles?.full_name || undefined,
-        avatar_url: post.profiles?.avatar_url || undefined
-      },
-      post_id: undefined,
-      status: post.approved === true ? 'approved' : post.approved === false ? 'rejected' : 'pending'
+    // Mock data for demonstration purposes
+    const mockedPhotos = Array(20).fill(0).map((_, i) => ({
+      id: `photo-${i+1}`,
+      title: `Flagged Photo ${i+1}`,
+      image: `https://example.com/photos/photo${i+1}.jpg`,
+      thumbnail: `https://example.com/photos/thumbnails/photo${i+1}.jpg`,
+      created_at: new Date().toISOString(),
+      flags_count: Math.floor(Math.random() * 10) + 1,
+      author: {
+        id: `user-${i % 7}`,
+        username: `user${i % 7}`,
+        full_name: `User ${i % 7}`,
+        avatar_url: null
+      }
     }));
-    
-    // Fetch all media
-    const { data: mediaData, error: mediaError } = await supabase
-      .from('media')
-      .select(`
-        id, 
-        title,
-        file_url, 
-        thumbnail_url,
-        created_at, 
-        user_id,
-        content_type,
-        approved,
-        post_id,
-        profiles:user_id (
-          username, 
-          full_name,
-          avatar_url
-        )
-      `)
-      .order('created_at', { ascending: false })
-      .limit(20);
-      
-    if (mediaError) throw mediaError;
-    
-    const allMedia: ContentItem[] = mediaData.map(media => ({
-      id: media.id,
-      type: media.content_type === 'photo' ? 'photo' : 'video',
-      title: media.title || undefined,
-      url: media.file_url,
-      thumbnail_url: media.thumbnail_url || undefined,
-      created_at: media.created_at,
-      user_id: media.user_id,
-      user: {
-        username: media.profiles?.username || 'Unknown',
-        full_name: media.profiles?.full_name || undefined,
-        avatar_url: media.profiles?.avatar_url || undefined
-      },
-      post_id: media.post_id || undefined,
-      status: media.approved === true ? 'approved' : media.approved === false ? 'rejected' : 'pending'
+
+    // Simulate pagination
+    const startIndex = (page - 1) * limit;
+    const endIndex = page * limit;
+    const paginatedPhotos = mockedPhotos.slice(startIndex, endIndex);
+
+    return {
+      photos: paginatedPhotos,
+      total_count: mockedPhotos.length,
+      page,
+      limit,
+      total_pages: Math.ceil(mockedPhotos.length / limit)
+    };
+  } catch (error) {
+    console.error('Error getting flagged photos:', error);
+    return {
+      photos: [],
+      total_count: 0,
+      page,
+      limit,
+      total_pages: 0
+    };
+  }
+};
+
+export const getFlaggedVideos = async (page = 1, limit = 10): Promise<any> => {
+  try {
+    // Mock data for demonstration purposes
+    const mockedVideos = Array(20).fill(0).map((_, i) => ({
+      id: `video-${i+1}`,
+      title: `Flagged Video ${i+1}`,
+      thumbnail_url: `https://example.com/videos/thumbnails/video${i+1}.jpg`,
+      video_url: `https://example.com/videos/video${i+1}.mp4`,
+      created_at: new Date().toISOString(),
+      flags_count: Math.floor(Math.random() * 10) + 1,
+      author: {
+        id: `user-${i % 8}`,
+        username: `user${i % 8}`,
+        full_name: `User ${i % 8}`,
+        avatar_url: null
+      }
     }));
-    
-    // Combine and return results
-    return [...allPosts, ...allMedia];
+
+    // Simulate pagination
+    const startIndex = (page - 1) * limit;
+    const endIndex = page * limit;
+    const paginatedVideos = mockedVideos.slice(startIndex, endIndex);
+
+    return {
+      videos: paginatedVideos,
+      total_count: mockedVideos.length,
+      page,
+      limit,
+      total_pages: Math.ceil(mockedVideos.length / limit)
+    };
   } catch (error) {
-    console.error('Error fetching all content:', error);
-    return [];
+    console.error('Error getting flagged videos:', error);
+    return {
+      videos: [],
+      total_count: 0,
+      page,
+      limit,
+      total_pages: 0
+    };
   }
 };
 
-export const approveContent = async (contentId: string, contentType: 'post' | 'media'): Promise<boolean> => {
+export const getFlaggedProfiles = async (page = 1, limit = 10): Promise<any> => {
   try {
-    const tableName = contentType === 'post' ? 'posts' : 'media';
-    
-    const { error } = await supabase
-      .from(tableName)
-      .update({ approved: true })
-      .eq('id', contentId);
-      
-    if (error) {
-      console.error(`Error approving ${contentType} with id ${contentId}:`, error);
-      return false;
-    }
-    
-    return true;
-  } catch (error) {
-    console.error(`Error approving ${contentType} with id ${contentId}:`, error);
-    return false;
-  }
-};
+    // Mock data for demonstration purposes
+    const mockedProfiles = Array(20).fill(0).map((_, i) => ({
+      id: `user-${i+1}`,
+      username: `flagged_user${i+1}`,
+      full_name: `Flagged User ${i+1}`,
+      avatar_url: `https://example.com/avatars/user${i+1}.jpg`,
+      flags_count: Math.floor(Math.random() * 10) + 1,
+      created_at: new Date().toISOString()
+    }));
 
-export const rejectContent = async (contentId: string, contentType: 'post' | 'media'): Promise<boolean> => {
-  try {
-    const tableName = contentType === 'post' ? 'posts' : 'media';
-    
-    const { error } = await supabase
-      .from(tableName)
-      .update({ approved: false })
-      .eq('id', contentId);
-      
-    if (error) {
-      console.error(`Error rejecting ${contentType} with id ${contentId}:`, error);
-      return false;
-    }
-    
-    return true;
-  } catch (error) {
-    console.error(`Error rejecting ${contentType} with id ${contentId}:`, error);
-    return false;
-  }
-};
+    // Simulate pagination
+    const startIndex = (page - 1) * limit;
+    const endIndex = page * limit;
+    const paginatedProfiles = mockedProfiles.slice(startIndex, endIndex);
 
-export const deleteContent = async (contentId: string, contentType: 'post' | 'media'): Promise<boolean> => {
-  try {
-    const tableName = contentType === 'post' ? 'posts' : 'media';
-    
-    const { error } = await supabase
-      .from(tableName)
-      .delete()
-      .eq('id', contentId);
-      
-    if (error) {
-      console.error(`Error deleting ${contentType} with id ${contentId}:`, error);
-      return false;
-    }
-    
-    return true;
+    return {
+      profiles: paginatedProfiles,
+      total_count: mockedProfiles.length,
+      page,
+      limit,
+      total_pages: Math.ceil(mockedProfiles.length / limit)
+    };
   } catch (error) {
-    console.error(`Error deleting ${contentType} with id ${contentId}:`, error);
-    return false;
+    console.error('Error getting flagged profiles:', error);
+    return {
+      profiles: [],
+      total_count: 0,
+      page,
+      limit,
+      total_pages: 0
+    };
   }
 };

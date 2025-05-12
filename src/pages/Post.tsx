@@ -329,15 +329,6 @@ const Post = () => {
 
   // Check if user can view this specific content
   const userCanViewThisContent = !currentMediaType || canViewContent(currentMediaType);
-  
-  // Helper function to get a watermarked URL if needed
-  const getWatermarkedUrl = (url: string) => {
-    if (!userCanViewThisContent || shouldShowWatermark(url)) {
-      // Add watermark parameter if not already present
-      return url.includes('?') ? `${url}&watermark=true` : `${url}?watermark=true`;
-    }
-    return url;
-  };
 
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
@@ -413,11 +404,15 @@ const Post = () => {
                   {media.media_type.startsWith('image/') || media.media_type === 'image' ? (
                     <div className="relative">
                       <img
-                        src={getWatermarkedUrl(media.file_url)}
+                        src={!subscriptionDetails.canViewPhotos || media.file_url?.includes('watermark=true') ? 
+                          (media.file_url?.includes('?') ? 
+                            `${media.file_url}&watermark=true` : 
+                            `${media.file_url}?watermark=true`)
+                          : media.file_url}
                         alt={post.content || "Photo"}
                         className={`w-full h-auto object-contain max-h-[600px] ${!userCanViewThisContent ? 'blur-sm filter saturate-50' : ''}`}
                       />
-                      {(!userCanViewThisContent || shouldShowWatermark(media.file_url)) && (
+                      {(!subscriptionDetails.canViewPhotos || media.file_url?.includes('watermark=true')) && (
                         <div className="absolute inset-0 flex flex-col items-center justify-center">
                           <Lock className="h-12 w-12 text-white/70 mb-2" />
                           <p className="text-white/80 mb-4 text-center">Full quality photo requires a subscription</p>
@@ -431,7 +426,7 @@ const Post = () => {
                           </Button>
                         </div>
                       )}
-                      {(!userCanViewThisContent || shouldShowWatermark(media.file_url)) && (
+                      {(!subscriptionDetails.canViewPhotos || media.file_url?.includes('watermark=true')) && (
                         <div className="absolute inset-0 overflow-hidden">
                           <div className="absolute inset-0 w-full h-full flex items-center justify-center">
                             <div className="font-bold text-white text-6xl opacity-50 transform -rotate-12 select-none whitespace-nowrap">
@@ -445,7 +440,11 @@ const Post = () => {
                     <div className="aspect-video w-full relative">
                       {userCanViewThisContent ? (
                         <video
-                          src={getWatermarkedUrl(media.file_url)}
+                          src={!subscriptionDetails.canViewVideos ? 
+                            (media.file_url?.includes('?') ? 
+                              `${media.file_url}&watermark=true` : 
+                              `${media.file_url}?watermark=true`)
+                            : media.file_url}
                           controls
                           className="w-full h-auto"
                           poster={media.thumbnail_url}
@@ -473,7 +472,7 @@ const Post = () => {
                           </div>
                         </>
                       )}
-                      {(!userCanViewThisContent || shouldShowWatermark(media.file_url)) && (
+                      {(!subscriptionDetails.canViewVideos || media.file_url?.includes('watermark=true')) && (
                         <div className="absolute inset-0 overflow-hidden">
                           <div className="absolute inset-0 w-full h-full flex items-center justify-center">
                             <div className="font-bold text-white text-6xl opacity-50 transform -rotate-12 select-none whitespace-nowrap">
@@ -485,7 +484,9 @@ const Post = () => {
                     </div>
                   ) : media.media_type === 'gif' ? (
                     <img
-                      src={getWatermarkedUrl(media.file_url)}
+                      src={media.file_url?.includes('?') ? 
+                        `${media.file_url}&watermark=true` : 
+                        `${media.file_url}?watermark=true`}
                       alt="GIF"
                       className="w-full h-auto object-contain max-h-[600px]"
                     />

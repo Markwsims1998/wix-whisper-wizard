@@ -21,10 +21,13 @@ export interface Video {
 
 export const fetchVideos = async (category: string = 'all'): Promise<Video[]> => {
   try {
+    console.log(`Fetching videos for category: ${category}`);
+    
     // Fetch videos from the database
     const mediaItems = await fetchMedia('video', category);
     
     if (mediaItems.length > 0) {
+      console.log(`Found ${mediaItems.length} videos in database`);
       return convertToVideoFormat(mediaItems);
     }
     

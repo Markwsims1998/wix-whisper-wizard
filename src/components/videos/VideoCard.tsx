@@ -11,10 +11,15 @@ interface VideoCardProps {
 }
 
 const VideoCard = ({ video, canViewVideos, onVideoClick }: VideoCardProps) => {
+  const handleClick = (e: React.MouseEvent) => {
+    e.preventDefault(); // Prevent default navigation
+    onVideoClick(video);
+  };
+
   return (
     <div 
       className="bg-gray-50 dark:bg-gray-700 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition cursor-pointer"
-      onClick={() => onVideoClick(video)}
+      onClick={handleClick}
     >
       <div className="relative">
         <img 

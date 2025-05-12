@@ -3,7 +3,7 @@ import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
 import { useEffect, useState } from "react";
 import { Play, Filter } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { Button } from "@/components/ui/button";
 import MediaViewer from "@/components/media/MediaViewer";
@@ -86,6 +86,7 @@ const Videos = () => {
 
   const handleVideoClick = (video: Video) => {
     if (canViewVideos) {
+      // Instead of navigating to a different page, open the video in the viewer
       setSelectedVideo(video);
     } else {
       // Redirect to shop if not subscribed

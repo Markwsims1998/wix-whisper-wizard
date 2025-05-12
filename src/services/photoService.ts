@@ -21,10 +21,13 @@ export interface Photo {
 
 export const fetchPhotos = async (category: string = 'all'): Promise<Photo[]> => {
   try {
+    console.log(`Fetching photos for category: ${category}`);
+    
     // Fetch photos from the database
     const mediaItems = await fetchMedia('photo', category);
     
     if (mediaItems.length > 0) {
+      console.log(`Found ${mediaItems.length} photos in database`);
       return mediaItems.map(item => ({
         id: item.id,
         title: item.title || 'Untitled Photo',

@@ -32,7 +32,6 @@ const MediaViewer = ({ type, media, onClose, onLike, onPrev, onNext, postId }: M
   // Handle background click to close the viewer
   const handleBackgroundClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === e.currentTarget) {
-      e.stopPropagation();
       onClose();
     }
   };
@@ -50,7 +49,10 @@ const MediaViewer = ({ type, media, onClose, onLike, onPrev, onNext, postId }: M
     : media.thumbnail || media.thumbnail_url || '';
   
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={handleBackgroundClick}>
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center" 
+      onClick={handleBackgroundClick}
+    >
       <div className="absolute inset-0 bg-gradient-to-b from-[rgba(15,15,20,0.97)] to-[rgba(15,15,25,0.95)]"></div>
       
       <div className="absolute top-4 right-4 z-10">

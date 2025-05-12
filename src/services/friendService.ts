@@ -133,7 +133,8 @@ export const getPendingFriendRequests = async (userId: string): Promise<FriendPr
           id, 
           username, 
           full_name, 
-          avatar_url, 
+          avatar_url,
+          profile_picture_url,
           status
         )
       `)
@@ -148,11 +149,18 @@ export const getPendingFriendRequests = async (userId: string): Promise<FriendPr
     // Transform the data into the FriendProfile format
     return (relationships || []).map(rel => {
       const profile = rel.profiles;
+      
+      // Get avatar from either avatar_url or profile_picture_url
+      const avatarUrl = profile && typeof profile === 'object' ? 
+        (('avatar_url' in profile && profile.avatar_url) || 
+        ('profile_picture_url' in profile && profile.profile_picture_url) || 
+        '') : '';
+        
       return {
         id: profile && typeof profile === 'object' && 'id' in profile ? String(profile.id || '') : '',
         username: profile && typeof profile === 'object' && 'username' in profile ? String(profile.username || '') : '',
         full_name: profile && typeof profile === 'object' && 'full_name' in profile ? String(profile.full_name || '') : '',
-        avatar_url: profile && typeof profile === 'object' && 'avatar_url' in profile ? String(profile.avatar_url || '') : '',
+        avatar_url: avatarUrl,
         status: profile && typeof profile === 'object' && 'status' in profile && profile.status === 'online' ? 'online' : 'offline'
       };
     });
@@ -211,6 +219,7 @@ export const getFriends = async (userId: string): Promise<FriendProfile[]> => {
           username, 
           full_name, 
           avatar_url,
+          profile_picture_url,
           last_sign_in_at,
           created_at
         )
@@ -233,11 +242,17 @@ export const getFriends = async (userId: string): Promise<FriendProfile[]> => {
         isRecent = (new Date().getTime() - new Date(lastSignInValue).getTime()) < 15 * 60 * 1000; // 15 minutes
       }
       
+      // Get avatar from either avatar_url or profile_picture_url
+      const avatarUrl = profile && typeof profile === 'object' ? 
+        (('avatar_url' in profile && profile.avatar_url) || 
+        ('profile_picture_url' in profile && profile.profile_picture_url) || 
+        '') : '';
+      
       return {
         id: profile && typeof profile === 'object' && 'id' in profile ? String(profile.id || '') : '',
         username: profile && typeof profile === 'object' && 'username' in profile ? String(profile.username || '') : '',
         full_name: profile && typeof profile === 'object' && 'full_name' in profile ? String(profile.full_name || '') : '',
-        avatar_url: profile && typeof profile === 'object' && 'avatar_url' in profile ? String(profile.avatar_url || '') : '',
+        avatar_url: avatarUrl,
         last_active: profile && typeof profile === 'object' && 'last_sign_in_at' in profile ? String(profile.last_sign_in_at || '') : '',
         created_at: profile && typeof profile === 'object' && 'created_at' in profile ? String(profile.created_at || '') : '',
         status: isRecent ? 'online' : 'offline'

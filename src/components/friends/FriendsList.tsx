@@ -36,18 +36,6 @@ const FriendCard = ({ friend, isCurrentUser }: FriendCardProps) => {
   const [friendshipStatus, setFriendshipStatus] = useState<'none' | 'pending' | 'friends'>('friends');
   const { toast } = useToast();
   
-  // Format last active time
-  const getLastActiveText = () => {
-    if (friend.status === 'online') return 'Online now';
-    if (!friend.last_active) return 'Last seen: Unknown';
-    
-    try {
-      return `Last seen: ${formatDistanceToNow(new Date(friend.last_active), { addSuffix: true })}`;
-    } catch (error) {
-      return 'Last seen: Recently';
-    }
-  };
-
   // Format date to readable string
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'Unknown';
@@ -88,7 +76,7 @@ const FriendCard = ({ friend, isCurrentUser }: FriendCardProps) => {
               {friend.full_name || friend.username || 'User'}
             </Link>
             <p className="text-xs text-gray-500 dark:text-gray-400">{friend.username ? `@${friend.username}` : ''}</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">{getLastActiveText()}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">{friend.status === 'online' ? 'Online now' : ''}</p>
           </div>
         </div>
         

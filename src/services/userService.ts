@@ -25,6 +25,7 @@ export const getActiveFriends = async (userId: string): Promise<FriendProfile[]>
           username, 
           full_name, 
           avatar_url,
+          profile_picture_url,
           last_sign_in_at
         )
       `)
@@ -46,11 +47,17 @@ export const getActiveFriends = async (userId: string): Promise<FriendProfile[]>
         isRecent = (new Date().getTime() - new Date(lastSignInValue).getTime()) < 15 * 60 * 1000; // 15 minutes
       }
       
+      // Get avatar from either avatar_url or profile_picture_url
+      const avatarUrl = profile && typeof profile === 'object' ? 
+        (('avatar_url' in profile && profile.avatar_url) || 
+        ('profile_picture_url' in profile && profile.profile_picture_url) || 
+        '') : '';
+      
       return {
         id: profile && typeof profile === 'object' && 'id' in profile ? String(profile.id || '') : '',
         username: profile && typeof profile === 'object' && 'username' in profile ? String(profile.username || '') : '',
         full_name: profile && typeof profile === 'object' && 'full_name' in profile ? String(profile.full_name || '') : '',
-        avatar_url: profile && typeof profile === 'object' && 'avatar_url' in profile ? String(profile.avatar_url || '') : '',
+        avatar_url: avatarUrl,
         last_active: profile && typeof profile === 'object' && 'last_sign_in_at' in profile ? String(profile.last_sign_in_at || '') : '',
         status: isRecent ? 'online' : 'offline'
       };

@@ -1,6 +1,7 @@
+
 import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate, Link } from "react-router-dom";
-import { Heart, MessageCircle, ArrowLeft, User, Lock } from "lucide-react";
+import { Heart, MessageCircle, ArrowLeft, User, Lock, BadgeAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -16,6 +17,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import Sidebar from "@/components/Sidebar";
 import { useSubscription } from "@/contexts/SubscriptionContext";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 // Define the LikeUser interface for proper typing
 export interface LikeUser {
@@ -337,6 +339,27 @@ const Post = () => {
         paddingLeft: 'max(1rem, var(--sidebar-width, 280px))'
       }}>
         <div className="max-w-3xl mx-auto px-4">
+          {/* Subscription Warning Banner */}
+          {currentMediaType && !userCanViewThisContent && (
+            <Alert className="mb-4 border-yellow-300 bg-yellow-50 dark:bg-yellow-900/20 dark:border-yellow-700">
+              <BadgeAlert className="h-5 w-5 text-yellow-600 dark:text-yellow-500" />
+              <AlertTitle className="text-yellow-800 dark:text-yellow-400 font-medium">
+                Premium Content
+              </AlertTitle>
+              <AlertDescription className="text-yellow-700 dark:text-yellow-300">
+                Upgrade your subscription to access full quality {currentMediaType === 'photo' ? 'photos' : 'videos'}.
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="ml-3 border-yellow-400 text-yellow-700 hover:text-yellow-800 hover:bg-yellow-100 dark:border-yellow-700 dark:text-yellow-400 dark:hover:bg-yellow-900/40"
+                  onClick={() => navigate('/shop')}
+                >
+                  View Plans
+                </Button>
+              </AlertDescription>
+            </Alert>
+          )}
+          
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-5 mb-4">
             <Link to="/" className="text-blue-500 hover:underline inline-block mb-4">
               &larr; Back to Feed
@@ -379,19 +402,13 @@ const Post = () => {
               {media && (
                 <div className="bg-black rounded-lg overflow-hidden mb-6 relative">
                   {media.media_type.startsWith('image/') || media.media_type === 'image' ? (
-                    userCanViewThisContent ? (
+                    <div className="relative">
                       <img
                         src={media.file_url}
                         alt={post.content || "Photo"}
-                        className="w-full h-auto object-contain max-h-[600px]"
+                        className={`w-full h-auto object-contain max-h-[600px] ${!userCanViewThisContent ? 'blur-sm filter saturate-50' : ''}`}
                       />
-                    ) : (
-                      <div className="relative">
-                        <img
-                          src={media.file_url}
-                          alt={post.content || "Photo"}
-                          className="w-full h-auto object-contain max-h-[600px] blur-sm filter saturate-50"
-                        />
+                      {!userCanViewThisContent && (
                         <div className="absolute inset-0 flex flex-col items-center justify-center">
                           <Lock className="h-12 w-12 text-white/70 mb-2" />
                           <p className="text-white/80 mb-4 text-center">Full quality photo requires a subscription</p>
@@ -404,39 +421,53 @@ const Post = () => {
                             View Plans
                           </Button>
                         </div>
-                      </div>
-                    )
-                  ) : media.media_type.startsWith('video/') || media.media_type === 'video' ? (
-                    userCanViewThisContent ? (
-                      <video
-                        src={media.file_url}
-                        controls
-                        className="w-full h-auto"
-                        poster={media.thumbnail_url}
-                      >
-                        Your browser does not support the video tag.
-                      </video>
-                    ) : (
-                      <div className="aspect-video w-full relative">
-                        <img
-                          src={media.thumbnail_url || media.file_url}
-                          alt="Video thumbnail"
-                          className="w-full h-full object-contain blur-sm filter saturate-50"
-                        />
-                        <div className="absolute inset-0 flex flex-col items-center justify-center">
-                          <Lock className="h-12 w-12 text-white/70 mb-2" />
-                          <p className="text-white/80 mb-4 text-center">Video content requires a subscription</p>
-                          <Button 
-                            size="sm" 
-                            variant="outline" 
-                            className="bg-white/20 hover:bg-white/30 text-white border-white/20"
-                            onClick={() => navigate('/shop')}
-                          >
-                            View Plans
-                          </Button>
+                      )}
+                      {!userCanViewThisContent && (
+                        <div className="absolute top-0 left-0 w-full">
+                          <div className="font-bold text-red-500 text-2xl opacity-50 transform -rotate-12 p-4 absolute top-1/3 w-full text-center">
+                            SUBSCRIBE TO VIEW
+                          </div>
                         </div>
-                      </div>
-                    )
+                      )}
+                    </div>
+                  ) : media.media_type.startsWith('video/') || media.media_type === 'video' ? (
+                    <div className="aspect-video w-full relative">
+                      {userCanViewThisContent ? (
+                        <video
+                          src={media.file_url}
+                          controls
+                          className="w-full h-auto"
+                          poster={media.thumbnail_url}
+                        >
+                          Your browser does not support the video tag.
+                        </video>
+                      ) : (
+                        <>
+                          <img
+                            src={media.thumbnail_url || media.file_url}
+                            alt="Video thumbnail"
+                            className="w-full h-full object-contain blur-sm filter saturate-50"
+                          />
+                          <div className="absolute inset-0 flex flex-col items-center justify-center">
+                            <Lock className="h-12 w-12 text-white/70 mb-2" />
+                            <p className="text-white/80 mb-4 text-center">Video content requires a subscription</p>
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="bg-white/20 hover:bg-white/30 text-white border-white/20"
+                              onClick={() => navigate('/shop')}
+                            >
+                              View Plans
+                            </Button>
+                          </div>
+                          <div className="absolute top-0 left-0 w-full">
+                            <div className="font-bold text-red-500 text-2xl opacity-50 transform -rotate-12 p-4 absolute top-1/3 w-full text-center">
+                              SUBSCRIBE TO VIEW
+                            </div>
+                          </div>
+                        </>
+                      )}
+                    </div>
                   ) : media.media_type === 'gif' ? (
                     <img
                       src={media.file_url}

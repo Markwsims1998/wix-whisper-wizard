@@ -158,7 +158,7 @@ const PostFeed = () => {
     if (mediaType === 'video' && isPlayButton) {
       // Check subscription for videos
       if (subscriptionDetails.canViewVideos) {
-        // Toggle video playback
+        // Toggle video playback in feed
         if (playingVideo === post.id) {
           setPlayingVideo(null);
         } else {
@@ -166,31 +166,13 @@ const PostFeed = () => {
         }
         return;
       } else {
-        toast({
-          title: "Subscription Required",
-          description: "Please upgrade your subscription to view video content.",
-        });
-        navigate("/shop");
+        // Don't navigate, just show the overlay
         return;
       }
     }
     
     // For images or non-play button clicks on videos, navigate to post page
-    const canView = 
-      (mediaType === 'video' && subscriptionDetails.canViewVideos) || 
-      (mediaType === 'photo' && subscriptionDetails.canViewPhotos) ||
-      (mediaType === 'gif'); // GIFs are always viewable
-    
-    if (canView) {
-      // Navigate to post page with postId and media type
-      navigate(`/post?postId=${post.id}&type=${mediaType}`);
-    } else {
-      toast({
-        title: "Subscription Required",
-        description: "Please upgrade your subscription to view this content.",
-      });
-      navigate("/shop");
-    }
+    navigate(`/post?postId=${post.id}&type=${mediaType}`);
   };
 
   const handleVideoClose = (e: React.MouseEvent) => {
@@ -404,19 +386,13 @@ const PostFeed = () => {
                             className="cursor-pointer" 
                             onClick={() => handleMediaClick(post)}
                           >
-                            {subscriptionDetails.canViewPhotos ? (
+                            <div className="relative">
                               <img 
                                 src={post.media[0].file_url} 
                                 alt="Post image" 
-                                className="rounded-lg w-full"
+                                className={`rounded-lg w-full ${!subscriptionDetails.canViewPhotos ? 'blur-sm filter saturate-50' : ''}`}
                               />
-                            ) : (
-                              <div className="relative">
-                                <img 
-                                  src={post.media[0].file_url} 
-                                  alt="Post image" 
-                                  className="rounded-lg w-full blur-sm filter saturate-50"
-                                />
+                              {!subscriptionDetails.canViewPhotos && (
                                 <div className="absolute inset-0 flex flex-col items-center justify-center">
                                   <Lock className="h-12 w-12 text-white/70 mb-2" />
                                   <p className="text-white/80 mb-4">Full quality photo requires a subscription</p>
@@ -432,14 +408,21 @@ const PostFeed = () => {
                                     View Plans
                                   </Button>
                                 </div>
-                              </div>
-                            )}
+                              )}
+                              {!subscriptionDetails.canViewPhotos && (
+                                <div className="absolute top-0 left-0 w-full">
+                                  <div className="font-bold text-red-500 text-2xl opacity-50 transform -rotate-12 p-4 absolute top-1/3 w-full text-center">
+                                    SUBSCRIBE TO VIEW
+                                  </div>
+                                </div>
+                              )}
+                            </div>
                           </div>
                         ) : null}
                         
                         {(post.media[0].media_type.startsWith('video/') || post.media[0].media_type === 'video') && (
                           <div className="rounded-lg overflow-hidden bg-black">
-                            {playingVideo === post.id ? (
+                            {playingVideo === post.id && subscriptionDetails.canViewVideos ? (
                               <div className="relative">
                                 <video 
                                   src={post.media[0].file_url}
@@ -463,51 +446,49 @@ const PostFeed = () => {
                                 className="relative aspect-video cursor-pointer"
                                 onClick={() => handleMediaClick(post)}
                               >
-                                {subscriptionDetails.canViewVideos ? (
-                                  <>
-                                    <img 
-                                      src={post.media[0].thumbnail_url || post.media[0].file_url} 
-                                      alt="Video thumbnail" 
-                                      className="w-full object-cover"
-                                    />
-                                    <div 
-                                      className="absolute inset-0 flex items-center justify-center"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleMediaClick(post, true);
-                                      }}
-                                    >
-                                      <div className="w-14 h-14 rounded-full bg-white/30 flex items-center justify-center">
-                                        <div className="w-12 h-12 rounded-full bg-white/80 flex items-center justify-center">
-                                          <Play className="h-6 w-6 text-red-600 ml-1" />
-                                        </div>
+                                <img 
+                                  src={post.media[0].thumbnail_url || post.media[0].file_url} 
+                                  alt="Video thumbnail" 
+                                  className={`w-full object-cover ${!subscriptionDetails.canViewVideos ? 'blur-sm filter saturate-50' : ''}`}
+                                />
+                                <div 
+                                  className="absolute inset-0 flex items-center justify-center"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleMediaClick(post, true);
+                                  }}
+                                >
+                                  {subscriptionDetails.canViewVideos ? (
+                                    <div className="w-14 h-14 rounded-full bg-white/30 flex items-center justify-center">
+                                      <div className="w-12 h-12 rounded-full bg-white/80 flex items-center justify-center">
+                                        <Play className="h-6 w-6 text-red-600 ml-1" />
                                       </div>
                                     </div>
-                                  </>
-                                ) : (
-                                  <>
-                                    <img 
-                                      src={post.media[0].thumbnail_url || post.media[0].file_url} 
-                                      alt="Video thumbnail" 
-                                      className="w-full object-cover opacity-70 blur-sm"
-                                    />
-                                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                  ) : (
+                                    <>
                                       <Lock className="h-12 w-12 text-white/70 mb-2" />
-                                      <p className="text-white/80 mb-4">Video content requires a subscription</p>
-                                      <Button 
-                                        size="sm" 
-                                        variant="outline" 
-                                        className="bg-white/20 hover:bg-white/30 text-white border-white/20"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          navigate('/shop');
-                                        }}
-                                      >
-                                        View Plans
-                                      </Button>
-                                    </div>
-                                  </>
-                                )}
+                                      <div className="absolute bottom-8 text-center">
+                                        <p className="text-white/80 mb-4">Video content requires a subscription</p>
+                                        <Button 
+                                          size="sm" 
+                                          variant="outline" 
+                                          className="bg-white/20 hover:bg-white/30 text-white border-white/20"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            navigate('/shop');
+                                          }}
+                                        >
+                                          View Plans
+                                        </Button>
+                                      </div>
+                                      <div className="absolute top-0 left-0 w-full">
+                                        <div className="font-bold text-red-500 text-2xl opacity-50 transform -rotate-12 p-4 absolute top-1/3 w-full text-center">
+                                          SUBSCRIBE TO VIEW
+                                        </div>
+                                      </div>
+                                    </>
+                                  )}
+                                </div>
                               </div>
                             )}
                           </div>
@@ -535,7 +516,6 @@ const PostFeed = () => {
                       >
                         <Heart className={`h-4 w-4 ${post.is_liked ? 'fill-current' : ''}`} /> {post.likes_count || 0}
                       </button>
-                      {/* Updated to use /post instead of /comments */}
                       <Link
                         to={`/post?postId=${post.id}`}
                         className="flex items-center gap-1 text-gray-500 text-sm hover:text-blue-500"

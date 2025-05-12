@@ -234,7 +234,7 @@ const Photos = () => {
                 {photos.map(photo => (
                   <Link 
                     key={photo.id} 
-                    to={`/media/${photo.id}?type=photo`}
+                    to={`/post?postId=${photo.postId || photo.id}`}
                     className="bg-gray-50 dark:bg-gray-700 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition block group"
                   >
                     <div className="relative aspect-square">
@@ -244,6 +244,12 @@ const Photos = () => {
                         className="w-full h-full object-cover"
                         loading="lazy"
                       />
+                      {!subscriptionDetails.canViewPhotos && (
+                        <div className="absolute inset-0 bg-black bg-opacity-50 flex flex-col items-center justify-center">
+                          <span className="text-white bg-red-500 px-2 py-1 rounded text-xs font-bold mb-2">SUBSCRIBE</span>
+                          <span className="text-white text-xs">Premium Content</span>
+                        </div>
+                      )}
                       <Badge className="absolute top-3 right-3 bg-gray-800/80 text-white">
                         {photo.category}
                       </Badge>

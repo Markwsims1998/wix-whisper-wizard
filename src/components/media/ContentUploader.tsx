@@ -17,13 +17,15 @@ interface ContentUploaderProps {
   onOpenChange: (open: boolean) => void;
   type: 'photo' | 'video' | 'post';  // Keep 'post' as a valid type
   onSuccess?: () => void;
+  onUploadComplete?: () => void; // Add this missing prop
 }
 
 const ContentUploader: React.FC<ContentUploaderProps> = ({ 
   open, 
   onOpenChange,
   type,
-  onSuccess
+  onSuccess,
+  onUploadComplete
 }) => {
   const { toast } = useToast();
   const { user } = useAuth();
@@ -41,7 +43,7 @@ const ContentUploader: React.FC<ContentUploaderProps> = ({
   const categories = [
     { id: "events", name: "Events" },
     { id: "portraits", name: "Portraits" },
-    { id: "fashion", name: "Fashion" },
+    { id: "fashion", name: "Portraits" },
     { id: "lifestyle", name: "Lifestyle" },
     { id: "travel", name: "Travel" }
   ];
@@ -110,7 +112,7 @@ const ContentUploader: React.FC<ContentUploaderProps> = ({
           const result = await uploadSecurePhoto(
             selectedFile,
             user.id,
-            subscriptionDetails.tier
+            subscriptionDetails.tier || 'free'  // Ensure we pass an object here
           );
           
           if (!result) throw new Error('Failed to upload photo');
@@ -176,6 +178,11 @@ const ContentUploader: React.FC<ContentUploaderProps> = ({
       // Call onSuccess callback
       if (onSuccess) {
         onSuccess();
+      }
+      
+      // Call onUploadComplete callback if provided
+      if (onUploadComplete) {
+        onUploadComplete();
       }
     } catch (error) {
       console.error(`Error uploading ${type}:`, error);

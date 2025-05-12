@@ -1,3 +1,4 @@
+
 // This function needs to be updated if it doesn't already exist or needs modification
 export const shouldShowWatermark = (url: string | null | undefined): boolean => {
   if (!url) return false;
@@ -88,15 +89,15 @@ export const getSecurePhotoUrl = (url: string, addWatermark: boolean = false): s
 /**
  * Upload a photo with appropriate security settings
  * @param file File to upload
+ * @param userId User ID uploading the photo
  * @param subscriptionTier User's subscription tier
- * @param metadata Additional metadata for the photo
- * @returns Upload result with secured URL
+ * @returns Upload result with secured URL and watermarked URL
  */
 export const uploadSecurePhoto = async (
   file: File,
-  subscriptionTier: string,
-  metadata: Record<string, any> = {}
-): Promise<{ url: string; success: boolean }> => {
+  userId: string,
+  subscriptionTier: string
+): Promise<{ url: string; success: boolean; watermarkedUrl: string }> => {
   try {
     // Assume we have a service that handles the actual upload
     // For now, we'll just mock the upload and return a URL
@@ -105,7 +106,8 @@ export const uploadSecurePhoto = async (
     // Mock upload - in a real implementation, this would be replaced with actual upload code
     const mockUploadResult = {
       success: true,
-      url: `https://example.com/photos/${Date.now()}-${file.name}`
+      url: `https://example.com/photos/${Date.now()}-${file.name}`,
+      watermarkedUrl: `https://example.com/photos/watermarked/${Date.now()}-${file.name}`
     };
     
     // Apply security based on subscription tier
@@ -114,13 +116,15 @@ export const uploadSecurePhoto = async (
     
     return {
       success: mockUploadResult.success,
-      url: secureUrl
+      url: secureUrl,
+      watermarkedUrl: mockUploadResult.watermarkedUrl
     };
   } catch (err) {
     console.error('Error uploading secure photo:', err);
     return {
       success: false,
-      url: ''
+      url: '',
+      watermarkedUrl: ''
     };
   }
 };

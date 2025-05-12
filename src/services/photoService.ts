@@ -1,5 +1,6 @@
 
 import { fetchMedia } from './mediaService';
+import { supabase } from '@/lib/supabaseClient';
 
 export interface Photo {
   id: string;
@@ -11,6 +12,7 @@ export interface Photo {
   views: string | number;
   likes: number;
   postId: string;
+  url?: string; // Add url property
   user?: {
     id: string;
     username: string;
@@ -39,6 +41,7 @@ export const fetchPhotos = async (category: string = 'all'): Promise<Photo[]> =>
         views: item.views || 0,
         likes: 0, // We don't have likes in the media table yet
         postId: item.post_id || item.id,
+        url: item.file_url, // Add url property matching file_url
         user: item.user
       }));
     }
@@ -55,4 +58,66 @@ export const fetchPhotos = async (category: string = 'all'): Promise<Photo[]> =>
 // Add the function that's imported in Photos.tsx
 export const getPhotosByCategory = async (category: string = 'all'): Promise<Photo[]> => {
   return fetchPhotos(category);
+};
+
+// Add the missing deletePhoto function
+export const deletePhoto = async (photoId: string): Promise<boolean> => {
+  try {
+    // First, get the photo to know which file to delete
+    const { data: photoData } = await supabase
+      .from('media')
+      .select('file_url, thumbnail_url')
+      .eq('id', photoId)
+      .single();
+    
+    if (photoData) {
+      // Extract file paths from URLs
+      const getStoragePath = (url: string) => {
+        // Parse the URL to get the path part
+        try {
+          const pathMatch = url.match(/\/storage\/v1\/object\/public\/([^?]+)/);
+          if (pathMatch && pathMatch[1]) {
+            return pathMatch[1];
+          }
+        } catch (e) {
+          console.error('Error parsing storage URL:', e);
+        }
+        return null;
+      };
+      
+      // Try to delete the main file and thumbnail if they exist
+      if (photoData.file_url) {
+        const filePath = getStoragePath(photoData.file_url);
+        if (filePath) {
+          const [bucket, ...pathParts] = filePath.split('/');
+          const path = pathParts.join('/');
+          await supabase.storage.from(bucket).remove([path]);
+        }
+      }
+      
+      if (photoData.thumbnail_url) {
+        const thumbnailPath = getStoragePath(photoData.thumbnail_url);
+        if (thumbnailPath) {
+          const [bucket, ...pathParts] = thumbnailPath.split('/');
+          const path = pathParts.join('/');
+          await supabase.storage.from(bucket).remove([path]);
+        }
+      }
+    }
+    
+    // Delete the record from the database
+    const { error } = await supabase
+      .from('media')
+      .delete()
+      .eq('id', photoId);
+      
+    if (error) {
+      throw error;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error deleting photo:', error);
+    return false;
+  }
 };

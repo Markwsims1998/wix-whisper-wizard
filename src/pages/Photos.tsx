@@ -1,9 +1,9 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/auth/AuthProvider';
 import { useSubscription } from '@/contexts/SubscriptionContext';
-import { Photo } from '@/services/photoService';
-import { fetchPhotos, deletePhoto } from '@/services/photoService';
+import { Photo, fetchPhotos, deletePhoto } from '@/services/photoService';
 import { securePhotos, shouldShowWatermark } from '@/services/securePhotoService';
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -141,7 +141,7 @@ const Photos = () => {
                       onClick={() => navigate(`/photo/${photo.id}`)}
                     />
                     
-                    {shouldShowWatermark(photo.url) && !isBelowSubscriptionThreshold && (
+                    {photo.url && shouldShowWatermark(photo.url) && !isBelowSubscriptionThreshold && (
                       <Watermark />
                     )}
                     

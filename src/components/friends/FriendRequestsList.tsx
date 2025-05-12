@@ -93,20 +93,22 @@ const FriendRequestsList = ({ requests }: FriendRequestsListProps) => {
           <Card key={request.id} className="p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <Link to={`/profile/${request.id}`}>
+                <Link to={`/profile?id=${request.id}`}>
                   <Avatar className="h-12 w-12">
                     {request.avatar_url ? (
-                      <AvatarImage src={request.avatar_url} alt={request.full_name} />
+                      <AvatarImage src={request.avatar_url} alt={request.full_name || request.username || 'User'} />
                     ) : (
                       <AvatarFallback className="bg-purple-100 text-purple-600 dark:bg-purple-900 dark:text-purple-300">
-                        {request.full_name && request.full_name[0]?.toUpperCase() || <User size={20} />}
+                        {(request.full_name && request.full_name[0]?.toUpperCase()) || 
+                         (request.username && request.username[0]?.toUpperCase()) || 
+                         <User size={20} />}
                       </AvatarFallback>
                     )}
                   </Avatar>
                 </Link>
                 <div>
-                  <Link to={`/profile/${request.id}`} className="font-medium hover:underline">
-                    {request.full_name || 'User'}
+                  <Link to={`/profile?id=${request.id}`} className="font-medium hover:underline">
+                    {request.full_name || request.username || 'User'}
                   </Link>
                   <p className="text-xs text-gray-500 dark:text-gray-400">
                     {request.username ? `@${request.username}` : ''}

@@ -1,3 +1,4 @@
+
 import { supabase } from '@/lib/supabaseClient';
 import { Photo } from './photoService';
 import { createClient } from '@supabase/supabase-js';
@@ -101,7 +102,12 @@ export const securePhotos = async (
  */
 export const shouldShowWatermark = (url: string | undefined | null): boolean => {
   if (!url) return false;
-  return url.includes('?watermark=true');
+  
+  // Add a more robust check that handles various URL formats
+  // Check for watermark=true parameter or if the URL is from a watermarked bucket
+  return url.includes('?watermark=true') || 
+         url.includes('&watermark=true') || 
+         url.includes('photos-watermarked');
 };
 
 /**
@@ -133,10 +139,15 @@ export const uploadSecurePhoto = async (
       
     const premiumUrl = premiumUrlData.publicUrl;
     
+    // For non-premium users, create a watermarked version by appending a query param
+    const watermarkedUrl = ['bronze', 'silver', 'gold'].includes(subscriptionTier) 
+      ? undefined 
+      : `${premiumUrl}?watermark=true`;
+    
     // Return the URL
     return { 
       url: premiumUrl,
-      // In the future, we'd also create and return a watermarked version
+      watermarkedUrl
     };
   } catch (error) {
     console.error('Error in uploadSecurePhoto:', error);

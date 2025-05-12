@@ -1,4 +1,3 @@
-
 import { Heart, MessageCircle, User } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
@@ -345,7 +344,7 @@ const PostItem = ({ post, handleLikePost }: PostItemProps) => {
               <img 
                 src={getThumbnailUrl()}
                 alt="Video thumbnail" 
-                className="w-full h-full object-contain max-h-[600px]"
+                className={`w-full h-full object-contain max-h-[600px] ${!userCanViewThisContent ? 'blur-sm filter saturate-50' : ''}`}
               />
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="w-16 h-16 rounded-full bg-black/30 flex items-center justify-center">
@@ -354,6 +353,16 @@ const PostItem = ({ post, handleLikePost }: PostItemProps) => {
                   </div>
                 </div>
               </div>
+              
+              {(!userCanViewThisContent || shouldDisplayWatermark) && (
+                <div className="absolute inset-0 overflow-hidden">
+                  <div className="absolute inset-0 w-full h-full flex items-center justify-center">
+                    <div className="font-bold text-white text-6xl opacity-50 transform -rotate-12 select-none whitespace-nowrap">
+                      PREMIUM
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>

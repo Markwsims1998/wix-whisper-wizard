@@ -44,7 +44,12 @@ const ProfileTabs: React.FC<ProfileTabsProps> = ({ userId }) => {
         </div>
         
         <TabsContent value="posts" className="p-0 border-0">
-          <PostsList userId={userId} />
+          <PostsList 
+            userId={userId} 
+            isMyProfile={false}
+            profile={{}} 
+            profileId={userId}
+          />
         </TabsContent>
         
         <TabsContent value="photos" className="p-0 border-0">

@@ -3,7 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Home, Users, Camera, ShoppingCart, Video, Tv, MessageCircle, Bell, Heart, User, Settings, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ModeToggle } from "@/components/theme-toggle";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/contexts/auth/AuthProvider";
 

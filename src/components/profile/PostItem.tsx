@@ -10,6 +10,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/contexts/auth/AuthProvider";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useSubscription } from "@/contexts/SubscriptionContext";
+import { shouldShowWatermark } from "@/services/securePhotoService";
 
 type PostItemProps = {
   post: Post;
@@ -266,6 +267,10 @@ const PostItem = ({ post, handleLikePost }: PostItemProps) => {
   // Determine if the current user can view this media
   const userCanViewThisContent = canViewContent(mediaType);
   
+  // Check if the image URL has a watermark parameter
+  const mediaUrl = getMediaUrl();
+  const shouldDisplayWatermark = shouldShowWatermark(mediaUrl);
+  
   return (
     <div className="mb-6 pb-6 border-b border-gray-100 last:border-0 last:mb-0 last:pb-0 dark:border-gray-700 transition-all hover:bg-gray-50 dark:hover:bg-gray-800/50 p-4 rounded-lg -mx-4">
       <div className="flex items-center gap-3 mb-3">
@@ -306,7 +311,7 @@ const PostItem = ({ post, handleLikePost }: PostItemProps) => {
       {/* Post content */}
       {post.content && <p className="mb-3 text-gray-700 dark:text-gray-200">{post.content}</p>}
       
-      {/* Media display - updated to link to /post instead of /media */}
+      {/* Media display - updated to handle watermarks */}
       {hasMedia && (
         <div className="mb-4 rounded-md overflow-hidden">
           {isImage && (
@@ -320,7 +325,7 @@ const PostItem = ({ post, handleLikePost }: PostItemProps) => {
                 className={`w-full h-auto rounded-md hover:opacity-95 transition-opacity object-contain max-h-[600px] ${!userCanViewThisContent ? 'blur-sm filter saturate-50' : ''}`}
               />
               
-              {!userCanViewThisContent && (
+              {(!userCanViewThisContent || shouldDisplayWatermark) && (
                 <div className="absolute inset-0 overflow-hidden">
                   <div className="absolute inset-0 w-full h-full flex items-center justify-center">
                     <div className="font-bold text-white text-6xl opacity-50 transform -rotate-12 select-none whitespace-nowrap">

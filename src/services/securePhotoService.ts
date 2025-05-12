@@ -1,3 +1,4 @@
+
 import { supabase } from '@/lib/supabaseClient';
 import { Photo } from './photoService';
 import { createClient } from '@supabase/supabase-js';
@@ -35,7 +36,7 @@ export const getSecurePhotoUrl = async (
     
     if (watermarkedError) {
       console.error('Error checking for watermarked image:', watermarkedError);
-      return originalUrl; // Fallback to original URL
+      return `${originalUrl}?watermark=true`; // Fallback to original URL with watermark param
     }
     
     // If watermarked version exists, return it
@@ -48,12 +49,12 @@ export const getSecurePhotoUrl = async (
       return data.publicUrl;
     }
     
-    // If no watermarked version exists yet, generate one
-    return createWatermarkedVersion(userId, fileName, originalUrl);
+    // If no watermarked version exists yet, return original with watermark parameter
+    return `${originalUrl}?watermark=true`;
   } catch (error) {
     console.error('Error getting secure photo URL:', error);
-    // Fallback to the original URL if anything fails
-    return originalUrl;
+    // Fallback to the original URL with watermark parameter
+    return `${originalUrl}?watermark=true`;
   }
 };
 
@@ -71,7 +72,7 @@ const createWatermarkedVersion = async (
     return `${originalUrl}?watermark=true`;
   } catch (error) {
     console.error('Error creating watermarked version:', error);
-    return originalUrl;
+    return `${originalUrl}?watermark=true`;
   }
 };
 
@@ -93,6 +94,15 @@ export const securePhotos = async (
     image: `${photo.image}?watermark=true`,
     thumbnail: photo.thumbnail ? `${photo.thumbnail}?watermark=true` : undefined
   }));
+};
+
+/**
+ * Check if a given URL should display a watermark
+ * This is useful for UI components to detect if they need to show a watermark overlay
+ */
+export const shouldShowWatermark = (url: string | undefined | null): boolean => {
+  if (!url) return false;
+  return url.includes('?watermark=true');
 };
 
 /**

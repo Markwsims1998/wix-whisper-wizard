@@ -70,7 +70,47 @@ const Photos = () => {
         const photosData = await fetchPhotos(selectedCategory);
         
         // Process photos to use secure URLs based on subscription
-        const securedPhotos = await securePhotos(photosData, subscriptionDetails.tier);
+        const isPremiumUser = ['bronze', 'silver', 'gold'].includes(subscriptionDetails.tier);
+        
+        // Try to get watermarked versions for non-premium users
+        const securedPhotos = await Promise.all(photosData.map(async (photo) => {
+          // If user is premium, use original image
+          if (isPremiumUser) {
+            return photo;
+          }
+          
+          // If non-premium, see if a watermarked version exists
+          if (photo.image.includes('photos-premium')) {
+            try {
+              // Try to get the watermarked version based on the path
+              const urlObj = new URL(photo.image);
+              const path = urlObj.pathname;
+              const premiumPrefix = '/object/public/photos-premium/';
+              const filePath = path.includes(premiumPrefix)
+                ? path.split(premiumPrefix)[1]
+                : path.split('/').slice(-2).join('/');
+                
+              // Check if watermarked version exists
+              const { data: watermarkedData } = supabase.storage
+                .from('photos-watermarked')
+                .getPublicUrl(filePath);
+                
+              if (watermarkedData?.publicUrl) {
+                return {
+                  ...photo,
+                  image: watermarkedData.publicUrl,
+                  thumbnail: watermarkedData.publicUrl
+                };
+              }
+            } catch (e) {
+              console.error("Error getting watermarked URL:", e);
+            }
+          }
+          
+          // If no watermarked version found, keep original
+          return photo;
+        }));
+        
         setPhotos(securedPhotos);
         
         // Set up like count tracking for each photo
@@ -244,15 +284,15 @@ const Photos = () => {
                       <img 
                         src={photo.thumbnail || photo.image} 
                         alt={photo.title || 'Photo'} 
-                        className={`w-full h-full object-cover ${!subscriptionDetails.canViewPhotos ? 'blur-sm filter saturate-50' : ''}`}
+                        className="w-full h-full object-cover"
                         loading="lazy"
                       />
-                      {(!subscriptionDetails.canViewPhotos || photo.image?.includes('?watermark=true')) && (
+                      {photo.image.includes('photos-watermarked') && (
                         <div className="absolute inset-0 bg-black bg-opacity-50 flex flex-col items-center justify-center">
                           <div className="absolute inset-0 overflow-hidden">
                             <div className="absolute inset-0 w-full h-full flex items-center justify-center">
-                              <div className="font-bold text-white text-6xl opacity-50 transform -rotate-12 select-none whitespace-nowrap">
-                                PREMIUM
+                              <div className="font-bold text-white text-4xl opacity-50 transform -rotate-12 select-none whitespace-nowrap">
+                                © HappyKinks
                               </div>
                             </div>
                           </div>

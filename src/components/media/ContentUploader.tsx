@@ -106,7 +106,7 @@ const ContentUploader: React.FC<ContentUploaderProps> = ({
       if (selectedFile) {
         // Handle file upload based on content type
         if (contentType === 'photo') {
-          // Use secure photo upload for photos
+          // Use secure photo upload with watermarking for photos
           const result = await uploadSecurePhoto(
             selectedFile,
             user.id,
@@ -116,6 +116,8 @@ const ContentUploader: React.FC<ContentUploaderProps> = ({
           if (!result) throw new Error('Failed to upload photo');
           
           fileUrl = result.url;
+          // Also store the watermarked URL for reference
+          thumbnailUrl = result.watermarkedUrl;
         } else {
           // Upload video file
           const result = await uploadMediaFile(selectedFile, contentType, user.id);

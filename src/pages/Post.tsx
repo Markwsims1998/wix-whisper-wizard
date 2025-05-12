@@ -17,7 +17,7 @@ import Footer from "@/components/Footer";
 import Sidebar from "@/components/Sidebar";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { shouldShowWatermark } from "@/services/securePhotoService";
+import { shouldShowWatermark, getSecurePhotoUrl } from "@/services/securePhotoService";
 
 // Define the LikeUser interface for proper typing
 export interface LikeUser {
@@ -47,7 +47,7 @@ const Post = () => {
   const [loadingLikes, setLoadingLikes] = useState(false);
   const [showAllLikes, setShowAllLikes] = useState(false);
 
-  // Instead of redirecting, we'll load the content and overlay restrictions if needed
+  // Load post details including media
   useEffect(() => {
     if (postId) {
       loadPostDetails(postId);
@@ -57,7 +57,6 @@ const Post = () => {
   const loadPostDetails = async (postId: string) => {
     setLoading(true);
     try {
-      // Fetch post data first
       const { data: postData, error: postError } = await supabase
         .from('posts')
         .select(`
@@ -94,7 +93,42 @@ const Post = () => {
         
       if (!mediaError && mediaData && mediaData.length > 0) {
         console.log("Media found for post:", mediaData);
-        setMedia(mediaData[0]);
+        
+        // Get the media item
+        const mediaItem = mediaData[0];
+        
+        // If this is a photo, try to get the subscription-appropriate URL
+        if (mediaItem.content_type === 'photo' || mediaItem.media_type.startsWith('image/')) {
+          // For photos, check if we should use the premium or watermarked URL
+          const isPremiumUser = ['bronze', 'silver', 'gold'].includes(subscriptionDetails.tier);
+          
+          // If the URL starts with photos-premium and user is not premium, try to get watermarked URL
+          if (!isPremiumUser && mediaItem.file_url.includes('photos-premium')) {
+            try {
+              // Try to get the watermarked version based on the path
+              const urlObj = new URL(mediaItem.file_url);
+              const path = urlObj.pathname;
+              const premiumPrefix = '/object/public/photos-premium/';
+              const filePath = path.includes(premiumPrefix)
+                ? path.split(premiumPrefix)[1]
+                : path.split('/').slice(-2).join('/');
+                
+              // Check if watermarked version exists
+              const { data: watermarkedData } = supabase.storage
+                .from('photos-watermarked')
+                .getPublicUrl(filePath);
+                
+              if (watermarkedData?.publicUrl) {
+                mediaItem.file_url = watermarkedData.publicUrl;
+              }
+            } catch (e) {
+              console.error("Error getting watermarked URL:", e);
+              // Keep original URL if there's an error
+            }
+          }
+        }
+        
+        setMedia(mediaItem);
       }
       
       // Check like status and count
@@ -114,7 +148,6 @@ const Post = () => {
     }
   };
 
-  // Check if the user can view the content based on subscription
   const canViewContent = (mediaType: string) => {
     if (mediaType === 'video') {
       return subscriptionDetails.canViewVideos;
@@ -329,6 +362,11 @@ const Post = () => {
 
   // Check if user can view this specific content
   const userCanViewThisContent = !currentMediaType || canViewContent(currentMediaType);
+  
+  // Check if the URL is from the watermarked bucket or the user doesn't have premium access
+  const isWatermarked = media && media.file_url ? 
+    media.file_url.includes('photos-watermarked') || 
+    !['bronze', 'silver', 'gold'].includes(subscriptionDetails.tier) : false;
 
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
@@ -404,15 +442,11 @@ const Post = () => {
                   {media.media_type.startsWith('image/') || media.media_type === 'image' ? (
                     <div className="relative">
                       <img
-                        src={!subscriptionDetails.canViewPhotos || media.file_url?.includes('watermark=true') ? 
-                          (media.file_url?.includes('?') ? 
-                            `${media.file_url}&watermark=true` : 
-                            `${media.file_url}?watermark=true`)
-                          : media.file_url}
+                        src={media.file_url}
                         alt={post.content || "Photo"}
                         className={`w-full h-auto object-contain max-h-[600px] ${!userCanViewThisContent ? 'blur-sm filter saturate-50' : ''}`}
                       />
-                      {(!subscriptionDetails.canViewPhotos || media.file_url?.includes('watermark=true')) && (
+                      {isWatermarked && (
                         <div className="absolute inset-0 flex flex-col items-center justify-center">
                           <Lock className="h-12 w-12 text-white/70 mb-2" />
                           <p className="text-white/80 mb-4 text-center">Full quality photo requires a subscription</p>
@@ -426,11 +460,11 @@ const Post = () => {
                           </Button>
                         </div>
                       )}
-                      {(!subscriptionDetails.canViewPhotos || media.file_url?.includes('watermark=true')) && (
+                      {isWatermarked && (
                         <div className="absolute inset-0 overflow-hidden">
                           <div className="absolute inset-0 w-full h-full flex items-center justify-center">
                             <div className="font-bold text-white text-6xl opacity-50 transform -rotate-12 select-none whitespace-nowrap">
-                              PREMIUM
+                              © HappyKinks
                             </div>
                           </div>
                         </div>
@@ -440,11 +474,7 @@ const Post = () => {
                     <div className="aspect-video w-full relative">
                       {userCanViewThisContent ? (
                         <video
-                          src={!subscriptionDetails.canViewVideos ? 
-                            (media.file_url?.includes('?') ? 
-                              `${media.file_url}&watermark=true` : 
-                              `${media.file_url}?watermark=true`)
-                            : media.file_url}
+                          src={media.file_url}
                           controls
                           className="w-full h-auto"
                           poster={media.thumbnail_url}
@@ -476,7 +506,7 @@ const Post = () => {
                         <div className="absolute inset-0 overflow-hidden">
                           <div className="absolute inset-0 w-full h-full flex items-center justify-center">
                             <div className="font-bold text-white text-6xl opacity-50 transform -rotate-12 select-none whitespace-nowrap">
-                              PREMIUM
+                              © HappyKinks
                             </div>
                           </div>
                         </div>
@@ -484,9 +514,7 @@ const Post = () => {
                     </div>
                   ) : media.media_type === 'gif' ? (
                     <img
-                      src={media.file_url?.includes('?') ? 
-                        `${media.file_url}&watermark=true` : 
-                        `${media.file_url}?watermark=true`}
+                      src={media.file_url}
                       alt="GIF"
                       className="w-full h-auto object-contain max-h-[600px]"
                     />

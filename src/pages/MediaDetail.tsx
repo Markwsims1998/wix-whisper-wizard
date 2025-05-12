@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams, Link } from "react-router-dom";
 import { Heart, User, ChevronLeft, MessageCircle } from "lucide-react";
@@ -533,7 +534,7 @@ const MediaDetail = () => {
                 />
               )}
               
-              {/* Who Loved Section - Fixed to properly access individual user objects */}
+              {/* Who Loved Section - Fix the type errors */}
               {likesCount > 0 && (
                 <div className="mt-8">
                   <h3 className="text-md font-medium mb-3">Who loved this ({likesCount})</h3>

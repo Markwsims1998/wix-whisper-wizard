@@ -40,3 +40,26 @@ export const fetchVideos = async (category: string = 'all'): Promise<Video[]> =>
     return [];
   }
 };
+
+// Add a new function to sync likes for a specific video post
+export const syncVideoLikes = async (postId: string): Promise<number> => {
+  if (!postId) return 0;
+  
+  try {
+    // Get the current like count from the database
+    const { count, error } = await supabase
+      .from('likes')
+      .select('id', { count: 'exact', head: true })
+      .eq('post_id', postId);
+    
+    if (error) {
+      console.error('Error fetching like count for video:', error);
+      return 0;
+    }
+    
+    return count || 0;
+  } catch (err) {
+    console.error('Error syncing video likes:', err);
+    return 0;
+  }
+};

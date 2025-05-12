@@ -14,6 +14,7 @@ import { Video } from "@/services/videoService";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Info } from "lucide-react";
+import { supabase } from "@/lib/supabaseClient";
 
 const Videos = () => {
   const { subscriptionDetails } = useSubscription();
@@ -66,7 +67,19 @@ const Videos = () => {
       setIsLoading(true);
       try {
         const mediaItems = await fetchMedia('video', selectedCategory);
-        setVideos(convertToVideoFormat(mediaItems));
+        const formattedVideos = convertToVideoFormat(mediaItems);
+        
+        // Make sure postId is populated in the videos array
+        const videosWithPostId = formattedVideos.map(video => {
+          // If the media item has a post_id property, add it to the video object
+          const mediaItem = mediaItems.find(item => item.id === video.id);
+          if (mediaItem && mediaItem.post_id) {
+            return { ...video, postId: mediaItem.post_id };
+          }
+          return video;
+        });
+        
+        setVideos(videosWithPostId);
       } catch (error) {
         console.error("Error loading videos:", error);
         toast({
@@ -81,6 +94,54 @@ const Videos = () => {
     
     loadVideos();
   }, [selectedCategory, toast]);
+
+  // Listen for global changes to likes table
+  useEffect(() => {
+    const channel = supabase
+      .channel('public:likes')
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'likes' }, 
+        payload => {
+          // When likes change, check if the post_id matches any of our videos
+          const postId = payload.new?.post_id || payload.old?.post_id;
+          
+          if (postId) {
+            // Find any videos that use this post ID
+            const videoWithThisPost = videos.find(v => v.postId === postId);
+            
+            if (videoWithThisPost) {
+              // Update the likes count for this video
+              fetchLikesCountForPost(postId).then(count => {
+                setVideos(prev => prev.map(v => {
+                  if (v.postId === postId) {
+                    return { ...v, likes_count: count };
+                  }
+                  return v;
+                }));
+              });
+            }
+          }
+        })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [videos]);
+
+  const fetchLikesCountForPost = async (postId: string): Promise<number> => {
+    try {
+      const { count } = await supabase
+        .from('likes')
+        .select('id', { count: 'exact', head: true })
+        .eq('post_id', postId);
+      
+      return count || 0;
+    } catch (error) {
+      console.error("Error fetching likes count:", error);
+      return 0;
+    }
+  };
 
   const handleVideoClick = (video: Video) => {
     if (canViewVideos) {
@@ -97,7 +158,18 @@ const Videos = () => {
       description: "Your video has been uploaded successfully.",
     });
     // Refresh videos list
-    fetchMedia('video', selectedCategory).then(data => setVideos(convertToVideoFormat(data)));
+    fetchMedia('video', selectedCategory).then(data => {
+      const formattedVideos = convertToVideoFormat(data);
+      // Make sure postId is populated
+      const videosWithPostId = formattedVideos.map(video => {
+        const mediaItem = data.find(item => item.id === video.id);
+        if (mediaItem && mediaItem.post_id) {
+          return { ...video, postId: mediaItem.post_id };
+        }
+        return video;
+      });
+      setVideos(videosWithPostId);
+    });
   };
 
   return (
@@ -170,10 +242,10 @@ const Videos = () => {
             thumbnail: selectedVideo.thumbnail_url,
             author: selectedVideo.user?.full_name || 'Unknown',
             authorPic: selectedVideo.user?.avatar_url || undefined,
-            postId: selectedVideo.id
+            postId: selectedVideo.postId || selectedVideo.id
           }}
           onClose={() => setSelectedVideo(null)}
-          postId={selectedVideo.id}
+          postId={selectedVideo.postId || selectedVideo.id}
         />
       )}
 

@@ -13,6 +13,7 @@ import ContentUploader from "@/components/media/ContentUploader";
 import VideoCard from "@/components/videos/VideoCard";
 import { fetchVideos, Video } from "@/services/videoService";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/lib/supabaseClient";
 
 const Videos = () => {
   const { subscriptionDetails } = useSubscription();
@@ -64,9 +65,28 @@ const Videos = () => {
     const loadVideos = async () => {
       setIsLoading(true);
       try {
+        // Get videos from the database
         const videoData = await fetchVideos(selectedCategory);
         console.log("Fetched videos:", videoData.length);
-        setVideos(videoData);
+        
+        // Get additional post_id information for each video
+        const videosWithPostIds = await Promise.all(videoData.map(async (video) => {
+          // Try to find the post_id for this video
+          const { data } = await supabase
+            .from('media')
+            .select('post_id')
+            .eq('id', video.id)
+            .single();
+            
+          // If found, add the post_id to the video
+          if (data && data.post_id) {
+            return { ...video, postId: data.post_id };
+          }
+          
+          return video;
+        }));
+        
+        setVideos(videosWithPostIds);
       } catch (error) {
         console.error("Error loading videos:", error);
         toast({
@@ -81,6 +101,53 @@ const Videos = () => {
     
     loadVideos();
   }, [selectedCategory, toast]);
+  
+  // Listen for likes changes
+  useEffect(() => {
+    // Subscribe to real-time updates on the likes table
+    const channel = supabase
+      .channel('public:likes:watch-page')
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'likes' }, 
+        payload => {
+          // When a like is added or removed
+          const postId = payload.new?.post_id || payload.old?.post_id;
+          
+          if (postId) {
+            // Check if any of our videos uses this post_id
+            const affectedVideo = videos.find(v => v.postId === postId);
+            
+            if (affectedVideo) {
+              // Update the likes count for this video
+              fetchLikesCount(postId).then(count => {
+                setVideos(prevVideos => prevVideos.map(v => 
+                  v.postId === postId ? { ...v, likes_count: count } : v
+                ));
+              });
+            }
+          }
+        })
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [videos]);
+
+  // Helper function to fetch the current number of likes for a post
+  const fetchLikesCount = async (postId: string): Promise<number> => {
+    try {
+      const { count } = await supabase
+        .from('likes')
+        .select('id', { count: 'exact', head: true })
+        .eq('post_id', postId);
+        
+      return count || 0;
+    } catch (error) {
+      console.error("Error fetching likes count:", error);
+      return 0;
+    }
+  };
 
   const handleVideoClick = (video: Video) => {
     if (canViewVideos) {
@@ -98,7 +165,26 @@ const Videos = () => {
       description: "Your video has been uploaded successfully.",
     });
     // Refresh videos list
-    fetchVideos(selectedCategory).then(data => setVideos(data));
+    fetchVideos(selectedCategory).then(async (videoData) => {
+      // Get additional post_id information for each video
+      const videosWithPostIds = await Promise.all(videoData.map(async (video) => {
+        // Try to find the post_id for this video
+        const { data } = await supabase
+          .from('media')
+          .select('post_id')
+          .eq('id', video.id)
+          .single();
+          
+        // If found, add the post_id to the video
+        if (data && data.post_id) {
+          return { ...video, postId: data.post_id };
+        }
+        
+        return video;
+      }));
+      
+      setVideos(videosWithPostIds);
+    });
   };
 
   return (

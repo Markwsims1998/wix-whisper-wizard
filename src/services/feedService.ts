@@ -1,3 +1,4 @@
+
 import { supabase } from "@/lib/supabaseClient";
 
 // Export the Post type so it can be used in other files
@@ -376,6 +377,11 @@ export const getLikesForPost = async (postId: string): Promise<LikeUser[]> => {
       
     if (error) {
       console.error('Error fetching post likes:', error);
+      return [];
+    }
+    
+    if (!data || !Array.isArray(data)) {
+      console.error('No data returned or invalid data format:', data);
       return [];
     }
     

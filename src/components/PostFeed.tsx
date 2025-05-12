@@ -1,4 +1,3 @@
-
 import { Separator } from "@/components/ui/separator";
 import { User, Heart, MessageCircle, Lock, Gift, Play, Pause, X } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -392,7 +391,7 @@ const PostFeed = () => {
                                 alt="Post image" 
                                 className={`rounded-lg w-full ${!subscriptionDetails.canViewPhotos ? 'blur-sm filter saturate-50' : ''}`}
                               />
-                              {!subscriptionDetails.canViewPhotos && (
+                              {(!subscriptionDetails.canViewPhotos || post.media[0].file_url?.includes('?watermark=true')) && (
                                 <div className="absolute inset-0 flex flex-col items-center justify-center">
                                   <Lock className="h-12 w-12 text-white/70 mb-2" />
                                   <p className="text-white/80 mb-4">Full quality photo requires a subscription</p>
@@ -409,7 +408,7 @@ const PostFeed = () => {
                                   </Button>
                                 </div>
                               )}
-                              {!subscriptionDetails.canViewPhotos && (
+                              {(!subscriptionDetails.canViewPhotos || post.media[0].file_url?.includes('?watermark=true')) && (
                                 <div className="absolute inset-0 overflow-hidden">
                                   <div className="absolute inset-0 w-full h-full flex items-center justify-center">
                                     <div className="font-bold text-white text-6xl opacity-50 transform -rotate-12 select-none whitespace-nowrap">

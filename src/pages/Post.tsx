@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate, Link } from "react-router-dom";
 import { Heart, MessageCircle, ArrowLeft, User, Lock, BadgeAlert } from "lucide-react";
@@ -408,7 +407,7 @@ const Post = () => {
                         alt={post.content || "Photo"}
                         className={`w-full h-auto object-contain max-h-[600px] ${!userCanViewThisContent ? 'blur-sm filter saturate-50' : ''}`}
                       />
-                      {!userCanViewThisContent && (
+                      {(!userCanViewThisContent || media.file_url?.includes('?watermark=true')) && (
                         <div className="absolute inset-0 flex flex-col items-center justify-center">
                           <Lock className="h-12 w-12 text-white/70 mb-2" />
                           <p className="text-white/80 mb-4 text-center">Full quality photo requires a subscription</p>
@@ -422,7 +421,7 @@ const Post = () => {
                           </Button>
                         </div>
                       )}
-                      {!userCanViewThisContent && (
+                      {(!userCanViewThisContent || media.file_url?.includes('?watermark=true')) && (
                         <div className="absolute inset-0 overflow-hidden">
                           <div className="absolute inset-0 w-full h-full flex items-center justify-center">
                             <div className="font-bold text-white text-6xl opacity-50 transform -rotate-12 select-none whitespace-nowrap">

@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
@@ -248,7 +247,7 @@ const Photos = () => {
                         className={`w-full h-full object-cover ${!subscriptionDetails.canViewPhotos ? 'blur-sm filter saturate-50' : ''}`}
                         loading="lazy"
                       />
-                      {!subscriptionDetails.canViewPhotos && (
+                      {(!subscriptionDetails.canViewPhotos || photo.image?.includes('?watermark=true')) && (
                         <div className="absolute inset-0 bg-black bg-opacity-50 flex flex-col items-center justify-center">
                           <div className="absolute inset-0 overflow-hidden">
                             <div className="absolute inset-0 w-full h-full flex items-center justify-center">

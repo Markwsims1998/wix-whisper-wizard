@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -8,9 +7,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Loader2, Upload } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth/AuthProvider";
-import { uploadMedia } from "@/services/mediaService";
+import { uploadMedia, uploadMediaFile, saveMediaMetadata } from "@/services/mediaService";
 import { uploadSecurePhoto } from "@/services/securePhotoService";
 import { useSubscription } from "@/contexts/SubscriptionContext";
+import { supabase } from "@/lib/supabaseClient";
 
 interface ContentUploaderProps {
   open: boolean;
@@ -81,48 +81,70 @@ const ContentUploader: React.FC<ContentUploaderProps> = ({
     setUploading(true);
     
     try {
-      let result;
-      
-      // Use different upload methods based on content type
-      if (contentType === 'photo' && selectedFile) {
-        // Use secure photo upload for photos
-        result = await uploadSecurePhoto(
-          selectedFile,
-          user.id,
-          subscriptionDetails.tier
-        );
+      let fileUrl = '';
+      let thumbnailUrl = '';
+      let postId = '';
+
+      // Create a post first to get the post ID
+      const { data: postData, error: postError } = await supabase
+        .from('posts')
+        .insert({
+          user_id: user.id,
+          content: title || `New ${contentType} upload`
+        })
+        .select('id')
+        .single();
         
-        if (!result) throw new Error('Failed to upload photo');
-        
-        // Save metadata using the regular media service
-        await uploadMedia(selectedFile, {
-          title,
-          description,
-          category,
-          userId: user.id,
-          contentType: contentType
-        });
-      } else if (selectedFile) {
-        // Use regular upload for videos and other content
-        result = await uploadMedia(selectedFile, {
-          title,
-          description,
-          category,
-          userId: user.id,
-          contentType: contentType
-        });
-      } else {
-        // Handle post without file upload
-        throw new Error(`No file selected for upload`);
+      if (postError) {
+        console.error('Error creating post:', postError);
+        throw new Error('Failed to create post');
       }
       
-      if (!result) {
-        throw new Error(`Failed to upload ${contentType}`);
+      postId = postData.id;
+      console.log('Created post with ID:', postId);
+      
+      if (selectedFile) {
+        // Handle file upload based on content type
+        if (contentType === 'photo') {
+          // Use secure photo upload for photos
+          const result = await uploadSecurePhoto(
+            selectedFile,
+            user.id,
+            subscriptionDetails.tier
+          );
+          
+          if (!result) throw new Error('Failed to upload photo');
+          
+          fileUrl = result.url;
+        } else {
+          // Upload video file
+          const result = await uploadMediaFile(selectedFile, contentType, user.id);
+          if (!result) throw new Error('Failed to upload video');
+          
+          fileUrl = result.url;
+          thumbnailUrl = result.thumbnailUrl || '';
+        }
+        
+        // Save media metadata to database
+        const mediaData = await saveMediaMetadata({
+          title,
+          description,
+          category,
+          userId: user.id,
+          fileUrl,
+          thumbnailUrl,
+          contentType,
+          existingPostId: postId
+        });
+        
+        if (!mediaData) {
+          throw new Error(`Failed to save ${contentType} metadata`);
+        }
       }
       
       toast({
         title: "Upload Successful",
-        description: `Your ${contentType} has been uploaded successfully.`,
+        description: `Your ${type === 'post' ? 'post' : contentType} has been uploaded successfully.`,
       });
       
       // Reset form
@@ -139,10 +161,10 @@ const ContentUploader: React.FC<ContentUploaderProps> = ({
         onSuccess();
       }
     } catch (error) {
-      console.error(`Error uploading ${contentType}:`, error);
+      console.error(`Error uploading ${type}:`, error);
       toast({
         title: "Upload Failed",
-        description: `There was a problem uploading your ${contentType}. Please try again.`,
+        description: `There was a problem uploading your ${type}. Please try again.`,
         variant: "destructive",
       });
     } finally {

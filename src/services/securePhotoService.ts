@@ -1,7 +1,6 @@
-
 import { supabase } from '@/lib/supabaseClient';
 import { Photo } from './photoService';
-import { useSubscription } from '@/contexts/SubscriptionContext';
+import { createClient } from '@supabase/supabase-js';
 
 /**
  * Fetch the proper image URL based on user subscription status
@@ -17,20 +16,61 @@ export const getSecurePhotoUrl = async (
     // If user has a paid subscription, they can access premium content
     const hasPremiumAccess = ['bronze', 'silver', 'gold'].includes(subscriptionTier);
     
-    // For premium users, check if we can access the premium bucket
+    // For premium users, return the original URL
     if (hasPremiumAccess) {
-      // We'll just use the original URL for now, but we could generate
-      // signed URLs from the premium bucket in the future
       return originalUrl;
     }
     
-    // For non-premium users, we should return a watermarked version
-    // For now, we'll continue using the original URL but the frontend will
-    // apply visual effects (blur + PREMIUM overlay)
-    return originalUrl;
+    // For non-premium users, we need to return the watermarked version
+    // Extract the path from the URL to find the corresponding watermarked version
+    const urlPath = new URL(originalUrl).pathname;
+    const pathParts = urlPath.split('/');
+    const fileName = pathParts[pathParts.length - 1];
+    const userId = pathParts[pathParts.length - 2];
+    
+    // Check if watermarked version exists in the watermarked bucket
+    const { data: watermarkedData, error: watermarkedError } = await supabase.storage
+      .from('photos-watermarked')
+      .list(userId);
+    
+    if (watermarkedError) {
+      console.error('Error checking for watermarked image:', watermarkedError);
+      return originalUrl; // Fallback to original URL
+    }
+    
+    // If watermarked version exists, return it
+    const watermarkedFile = watermarkedData?.find(file => file.name === fileName);
+    if (watermarkedFile) {
+      const { data } = supabase.storage
+        .from('photos-watermarked')
+        .getPublicUrl(`${userId}/${fileName}`);
+      
+      return data.publicUrl;
+    }
+    
+    // If no watermarked version exists yet, generate one
+    return createWatermarkedVersion(userId, fileName, originalUrl);
   } catch (error) {
     console.error('Error getting secure photo URL:', error);
     // Fallback to the original URL if anything fails
+    return originalUrl;
+  }
+};
+
+/**
+ * Create a watermarked version of an image
+ */
+const createWatermarkedVersion = async (
+  userId: string, 
+  fileName: string, 
+  originalUrl: string
+): Promise<string> => {
+  try {
+    // For now we'll return the original URL with a watermark query param
+    // which will be handled by the UI to apply a visual watermark overlay
+    return `${originalUrl}?watermark=true`;
+  } catch (error) {
+    console.error('Error creating watermarked version:', error);
     return originalUrl;
   }
 };
@@ -42,14 +82,17 @@ export const securePhotos = async (
   photos: Photo[], 
   subscriptionTier: string
 ): Promise<Photo[]> => {
-  try {
-    // Return the same photos, but in the future we could process them
-    // to use different URLs based on subscription status
-    return photos;
-  } catch (error) {
-    console.error('Error securing photos:', error);
+  // If user has a premium subscription, return original photos
+  if (['bronze', 'silver', 'gold'].includes(subscriptionTier)) {
     return photos;
   }
+  
+  // Otherwise, mark photos to show with watermark
+  return photos.map(photo => ({
+    ...photo,
+    image: `${photo.image}?watermark=true`,
+    thumbnail: photo.thumbnail ? `${photo.thumbnail}?watermark=true` : undefined
+  }));
 };
 
 /**

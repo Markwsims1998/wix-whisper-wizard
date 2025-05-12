@@ -1,4 +1,3 @@
-
 import { Separator } from "@/components/ui/separator";
 import { User, Heart, MessageCircle, Lock, Gift, Play, Pause, X } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -410,9 +409,11 @@ const PostFeed = () => {
                                 </div>
                               )}
                               {!subscriptionDetails.canViewPhotos && (
-                                <div className="absolute top-0 left-0 w-full">
-                                  <div className="font-bold text-red-500 text-2xl opacity-50 transform -rotate-12 p-4 absolute top-1/3 w-full text-center">
-                                    SUBSCRIBE TO VIEW
+                                <div className="absolute inset-0 overflow-hidden">
+                                  <div className="absolute inset-0 w-full h-full flex items-center justify-center">
+                                    <div className="font-bold text-white text-6xl opacity-50 transform -rotate-30 select-none whitespace-nowrap">
+                                      PREMIUM
+                                    </div>
                                   </div>
                                 </div>
                               )}
@@ -480,11 +481,6 @@ const PostFeed = () => {
                                         >
                                           View Plans
                                         </Button>
-                                      </div>
-                                      <div className="absolute top-0 left-0 w-full">
-                                        <div className="font-bold text-red-500 text-2xl opacity-50 transform -rotate-12 p-4 absolute top-1/3 w-full text-center">
-                                          SUBSCRIBE TO VIEW
-                                        </div>
                                       </div>
                                     </>
                                   )}

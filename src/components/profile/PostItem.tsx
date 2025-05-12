@@ -9,6 +9,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/contexts/auth/AuthProvider";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { useSubscription } from "@/contexts/SubscriptionContext";
 
 type PostItemProps = {
   post: Post;
@@ -24,6 +25,7 @@ const PostItem = ({ post, handleLikePost }: PostItemProps) => {
   const [imageError, setImageError] = useState(false);
   const [authorData, setAuthorData] = useState<any>(post.author || null);
   const [postMedia, setPostMedia] = useState<any[]>([]);
+  const { subscriptionDetails } = useSubscription();
   
   // Check like status and update counts when component mounts
   useEffect(() => {
@@ -249,6 +251,21 @@ const PostItem = ({ post, handleLikePost }: PostItemProps) => {
   const authorName = authorData?.full_name || authorData?.username || "User";
   const authorInitial = authorName.charAt(0).toUpperCase();
   
+  // Check if user can view this content based on subscription
+  const canViewContent = (mediaType: string | null) => {
+    if (!mediaType) return true;
+    if (mediaType.startsWith('image/') || mediaType === 'image') {
+      return subscriptionDetails.canViewPhotos;
+    }
+    if (mediaType.startsWith('video/') || mediaType === 'video') {
+      return subscriptionDetails.canViewVideos;
+    }
+    return true;
+  };
+  
+  // Determine if the current user can view this media
+  const userCanViewThisContent = canViewContent(mediaType);
+  
   return (
     <div className="mb-6 pb-6 border-b border-gray-100 last:border-0 last:mb-0 last:pb-0 dark:border-gray-700 transition-all hover:bg-gray-50 dark:hover:bg-gray-800/50 p-4 rounded-lg -mx-4">
       <div className="flex items-center gap-3 mb-3">
@@ -294,14 +311,24 @@ const PostItem = ({ post, handleLikePost }: PostItemProps) => {
         <div className="mb-4 rounded-md overflow-hidden">
           {isImage && (
             <div 
-              className="block cursor-pointer"
+              className="block cursor-pointer relative"
               onClick={() => navigate(`/post?postId=${post.id}&type=photo`)}
             >
               <img 
                 src={getMediaUrl()} 
                 alt="Photo attachment" 
-                className="w-full h-auto rounded-md hover:opacity-95 transition-opacity object-contain max-h-[600px]"
+                className={`w-full h-auto rounded-md hover:opacity-95 transition-opacity object-contain max-h-[600px] ${!userCanViewThisContent ? 'blur-sm filter saturate-50' : ''}`}
               />
+              
+              {!userCanViewThisContent && (
+                <div className="absolute inset-0 overflow-hidden">
+                  <div className="absolute inset-0 w-full h-full flex items-center justify-center">
+                    <div className="font-bold text-white text-6xl opacity-50 transform -rotate-30 select-none whitespace-nowrap">
+                      PREMIUM
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
           

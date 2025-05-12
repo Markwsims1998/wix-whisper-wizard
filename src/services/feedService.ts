@@ -1,3 +1,4 @@
+
 import { supabase } from "@/lib/supabaseClient";
 
 // Export the Post type so it can be used in other files
@@ -593,7 +594,7 @@ export const getLikesForPost = async (postId: string): Promise<any[]> => {
       .from('post_likes')
       .select(`
         user_id,
-        profiles (
+        profiles!relationships_follower_id_fkey(
           id,
           username,
           full_name,
@@ -608,14 +609,17 @@ export const getLikesForPost = async (postId: string): Promise<any[]> => {
       return [];
     }
     
-    // Map the data to the expected format
-    return data.map(like => ({
-      id: like.profiles.id,
-      username: like.profiles.username,
-      full_name: like.profiles.full_name,
-      avatar_url: like.profiles.avatar_url,
-      profile_picture_url: like.profiles.profile_picture_url
-    }));
+    // Map the data to the expected format - fixed the array access issue
+    return data.map(like => {
+      const profile = like.profiles;
+      return {
+        id: profile?.id || '',
+        username: profile?.username || '',
+        full_name: profile?.full_name || '',
+        avatar_url: profile?.avatar_url || null,
+        profile_picture_url: profile?.profile_picture_url || null
+      };
+    });
   } catch (error) {
     console.error('Error in getLikesForPost:', error);
     return [];

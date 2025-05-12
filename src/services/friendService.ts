@@ -161,7 +161,8 @@ export const getPendingFriendRequests = async (userId: string): Promise<FriendPr
         username: profile && typeof profile === 'object' && 'username' in profile ? String(profile.username || '') : '',
         full_name: profile && typeof profile === 'object' && 'full_name' in profile ? String(profile.full_name || '') : '',
         avatar_url: avatarUrl,
-        status: profile && typeof profile === 'object' && 'status' in profile && profile.status === 'online' ? 'online' : 'offline'
+        // Since we don't have real-time status for pending requests, default to offline
+        status: profile && typeof profile === 'object' && 'status' in profile && profile.status === 'online' ? 'online' as const : 'offline' as const
       };
     });
   } catch (error) {
@@ -255,7 +256,7 @@ export const getFriends = async (userId: string): Promise<FriendProfile[]> => {
         avatar_url: avatarUrl,
         last_active: profile && typeof profile === 'object' && 'last_sign_in_at' in profile ? String(profile.last_sign_in_at || '') : '',
         created_at: profile && typeof profile === 'object' && 'created_at' in profile ? String(profile.created_at || '') : '',
-        status: isRecent ? 'online' : 'offline'
+        status: isRecent ? 'online' as const : 'offline' as const
       };
     });
   } catch (error) {

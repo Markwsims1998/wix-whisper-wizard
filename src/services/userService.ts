@@ -59,7 +59,7 @@ export const getActiveFriends = async (userId: string): Promise<FriendProfile[]>
         full_name: profile && typeof profile === 'object' && 'full_name' in profile ? String(profile.full_name || '') : '',
         avatar_url: avatarUrl,
         last_active: profile && typeof profile === 'object' && 'last_sign_in_at' in profile ? String(profile.last_sign_in_at || '') : '',
-        status: isRecent ? 'online' : 'offline'
+        status: isRecent ? 'online' as const : 'offline' as const
       };
     }).filter(friend => friend.status === 'online');
   } catch (error) {

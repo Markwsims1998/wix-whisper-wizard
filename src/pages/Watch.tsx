@@ -13,8 +13,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Info } from "lucide-react";
 import ContentUploader from "@/components/media/ContentUploader";
 import VideoCard from "@/components/videos/VideoCard";
-import { fetchMedia, convertToVideoFormat } from "@/services/mediaService";
-import { Video } from "@/services/videoService";
+import { fetchVideos, Video } from "@/services/videoService";
 import { useToast } from "@/hooks/use-toast";
 
 const Videos = () => {
@@ -68,9 +67,8 @@ const Videos = () => {
     const loadVideos = async () => {
       setIsLoading(true);
       try {
-        const mediaItems = await fetchMedia('video', selectedCategory);
-        const formattedVideos = convertToVideoFormat(mediaItems);
-        setVideos(formattedVideos);
+        const videoData = await fetchVideos(selectedCategory);
+        setVideos(videoData);
       } catch (error) {
         console.error("Error loading videos:", error);
         toast({
@@ -101,7 +99,7 @@ const Videos = () => {
       description: "Your video has been uploaded successfully.",
     });
     // Refresh videos list
-    fetchMedia('video', selectedCategory).then(data => setVideos(convertToVideoFormat(data)));
+    fetchVideos(selectedCategory).then(data => setVideos(data));
   };
 
   return (

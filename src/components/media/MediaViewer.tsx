@@ -29,14 +29,12 @@ const MediaViewer = ({ type, media, onClose, onLike, onPrev, onNext, postId }: M
     return () => window.removeEventListener('keydown', handleEscape);
   }, [onClose]);
   
-  // Close on background click
+  // Handle background click to close the viewer
   const handleBackgroundClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (e.target === e.currentTarget) onClose();
-  };
-  
-  // Prevent clicks within the content from closing the modal
-  const handleContentClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
+    if (e.target === e.currentTarget) {
+      e.stopPropagation();
+      onClose();
+    }
   };
   
   // Determine author information
@@ -68,6 +66,7 @@ const MediaViewer = ({ type, media, onClose, onLike, onPrev, onNext, postId }: M
         </button>
       </div>
       
+      {/* Navigation buttons */}
       <div className="absolute top-1/2 left-4 z-10 transform -translate-y-1/2">
         {onPrev && (
           <button 
@@ -99,7 +98,11 @@ const MediaViewer = ({ type, media, onClose, onLike, onPrev, onNext, postId }: M
       </div>
 
       <div className="w-full h-full flex flex-col items-center justify-center p-4 md:p-10 relative z-10">
-        <div className="relative max-w-4xl w-full h-full flex items-center justify-center" onClick={handleContentClick}>
+        {/* Media container */}
+        <div 
+          className="relative max-w-4xl w-full h-full flex items-center justify-center" 
+          onClick={(e) => e.stopPropagation()}
+        >
           {type === 'image' && (
             <div className="relative">
               <img 
@@ -125,7 +128,10 @@ const MediaViewer = ({ type, media, onClose, onLike, onPrev, onNext, postId }: M
                   alt={media.title} 
                   className="w-full h-full object-contain"
                 />
-                <button className="absolute inset-0 flex items-center justify-center">
+                <button 
+                  className="absolute inset-0 flex items-center justify-center"
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <div className="w-20 h-20 rounded-full bg-white/30 backdrop-blur-md flex items-center justify-center">
                     <div className="w-16 h-16 rounded-full bg-white/80 flex items-center justify-center">
                       <Play className="w-8 h-8 text-red-600 ml-1" />
@@ -143,8 +149,12 @@ const MediaViewer = ({ type, media, onClose, onLike, onPrev, onNext, postId }: M
           )}
         </div>
         
+        {/* Info bar at the bottom */}
         <div className="absolute bottom-6 left-0 w-full px-6">
-          <div className="max-w-4xl mx-auto flex items-center justify-between bg-white/10 backdrop-blur-md p-4 rounded-lg" onClick={handleContentClick}>
+          <div 
+            className="max-w-4xl mx-auto flex items-center justify-between bg-white/10 backdrop-blur-md p-4 rounded-lg" 
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center gap-3">
               <div className="h-12 w-12 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
                 {media.authorPic || (media.user && media.user.avatar_url) ? (

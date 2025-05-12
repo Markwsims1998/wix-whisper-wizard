@@ -147,25 +147,34 @@ export const saveMediaMetadata = async (
     contentType: 'photo' | 'video';
     location?: string;
     tags?: string[];
+    existingPostId?: string;
   }
 ): Promise<MediaItem | null> => {
   try {
-    // First create a post for this media
-    const { data: postData, error: postError } = await supabase
-      .from('posts')
-      .insert({
-        user_id: mediaData.userId,
-        content: `${mediaData.title || (mediaData.contentType === 'video' ? 'Video' : 'Photo')} upload`
-      })
-      .select('id')
-      .single();
-      
-    if (postError) {
-      console.error('Error creating post for media:', postError);
-      return null;
-    }
+    let postId = mediaData.existingPostId;
     
-    console.log('Created post for media:', postData.id);
+    // Only create a post if we don't have an existing post ID
+    if (!postId) {
+      // Create a post for this media
+      const { data: postData, error: postError } = await supabase
+        .from('posts')
+        .insert({
+          user_id: mediaData.userId,
+          content: `${mediaData.title || (mediaData.contentType === 'video' ? 'Video' : 'Photo')} upload`
+        })
+        .select('id')
+        .single();
+        
+      if (postError) {
+        console.error('Error creating post for media:', postError);
+        return null;
+      }
+      
+      console.log('Created post for media:', postData.id);
+      postId = postData.id;
+    } else {
+      console.log('Using existing post ID for media:', postId);
+    }
     
     // Then save the media linked to the post
     const { data, error } = await supabase
@@ -178,7 +187,7 @@ export const saveMediaMetadata = async (
         thumbnail_url: mediaData.thumbnailUrl,
         content_type: mediaData.contentType,
         media_type: mediaData.contentType === 'photo' ? 'image/jpeg' : 'video/mp4',
-        post_id: postData.id // Link media to the post
+        post_id: postId // Link media to the post
       })
       .select('*, user:user_id(id, username, full_name, avatar_url)')
       .single();
@@ -209,6 +218,7 @@ export const uploadMedia = async (
     contentType: 'photo' | 'video';
     location?: string;
     tags?: string[];
+    existingPostId?: string;
   }
 ): Promise<MediaItem | null> => {
   try {
@@ -220,12 +230,40 @@ export const uploadMedia = async (
     const mediaData = await saveMediaMetadata({
       ...metadata,
       fileUrl: uploadResult.url,
-      thumbnailUrl: uploadResult.thumbnailUrl
+      thumbnailUrl: uploadResult.thumbnailUrl,
+      existingPostId: metadata.existingPostId
     });
     
     return mediaData;
   } catch (error) {
     console.error('Error in uploadMedia:', error);
     return null;
+  }
+};
+
+/**
+ * Fetch media items by post ID
+ */
+export const fetchMediaByPostId = async (postId: string): Promise<MediaItem[]> => {
+  try {
+    if (!postId) {
+      console.error('Missing post ID for fetchMediaByPostId');
+      return [];
+    }
+    
+    const { data, error } = await supabase
+      .from('media')
+      .select('*')
+      .eq('post_id', postId);
+      
+    if (error) {
+      console.error('Error fetching media for post:', error);
+      return [];
+    }
+    
+    return data || [];
+  } catch (error) {
+    console.error('Error in fetchMediaByPostId:', error);
+    return [];
   }
 };

@@ -68,7 +68,7 @@ const Videos = () => {
       const video = videos[videoIndex];
       
       // Only proceed if the video has a postId
-      const postId = video.postId;
+      let postId = video.postId;
       if (!postId) {
         // Create a post entry for this video if it doesn't have one
         const { data: postData, error: postError } = await supabase
@@ -92,11 +92,12 @@ const Videos = () => {
           .eq('id', videoId);
           
         // Update our local video object
-        video.postId = postData.id;
+        postId = postData.id;
+        video.postId = postId;
       }
       
       // If we have a postId now, update like status
-      if (video.postId) {
+      if (postId) {
         const { data: userData } = await supabase.auth.getUser();
         if (!userData.user) return;
         
@@ -104,7 +105,7 @@ const Videos = () => {
         const { data: existingLike } = await supabase
           .from('likes')
           .select('id')
-          .eq('post_id', video.postId)
+          .eq('post_id', postId)
           .eq('user_id', userData.user.id)
           .maybeSingle();
           
@@ -113,7 +114,7 @@ const Videos = () => {
           await supabase
             .from('likes')
             .delete()
-            .eq('post_id', video.postId)
+            .eq('post_id', postId)
             .eq('user_id', userData.user.id);
             
           // Update local state
@@ -127,10 +128,9 @@ const Videos = () => {
           // Like
           await supabase
             .from('likes')
-            .insert({
-              post_id: video.postId,
-              user_id: userData.user.id
-            });
+            .insert([
+              { post_id: postId, user_id: userData.user.id }
+            ]);
             
           // Update local state
           const updatedVideos = [...videos];
@@ -165,7 +165,10 @@ const Videos = () => {
             Explore the latest videos shared by our community
           </p>
           
-          <VideoFilter activeCategory={activeCategory} onCategoryChange={handleCategoryChange} />
+          <VideoFilter 
+            activeCategory={activeCategory} 
+            onCategoryChange={handleCategoryChange} 
+          />
           
           <ScrollArea className="w-full">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mt-6 pb-8">

@@ -1,4 +1,3 @@
-
 import { supabase } from "@/lib/supabaseClient";
 
 // Export the Post type so it can be used in other files

@@ -2,7 +2,7 @@ import { Separator } from "@/components/ui/separator";
 import { User, Heart, MessageCircle, Lock, Gift } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -68,8 +68,9 @@ const PostFeed = () => {
         }
       }
       
-      // For each post, fetch its media if it exists
+      // For each post, ensure it has its media loaded
       for (const post of filteredPosts) {
+        // If post doesn't already have media data
         if (!post.media || post.media.length === 0) {
           try {
             const { data: mediaData, error: mediaError } = await supabase
@@ -118,15 +119,17 @@ const PostFeed = () => {
       navigate(`/profile?id=${author.id}`);
     }
   };
-
+  
+  // In the handleMediaClick function, ensure that we properly check for media
   const handleMediaClick = (post: PostType) => {
     // Only allow viewing if user has appropriate subscription
     if (!post.media || post.media.length === 0) return;
     
     const media = post.media[0];
-    const mediaType = media.media_type.startsWith('image/') ? 'image' : 
-                      media.media_type.startsWith('video/') ? 'video' : 
-                      'gif';
+    // Check if media_type is present and determine the media type
+    const mediaType = media.media_type.startsWith('image/') || media.media_type === 'image' ? 'image' : 
+                     media.media_type.startsWith('video/') || media.media_type === 'video' ? 'video' : 
+                     'gif';
     
     const canView = 
       (mediaType === 'video' && subscriptionDetails.canViewVideos) || 

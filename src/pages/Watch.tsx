@@ -1,280 +1,497 @@
-
-import Header from "@/components/Header";
-import Sidebar from "@/components/Sidebar";
-import { useEffect, useState } from "react";
-import { Play, Filter } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { useSubscription } from "@/contexts/SubscriptionContext";
+import { useState, useEffect, useRef } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { fetchVideoById, Video, syncVideoLikes } from "@/services/videoService";
+import { Heart, MessageCircle, Share2, Flag, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Info } from "lucide-react";
-import ContentUploader from "@/components/media/ContentUploader";
-import VideoCard from "@/components/videos/VideoCard";
-import { fetchVideos, Video } from "@/services/videoService";
+import { Separator } from "@/components/ui/separator";
+import { format } from "date-fns";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Skeleton } from "@/components/ui/skeleton";
+import Header from "@/components/Header";
+import Footer from "@/components/Footer";
+import Sidebar from "@/components/Sidebar";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabaseClient";
+import { useAuth } from "@/contexts/auth/AuthProvider";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { fetchVideos } from "@/services/videoService";
+import VideoCard from "@/components/videos/VideoCard";
 
-const Videos = () => {
-  const { subscriptionDetails } = useSubscription();
-  const canViewVideos = subscriptionDetails.canViewVideos;
-  const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  const [uploaderOpen, setUploaderOpen] = useState(false);
-  const [videos, setVideos] = useState<Video[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const { toast } = useToast();
+const Watch = () => {
+  const { id } = useParams<{ id: string }>();
+  const [video, setVideo] = useState<Video | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [relatedVideos, setRelatedVideos] = useState<Video[]>([]);
+  const [isLiked, setIsLiked] = useState(false);
+  const [likesCount, setLikesCount] = useState(0);
+  const videoRef = useRef<HTMLVideoElement>(null);
   const navigate = useNavigate();
-
-  // Categories for filtering
-  const categories = [
-    { id: "all", name: "All" },
-    { id: "events", name: "Events" },
-    { id: "tutorials", name: "Tutorials" },
-    { id: "meetups", name: "Meetups" },
-    { id: "workshops", name: "Workshops" },
-    { id: "interviews", name: "Interviews" }
-  ];
-
-  // Update header position based on sidebar width
-  useEffect(() => {
-    const updateHeaderPosition = () => {
-      const sidebar = document.querySelector('div[class*="bg-[#2B2A33]"]');
-      if (sidebar) {
-        const width = sidebar.getBoundingClientRect().width;
-        document.documentElement.style.setProperty('--sidebar-width', `${width}px`);
-      }
-    };
-
-    // Initial update
-    updateHeaderPosition();
-
-    // Set up observer to detect sidebar width changes
-    const observer = new ResizeObserver(updateHeaderPosition);
-    const sidebar = document.querySelector('div[class*="bg-[#2B2A33]"]');
-    if (sidebar) {
-      observer.observe(sidebar);
-    }
-
-    return () => {
-      if (sidebar) observer.unobserve(sidebar);
-    };
-  }, []);
-
-  // Load videos from API when category changes
-  useEffect(() => {
-    const loadVideos = async () => {
-      setIsLoading(true);
-      try {
-        // Get videos from the database
-        const videoData = await fetchVideos(selectedCategory);
-        console.log("Fetched videos:", videoData.length);
-        
-        // Get additional post_id information for each video
-        const videosWithPostIds = await Promise.all(videoData.map(async (video) => {
-          // Try to find the post_id for this video
-          const { data } = await supabase
-            .from('media')
-            .select('post_id')
-            .eq('id', video.id)
-            .single();
-            
-          // If found, add the post_id to the video
-          if (data && data.post_id) {
-            return { ...video, postId: data.post_id };
-          }
-          
-          return video;
-        }));
-        
-        setVideos(videosWithPostIds);
-      } catch (error) {
-        console.error("Error loading videos:", error);
-        toast({
-          title: "Error loading videos",
-          description: "There was a problem loading the videos. Please try again.",
-          variant: "destructive",
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    loadVideos();
-  }, [selectedCategory, toast]);
+  const { toast } = useToast();
+  const { user } = useAuth();
   
-  // Listen for likes changes
   useEffect(() => {
-    // Subscribe to real-time updates on the likes table
-    const channel = supabase
-      .channel('public:likes:watch-page')
-      .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'likes' }, 
-        payload => {
-          // When a like is added or removed
-          const postId = payload.new?.post_id || payload.old?.post_id;
-          
-          if (postId) {
-            // Check if any of our videos uses this post_id
-            const affectedVideo = videos.find(v => v.postId === postId);
-            
-            if (affectedVideo) {
-              // Update the likes count for this video
-              fetchLikesCount(postId).then(count => {
-                setVideos(prevVideos => prevVideos.map(v => 
-                  v.postId === postId ? { ...v, likes_count: count } : v
-                ));
-              });
-            }
-          }
-        })
-      .subscribe();
-      
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [videos]);
-
-  // Helper function to fetch the current number of likes for a post
-  const fetchLikesCount = async (postId: string): Promise<number> => {
+    if (id) {
+      loadVideo(id);
+      loadRelatedVideos();
+    }
+  }, [id]);
+  
+  const loadVideo = async (videoId: string) => {
+    setLoading(true);
     try {
-      const { count } = await supabase
-        .from('likes')
-        .select('id', { count: 'exact', head: true })
-        .eq('post_id', postId);
+      const videoData = await fetchVideoById(videoId);
+      if (!videoData) {
+        toast({
+          title: "Error",
+          description: "Video not found",
+          variant: "destructive"
+        });
+        navigate("/videos");
+        return;
+      }
+      
+      console.log("Loaded video:", videoData);
+      setVideo(videoData);
+      
+      // Check if the current user has liked this video
+      if (user && videoData.postId) {
+        checkLikeStatus(videoData.postId);
         
-      return count || 0;
+        // Get accurate likes count
+        const likesCount = await syncVideoLikes(videoData.postId);
+        setLikesCount(likesCount);
+      } else {
+        setLikesCount(videoData.likes_count || 0);
+      }
     } catch (error) {
-      console.error("Error fetching likes count:", error);
-      return 0;
-    }
-  };
-
-  const handleVideoClick = (video: Video) => {
-    if (canViewVideos) {
-      // Navigate to the video detail page instead of opening a popup
-      navigate(`/media/${video.id}?type=video`);
-    } else {
-      // Redirect to shop if not subscribed
-      navigate("/shop");
+      console.error("Error loading video:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load video",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
     }
   };
   
-  const handleUploadSuccess = () => {
-    toast({
-      title: "Upload successful",
-      description: "Your video has been uploaded successfully.",
-    });
-    // Refresh videos list
-    fetchVideos(selectedCategory).then(async (videoData) => {
-      // Get additional post_id information for each video
-      const videosWithPostIds = await Promise.all(videoData.map(async (video) => {
-        // Try to find the post_id for this video
-        const { data } = await supabase
-          .from('media')
-          .select('post_id')
-          .eq('id', video.id)
-          .single();
-          
-        // If found, add the post_id to the video
-        if (data && data.post_id) {
-          return { ...video, postId: data.post_id };
+  const loadRelatedVideos = async () => {
+    try {
+      const videos = await fetchVideos('all');
+      
+      // Filter out the current video and limit to 6 videos
+      const filtered = videos
+        .filter(v => v.id !== id)
+        .slice(0, 6);
+      
+      // For each video, update the likes count
+      const updatedVideos = await Promise.all(filtered.map(async (video) => {
+        if (video.postId) {
+          try {
+            const likesCount = await syncVideoLikes(video.postId);
+            return { ...video, likes_count: likesCount };
+          } catch (err) {
+            console.error("Error syncing likes for video:", err);
+            return video; // Return the original video if there's an error
+          }
         }
-        
         return video;
       }));
       
-      setVideos(videosWithPostIds);
+      setRelatedVideos(updatedVideos);
+    } catch (error) {
+      console.error("Error loading related videos:", error);
+    }
+  };
+  
+  const checkLikeStatus = async (postId: string) => {
+    if (!user) return;
+    
+    try {
+      const { data } = await supabase
+        .from('likes')
+        .select('id')
+        .eq('post_id', postId)
+        .eq('user_id', user.id)
+        .maybeSingle();
+      
+      setIsLiked(!!data);
+    } catch (error) {
+      console.error("Error checking like status:", error);
+    }
+  };
+  
+  const handleLike = async () => {
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to like videos",
+      });
+      return;
+    }
+    
+    if (!video || !video.postId) {
+      // Create a post for this video if it doesn't have one
+      try {
+        const { data: postData, error: postError } = await supabase
+          .from('posts')
+          .insert({
+            user_id: video?.user?.id || user.id,
+            content: `${video?.title || 'Video'} upload`
+          })
+          .select('id')
+          .single();
+          
+        if (postError || !postData) {
+          console.error("Error creating post for video:", postError);
+          return;
+        }
+        
+        // Update the media item with the post_id
+        await supabase
+          .from('media')
+          .update({ post_id: postData.id })
+          .eq('id', video?.id || '');
+          
+        // Update our local video object
+        setVideo(prev => prev ? { ...prev, postId: postData.id } : null);
+        
+        // Now we can like the post
+        toggleLike(postData.id);
+      } catch (error) {
+        console.error("Error creating post for video:", error);
+        toast({
+          title: "Error",
+          description: "Could not like video",
+          variant: "destructive"
+        });
+      }
+    } else {
+      // Video already has a post, just toggle the like
+      toggleLike(video.postId);
+    }
+  };
+  
+  const toggleLike = async (postId: string) => {
+    if (!user) return;
+    
+    // Optimistic UI update
+    setIsLiked(prev => !prev);
+    setLikesCount(prev => isLiked ? Math.max(0, prev - 1) : prev + 1);
+    
+    try {
+      if (isLiked) {
+        // Unlike
+        await supabase
+          .from('likes')
+          .delete()
+          .eq('post_id', postId)
+          .eq('user_id', user.id);
+      } else {
+        // Like
+        await supabase
+          .from('likes')
+          .insert([
+            { post_id: postId, user_id: user.id }
+          ]);
+      }
+    } catch (error) {
+      console.error("Error toggling like:", error);
+      
+      // Revert optimistic update on error
+      setIsLiked(prev => !prev);
+      setLikesCount(prev => isLiked ? prev + 1 : Math.max(0, prev - 1));
+      
+      toast({
+        title: "Error",
+        description: "Could not update like status",
+        variant: "destructive"
+      });
+    }
+  };
+  
+  const handleRelatedVideoLike = async (videoId: string) => {
+    try {
+      const videoIndex = relatedVideos.findIndex(v => v.id === videoId);
+      if (videoIndex === -1) return;
+      
+      const video = relatedVideos[videoIndex];
+      
+      // Only proceed if the video has a postId
+      let postId = video.postId;
+      if (!postId) {
+        // Create a post entry for this video if it doesn't have one
+        const { data: postData, error: postError } = await supabase
+          .from('posts')
+          .insert({
+            user_id: video.user?.id || '00000000-0000-0000-0000-000000000000',
+            content: `${video.title || 'Video'} upload`
+          })
+          .select('id')
+          .single();
+          
+        if (postError || !postData) {
+          console.error("Error creating post for video:", postError);
+          return;
+        }
+        
+        // Update the media item with the post_id
+        await supabase
+          .from('media')
+          .update({ post_id: postData.id })
+          .eq('id', videoId);
+          
+        // Update our local video object
+        postId = postData.id;
+        video.postId = postId;
+      }
+      
+      // If we have a postId now, update like status
+      if (postId) {
+        const { data: userData } = await supabase.auth.getUser();
+        if (!userData.user) return;
+        
+        // Check if already liked
+        const { data: existingLike } = await supabase
+          .from('likes')
+          .select('id')
+          .eq('post_id', postId)
+          .eq('user_id', userData.user.id)
+          .maybeSingle();
+          
+        if (existingLike) {
+          // Unlike
+          await supabase
+            .from('likes')
+            .delete()
+            .eq('post_id', postId)
+            .eq('user_id', userData.user.id);
+            
+          // Update local state
+          const updatedVideos = [...relatedVideos];
+          updatedVideos[videoIndex] = {
+            ...video,
+            likes_count: Math.max(0, video.likes_count - 1)
+          };
+          setRelatedVideos(updatedVideos);
+        } else {
+          // Like
+          await supabase
+            .from('likes')
+            .insert([
+              { post_id: postId, user_id: userData.user.id }
+            ]);
+            
+          // Update local state
+          const updatedVideos = [...relatedVideos];
+          updatedVideos[videoIndex] = {
+            ...video,
+            likes_count: video.likes_count + 1
+          };
+          setRelatedVideos(updatedVideos);
+        }
+      }
+    } catch (error) {
+      console.error("Error toggling like for related video:", error);
+      toast({
+        title: "Error",
+        description: "Could not update like status",
+        variant: "destructive"
+      });
+    }
+  };
+  
+  const handleShare = () => {
+    if (navigator.share) {
+      navigator.share({
+        title: video?.title || 'Check out this video',
+        url: window.location.href
+      }).catch(err => console.error('Error sharing:', err));
+    } else {
+      navigator.clipboard.writeText(window.location.href);
+      toast({
+        title: "Link Copied",
+        description: "Video link copied to clipboard",
+      });
+    }
+  };
+  
+  const handleReport = () => {
+    toast({
+      title: "Report Submitted",
+      description: "Thank you for helping keep our community safe",
     });
   };
-
+  
+  const formatViewCount = (views: number) => {
+    if (views >= 1000000) {
+      return `${(views / 1000000).toFixed(1)}M`;
+    } else if (views >= 1000) {
+      return `${(views / 1000).toFixed(1)}K`;
+    }
+    return views.toString();
+  };
+  
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
       <Sidebar />
       <Header />
       
-      <div className="pl-[280px] pt-16 pr-4 pb-36 md:pb-10 transition-all duration-300" style={{ paddingLeft: 'var(--sidebar-width, 280px)' }}>
-        <div className="max-w-screen-xl mx-auto">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 mb-6">
-            <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
-              <div>
-                <h1 className="text-2xl font-semibold dark:text-white">Videos</h1>
-                <div className="border-b-2 border-purple-500 w-16 mt-1"></div>
+      <div className="pt-16 pb-10 pr-4" style={{
+        paddingLeft: 'max(1rem, var(--sidebar-width, 280px))'
+      }}>
+        <div className="max-w-7xl mx-auto px-4">
+          {loading ? (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2">
+                <Skeleton className="w-full aspect-video rounded-lg mb-4" />
+                <Skeleton className="h-8 w-3/4 rounded mb-2" />
+                <Skeleton className="h-4 w-1/4 rounded mb-4" />
+                <div className="flex items-center gap-3 mb-4">
+                  <Skeleton className="h-12 w-12 rounded-full" />
+                  <div>
+                    <Skeleton className="h-5 w-32 rounded mb-1" />
+                    <Skeleton className="h-4 w-24 rounded" />
+                  </div>
+                </div>
               </div>
-
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <Filter className="w-5 h-5 text-gray-500 dark:text-gray-300" />
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-200">Filter:</span>
+              <div>
+                <Skeleton className="h-8 w-1/2 rounded mb-4" />
+                <div className="space-y-4">
+                  {[1, 2, 3, 4].map(i => (
+                    <div key={i} className="flex gap-2">
+                      <Skeleton className="w-32 h-20 rounded" />
+                      <div className="flex-1">
+                        <Skeleton className="h-4 w-full rounded mb-1" />
+                        <Skeleton className="h-3 w-2/3 rounded" />
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                <div className="overflow-x-auto no-scrollbar">
-                  <Tabs 
-                    value={selectedCategory} 
-                    onValueChange={setSelectedCategory} 
-                    className="w-full"
-                  >
-                    <TabsList className="bg-gray-100 dark:bg-gray-700 p-1 rounded-lg flex flex-nowrap overflow-x-auto">
-                      {categories.map(category => (
-                        <TabsTrigger 
-                          key={category.id} 
-                          value={category.id}
-                          className="whitespace-nowrap px-3 py-1 text-sm"
-                        >
-                          {category.name}
-                        </TabsTrigger>
-                      ))}
-                    </TabsList>
-                  </Tabs>
-                </div>
-
-                {canViewVideos && (
-                  <Button 
-                    onClick={() => setUploaderOpen(true)}
-                    className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition ml-auto"
-                  >
-                    <Play className="w-5 h-5" />
-                    <span>Upload Video</span>
-                  </Button>
-                )}
               </div>
             </div>
-            
-            {isLoading ? (
-              <div className="flex flex-col items-center justify-center py-12">
-                <div className="w-16 h-16 border-4 border-purple-200 border-t-purple-500 rounded-full animate-spin mb-4"></div>
-                <p className="text-gray-500 dark:text-gray-400">Loading videos...</p>
-              </div>
-            ) : videos.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {videos.map(video => (
-                  <VideoCard 
-                    key={video.id}
-                    video={video}
-                    canViewVideos={canViewVideos}
-                    onVideoClick={handleVideoClick}
+          ) : video ? (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2">
+                <div className="bg-black rounded-lg overflow-hidden mb-4">
+                  <video 
+                    ref={videoRef}
+                    src={video.video_url} 
+                    poster={video.thumbnail_url}
+                    controls
+                    className="w-full aspect-video"
                   />
-                ))}
+                </div>
+                
+                <h1 className="text-xl font-semibold mb-1 dark:text-gray-100">{video.title}</h1>
+                <div className="flex items-center justify-between mb-4">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    {formatViewCount(video.views)} views • {format(new Date(video.created_at), 'MMM d, yyyy')}
+                  </p>
+                  
+                  <div className="flex items-center gap-2">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className={`flex items-center gap-1 ${isLiked ? 'text-red-500' : ''}`}
+                      onClick={handleLike}
+                    >
+                      <Heart className={`w-4 h-4 ${isLiked ? 'fill-current' : ''}`} />
+                      <span>{likesCount}</span>
+                    </Button>
+                    
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="flex items-center gap-1"
+                      onClick={handleShare}
+                    >
+                      <Share2 className="w-4 h-4" />
+                      <span>Share</span>
+                    </Button>
+                    
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="flex items-center gap-1"
+                      onClick={handleReport}
+                    >
+                      <Flag className="w-4 h-4" />
+                      <span>Report</span>
+                    </Button>
+                  </div>
+                </div>
+                
+                <Separator className="my-4" />
+                
+                <div className="flex items-center gap-3">
+                  <div 
+                    className="h-12 w-12 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center overflow-hidden cursor-pointer"
+                    onClick={() => video.user && navigate(`/profile?id=${video.user.id}`)}
+                  >
+                    {video.user?.avatar_url ? (
+                      <img 
+                        src={video.user.avatar_url} 
+                        alt={video.user.username} 
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <User className="h-6 w-6 text-gray-500" />
+                    )}
+                  </div>
+                  <div>
+                    <h3 
+                      className="font-medium cursor-pointer hover:underline"
+                      onClick={() => video.user && navigate(`/profile?id=${video.user.id}`)}
+                    >
+                      {video.user?.full_name || video.user?.username || 'Unknown User'}
+                    </h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      Category: {video.category}
+                    </p>
+                  </div>
+                </div>
               </div>
-            ) : (
-              <Alert className="bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800">
-                <Info className="h-4 w-4" />
-                <AlertDescription>
-                  No videos found for the selected category. Try selecting a different category or upload a new video.
-                </AlertDescription>
-              </Alert>
-            )}
-          </div>
+              
+              <div>
+                <h2 className="text-lg font-medium mb-4 dark:text-gray-100">Related Videos</h2>
+                <ScrollArea className="h-[calc(100vh-200px)]">
+                  <div className="space-y-4 pr-4">
+                    {relatedVideos.length === 0 ? (
+                      <p className="text-gray-500 dark:text-gray-400 text-center py-8">
+                        No related videos found
+                      </p>
+                    ) : (
+                      relatedVideos.map(video => (
+                        <VideoCard 
+                          key={video.id} 
+                          video={video} 
+                          onLike={() => handleRelatedVideoLike(video.id)}
+                        />
+                      ))
+                    )}
+                  </div>
+                </ScrollArea>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <h2 className="text-xl font-semibold mb-2 dark:text-gray-100">Video Not Found</h2>
+              <p className="text-gray-500 dark:text-gray-400 mb-6">
+                The video you're looking for doesn't exist or has been removed.
+              </p>
+              <Button onClick={() => navigate('/videos')}>
+                Browse Videos
+              </Button>
+            </div>
+          )}
         </div>
       </div>
-
-      {/* Content uploader dialog */}
-      <ContentUploader 
-        open={uploaderOpen} 
-        onOpenChange={setUploaderOpen}
-        type="video"
-        onSuccess={handleUploadSuccess}
-      />
+      
+      <Footer />
     </div>
   );
 };
 
-export default Videos;
+export default Watch;

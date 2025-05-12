@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { Heart, User } from "lucide-react";
@@ -9,20 +8,12 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth/AuthProvider";
 import CommentInput from "@/components/comments/CommentInput";
 import CommentList from "@/components/comments/CommentList";
-import { getPostById, likePost, Post as PostType } from "@/services/feedService";
+import { getPostById, likePost, Post as PostType, LikeUser } from "@/services/feedService";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import Sidebar from "@/components/Sidebar";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"; 
 import { supabase } from "@/integrations/supabase/client";
-
-interface LikeUser {
-  id: string;
-  username: string;
-  full_name: string;
-  avatar_url: string | null;
-  profile_picture_url?: string | null;
-}
 
 const CommentsPage = () => {
   const [searchParams] = useSearchParams();
@@ -146,7 +137,7 @@ const CommentsPage = () => {
   // Display users who liked the post, limited to 50 by default
   const displayedLikes = showAllLikes ? likeUsers : likeUsers.slice(0, 50);
 
-  // Add the getLikesForPost function
+  // Add the getLikesForPost function with proper typing
   const getLikesForPost = async (postId: string): Promise<LikeUser[]> => {
     try {
       const { data, error } = await supabase
@@ -168,7 +159,7 @@ const CommentsPage = () => {
         return [];
       }
       
-      // Fixed: Map each item in the array properly
+      // Map each item in the array properly with correct typing
       return data.map(item => {
         const profile = item.profiles;
         if (!profile) {
@@ -176,7 +167,8 @@ const CommentsPage = () => {
             id: '',
             username: '',
             full_name: '',
-            avatar_url: null
+            avatar_url: null,
+            profile_picture_url: null
           };
         }
         

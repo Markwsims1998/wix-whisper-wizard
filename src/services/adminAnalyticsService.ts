@@ -258,7 +258,7 @@ export const fetchRecentSignups = async (): Promise<{
   }
 };
 
-export const fetchRecentContent = async (): Promise<{\
+export const fetchRecentContent = async (): Promise<{
   id: string;
   title: string | null;
   content_type: string | null;
@@ -1044,4 +1044,4 @@ export const fetchContentOverview = async (contentId: string): Promise<{
 
     if (!contentData) {
       console.error('Content not found');
-      return
+      return null

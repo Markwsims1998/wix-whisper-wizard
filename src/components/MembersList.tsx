@@ -56,7 +56,7 @@ const MembersList = () => {
           const profile = rel.profiles;
           
           // Calculate time ago string
-          const lastActive = profile?.last_sign_in_at ? new Date(profile.last_sign_in_at) : null;
+          const lastActive = profile && profile.last_sign_in_at ? new Date(profile.last_sign_in_at) : null;
           const now = new Date();
           let timeAgo = 'Unknown';
           
@@ -82,8 +82,8 @@ const MembersList = () => {
             name: profile?.full_name || profile?.username || '',
             username: `@${profile?.username || ''}`,
             timeAgo,
-            avatar: profile?.avatar_url,
-            profilePicture: profile?.profile_picture_url,
+            avatar: profile?.avatar_url || '',
+            profilePicture: profile?.profile_picture_url || '',
             isLocal: !!profile?.location,
             isHotlist: false, // Implement hotlist logic as needed
             isFriend: true

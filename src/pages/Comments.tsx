@@ -272,7 +272,7 @@ const CommentsPage = () => {
                   
                   {post.media && post.media.length > 0 && post.media[0].media_type && (
                     <div className="mt-2 mb-4 relative">
-                      {post.media[0].media_type.startsWith('image/') || post.media[0].media_type === 'image' ? (
+                      {(post.media[0].media_type.startsWith('image/') || post.media[0].media_type === 'image') ? (
                         <div className="relative">
                           {/* Make sure we're appending watermark=true for non-premium users */}
                           <img 
@@ -295,9 +295,7 @@ const CommentsPage = () => {
                             </div>
                           )}
                         </div>
-                      )}
-                      
-                      {post.media[0].media_type.startsWith('video/') || post.media[0].media_type === 'video' ? (
+                      ) : (post.media[0].media_type.startsWith('video/') || post.media[0].media_type === 'video') ? (
                         <div className="relative">
                           <video 
                             src={!canViewContent('video') || shouldDisplayWatermarkVal ? 
@@ -319,9 +317,7 @@ const CommentsPage = () => {
                             </div>
                           )}
                         </div>
-                      )}
-                      
-                      {post.media[0].media_type === 'gif' && (
+                      ) : (
                         <div className="relative">
                           <img 
                             src={post.media[0].file_url} 

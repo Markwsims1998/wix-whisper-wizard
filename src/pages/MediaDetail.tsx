@@ -1,6 +1,7 @@
+
 import { useState, useEffect } from "react";
-import { useParams, useSearchParams, useNavigate } from "react-router-dom";
-import { Heart, MessageCircle, Share2, Flag, User, ArrowLeft } from "lucide-react";
+import { useParams, useSearchParams, useNavigate, Link } from "react-router-dom";
+import { Heart, MessageCircle, ArrowLeft, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -13,6 +14,11 @@ import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/contexts/auth/AuthProvider";
 import { getLikesForPost } from "@/services/feedService";
 import { fetchMediaById } from "@/services/mediaService";
+import CommentInput from "@/components/comments/CommentInput";
+import CommentList from "@/components/comments/CommentList";
+import Header from "@/components/Header";
+import Footer from "@/components/Footer";
+import Sidebar from "@/components/Sidebar";
 
 // Define the LikeUser interface for proper typing
 export interface LikeUser {
@@ -39,6 +45,7 @@ const MediaDetail = () => {
   const [activeTab, setActiveTab] = useState("comments");
   const [likeUsers, setLikeUsers] = useState<LikeUser[]>([]);
   const [loadingLikes, setLoadingLikes] = useState(false);
+  const [showAllLikes, setShowAllLikes] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -210,193 +217,228 @@ const MediaDetail = () => {
     navigate(`/profile?id=${userId}`);
   };
 
+  const handleCommentAdded = () => {
+    setCommentsCount(prev => prev + 1);
+  };
+
+  const handleCommentDeleted = () => {
+    setCommentsCount(prev => Math.max(0, prev - 1));
+  };
+
+  // Generate the correct profile URL using username if available, otherwise ID
+  const getProfileUrl = (userId: string, username?: string) => {
+    return username ? `/profile/${userId}` : `/profile/${userId}`;
+  };
+
+  // Get avatar URL helper function
+  const getAvatarUrl = (author: any) => {
+    if (!author) return null;
+    return author.profile_picture_url || author.avatar_url || null;
+  };
+
+  // Display users who liked the post, limited to 50 by default
+  const displayedLikes = showAllLikes ? likeUsers : likeUsers.slice(0, 50);
+
   if (loading) {
     return (
-      <div className="container max-w-5xl mx-auto py-8 px-4">
-        <div className="flex items-center mb-6">
-          <Button variant="ghost" size="icon" onClick={handleGoBack}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <h1 className="text-2xl font-bold ml-2">Loading...</h1>
-        </div>
+      <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
+        <Sidebar />
+        <Header />
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="md:col-span-2">
-            <Skeleton className="w-full aspect-video rounded-lg" />
-          </div>
-          <div>
-            <Skeleton className="h-8 w-3/4 mb-4" />
-            <Skeleton className="h-6 w-1/2 mb-6" />
-            <Skeleton className="h-24 w-full mb-4" />
-            <div className="flex gap-4">
-              <Skeleton className="h-10 w-20" />
-              <Skeleton className="h-10 w-20" />
+        <div className="pt-16 pb-10 pr-4 transition-all duration-300" style={{
+          paddingLeft: 'max(1rem, var(--sidebar-width, 280px))'
+        }}>
+          <div className="max-w-3xl mx-auto px-4">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-5 mb-4">
+              <div className="animate-pulse">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700"></div>
+                  <div>
+                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-24 mb-2"></div>
+                    <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-16"></div>
+                  </div>
+                </div>
+                <div className="h-16 bg-gray-200 dark:bg-gray-700 rounded mb-4"></div>
+                <div className="h-40 bg-gray-200 dark:bg-gray-700 rounded mb-4"></div>
+                <div className="flex gap-4">
+                  <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-16"></div>
+                  <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-16"></div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
+        <Footer />
       </div>
     );
   }
 
   if (!media) {
     return (
-      <div className="container max-w-5xl mx-auto py-8 px-4">
-        <div className="flex items-center mb-6">
-          <Button variant="ghost" size="icon" onClick={handleGoBack}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <h1 className="text-2xl font-bold ml-2">Media Not Found</h1>
+      <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
+        <Sidebar />
+        <Header />
+        
+        <div className="pt-16 pb-10 pr-4 transition-all duration-300" style={{
+          paddingLeft: 'max(1rem, var(--sidebar-width, 280px))'
+        }}>
+          <div className="max-w-3xl mx-auto px-4">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-5 mb-4 text-center">
+              <h1 className="text-xl font-semibold mb-4">Media Not Found</h1>
+              <p className="mb-4">The requested media could not be found.</p>
+              <Button onClick={handleGoBack}>Go Back</Button>
+            </div>
+          </div>
         </div>
-        <p>The requested media could not be found.</p>
-        <Button className="mt-4" onClick={handleGoBack}>
-          Go Back
-        </Button>
+        <Footer />
       </div>
     );
   }
 
   return (
-    <div className="container max-w-5xl mx-auto py-8 px-4">
-      <div className="flex items-center mb-6">
-        <Button variant="ghost" size="icon" onClick={handleGoBack}>
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <h1 className="text-2xl font-bold ml-2">
-          {mediaType === "photo" ? "Photo" : "Video"} Details
-        </h1>
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
+      <Sidebar />
+      <Header />
+      
+      <div className="pt-16 pb-10 pr-4 transition-all duration-300" style={{
+        paddingLeft: 'max(1rem, var(--sidebar-width, 280px))'
+      }}>
+        <div className="max-w-3xl mx-auto px-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-5 mb-4">
+            <Link to="/" className="text-blue-500 hover:underline inline-block mb-4">
+              &larr; Back to Feed
+            </Link>
+            
+            <div className="flex items-start gap-3 mb-4">
+              <div 
+                onClick={() => media.user && handleViewProfile(media.user.id)}
+                className="flex-shrink-0 cursor-pointer"
+              >
+                <Avatar className="h-10 w-10 bg-purple-100 dark:bg-purple-900">
+                  {getAvatarUrl(media.user) ? (
+                    <AvatarImage 
+                      src={getAvatarUrl(media.user)}
+                      alt={media.user?.full_name || "User"} 
+                    />
+                  ) : (
+                    <AvatarFallback className="text-purple-600 dark:text-purple-300">
+                      {(media.user?.full_name || media.user?.username || "U").charAt(0)}
+                    </AvatarFallback>
+                  )}
+                </Avatar>
+              </div>
+              <div>
+                <div 
+                  className="font-medium hover:underline cursor-pointer"
+                  onClick={() => media.user && handleViewProfile(media.user.id)}
+                >
+                  {media.user?.full_name || media.user?.username || 'Unknown User'}
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  {media.created_at && format(new Date(media.created_at), 'MMM d, yyyy')}
+                </p>
+              </div>
+            </div>
+            
+            <div className="mb-4">
+              <p className="text-lg mb-4">{media.title || (mediaType === "photo" ? "Photo" : "Video")}</p>
+              
+              <div className="bg-black rounded-lg overflow-hidden mb-6">
+                {mediaType === "photo" ? (
+                  <img
+                    src={media.file_url}
+                    alt={media.title || "Photo"}
+                    className="w-full h-auto object-contain max-h-[600px]"
+                  />
+                ) : (
+                  <video
+                    src={media.file_url}
+                    controls
+                    className="w-full h-auto"
+                    poster={media.thumbnail_url}
+                  >
+                    Your browser does not support the video tag.
+                  </video>
+                )}
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-4 mb-4">
+              <button 
+                className={`flex items-center gap-1 text-gray-500 hover:text-red-500 ${isLiked ? 'text-red-500' : ''}`}
+                onClick={handleLike}
+              >
+                <Heart className={`h-5 w-5 ${isLiked ? 'fill-current' : ''}`} /> 
+                <span>{likesCount}</span>
+              </button>
+              <div className="flex items-center gap-1 text-gray-500">
+                <MessageCircle className="h-5 w-5" />
+                <span>{commentsCount} Comments</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-5">
+            <h2 className="text-lg font-medium mb-4">Comments</h2>
+            <Separator className="mb-4" />
+            
+            <CommentInput 
+              postId={media.post_id} 
+              onCommentAdded={handleCommentAdded} 
+            />
+            
+            <div className="mt-4">
+              <CommentList 
+                postId={media.post_id} 
+                commentsCount={commentsCount}
+                onCommentDeleted={handleCommentDeleted}
+              />
+            </div>
+            
+            {/* Who Loved Section */}
+            {likesCount > 0 && (
+              <div className="mt-8">
+                <h3 className="text-md font-medium mb-3">Who loved this ({likesCount})</h3>
+                <div className="flex flex-wrap gap-2">
+                  {displayedLikes.map((user) => (
+                    <Link 
+                      to={getProfileUrl(user.id, user.username)} 
+                      key={user.id}
+                      title={user.full_name || user.username || ''}
+                    >
+                      <Avatar className="h-8 w-8 border-2 border-white dark:border-gray-800">
+                        {user.profile_picture_url || user.avatar_url ? (
+                          <AvatarImage 
+                            src={user.profile_picture_url || user.avatar_url} 
+                            alt={user.full_name || user.username || ''} 
+                          />
+                        ) : (
+                          <AvatarFallback className="bg-purple-100 text-purple-600 dark:bg-purple-900 dark:text-purple-300">
+                            {(user.full_name || user.username || 'U').charAt(0)}
+                          </AvatarFallback>
+                        )}
+                      </Avatar>
+                    </Link>
+                  ))}
+                </div>
+                
+                {likeUsers.length > 50 && !showAllLikes && (
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="mt-3"
+                    onClick={() => setShowAllLikes(true)}
+                  >
+                    Show all {likeUsers.length} users
+                  </Button>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <div className="md:col-span-2 bg-black rounded-lg overflow-hidden">
-          {mediaType === "photo" ? (
-            <img
-              src={media.file_url}
-              alt={media.title || "Photo"}
-              className="w-full h-auto object-contain max-h-[600px]"
-            />
-          ) : (
-            <video
-              src={media.file_url}
-              controls
-              className="w-full h-auto"
-              poster={media.thumbnail_url}
-            >
-              Your browser does not support the video tag.
-            </video>
-          )}
-        </div>
-        
-        <div>
-          <h2 className="text-xl font-semibold mb-2">{media.title || (mediaType === "photo" ? "Photo" : "Video")}</h2>
-          
-          <div className="flex items-center gap-3 mb-4">
-            <div 
-              className="cursor-pointer"
-              onClick={() => media.user && handleViewProfile(media.user.id)}
-            >
-              <Avatar className="h-10 w-10">
-                <AvatarImage src={media.user?.avatar_url || undefined} />
-                <AvatarFallback>
-                  {media.user?.username?.charAt(0).toUpperCase() || "U"}
-                </AvatarFallback>
-              </Avatar>
-            </div>
-            <div>
-              <p 
-                className="font-medium cursor-pointer hover:underline"
-                onClick={() => media.user && handleViewProfile(media.user.id)}
-              >
-                {media.user?.username || "Unknown User"}
-              </p>
-              <p className="text-sm text-gray-500">
-                {media.created_at && format(new Date(media.created_at), "MMM d, yyyy")}
-              </p>
-            </div>
-          </div>
-          
-          <div className="flex gap-4 mb-6">
-            <Button
-              variant="outline"
-              size="sm"
-              className={`flex items-center gap-2 ${isLiked ? "text-red-500" : ""}`}
-              onClick={handleLike}
-            >
-              <Heart className={isLiked ? "fill-current" : ""} size={16} />
-              {likesCount} {likesCount === 1 ? "Like" : "Likes"}
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="flex items-center gap-2"
-              onClick={() => navigate(`/comments?postId=${media.post_id}`)}
-            >
-              <MessageCircle size={16} />
-              {commentsCount} {commentsCount === 1 ? "Comment" : "Comments"}
-            </Button>
-          </div>
-          
-          <Separator className="my-4" />
-          
-          <Tabs value={activeTab} onValueChange={handleTabChange}>
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="comments">Comments</TabsTrigger>
-              <TabsTrigger value="likes">Likes</TabsTrigger>
-            </TabsList>
-            <TabsContent value="comments" className="pt-4">
-              <div className="text-center py-4">
-                <Button 
-                  onClick={() => navigate(`/comments?postId=${media.post_id}`)}
-                  variant="outline"
-                >
-                  View All Comments
-                </Button>
-              </div>
-            </TabsContent>
-            <TabsContent value="likes" className="pt-4">
-              <ScrollArea className="h-[300px] pr-4">
-                {loadingLikes ? (
-                  <div className="space-y-4">
-                    {[1, 2, 3].map(i => (
-                      <div key={i} className="flex items-center gap-3">
-                        <Skeleton className="h-10 w-10 rounded-full" />
-                        <div>
-                          <Skeleton className="h-4 w-24 mb-1" />
-                          <Skeleton className="h-3 w-16" />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : likeUsers.length === 0 ? (
-                  <p className="text-center text-gray-500 py-4">
-                    No likes yet
-                  </p>
-                ) : (
-                  <div className="space-y-4">
-                    {likeUsers.map((user) => (
-                      <div 
-                        key={user.id} 
-                        className="flex items-center gap-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 p-2 rounded-lg"
-                        onClick={() => handleViewProfile(user.id)}
-                      >
-                        <Avatar className="h-10 w-10">
-                          <AvatarImage src={user.profile_picture_url || user.avatar_url || undefined} />
-                          <AvatarFallback>
-                            {(user.full_name || user.username || "U").charAt(0).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <p className="font-bold text-sm">{user.full_name || 'Unknown User'}</p>
-                          <p className="text-gray-500 text-xs">@{user.username || 'username'}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </ScrollArea>
-            </TabsContent>
-          </Tabs>
-        </div>
-      </div>
+      <Footer />
     </div>
   );
 };

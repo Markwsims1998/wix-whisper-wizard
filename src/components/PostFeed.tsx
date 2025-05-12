@@ -1,7 +1,8 @@
+
 import { Separator } from "@/components/ui/separator";
 import { User, Heart, MessageCircle, Lock, Gift, Play } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { Button } from "@/components/ui/button";
@@ -12,6 +13,7 @@ import { getPosts, likePost, Post as PostType } from "@/services/feedService";
 import { format } from "date-fns";
 import RefreshableFeed from "./RefreshableFeed";
 import { supabase } from "@/lib/supabaseClient";
+import CommentSection from "./comments/CommentSection";
 
 const PostFeed = () => {
   const [activeTab, setActiveTab] = useState("all");
@@ -23,13 +25,8 @@ const PostFeed = () => {
   const { toast } = useToast();
   const { user } = useAuth();
 
-  // Load posts immediately when component mounts and whenever tab changes
-  useEffect(() => {
-    console.log("PostFeed: Loading posts with tab:", activeTab);
-    loadPosts();
-  }, [activeTab]);
-
-  const loadPosts = async () => {
+  // Memoize loadPosts to avoid dependency issues
+  const loadPosts = useCallback(async () => {
     if (!user) {
       console.log('No user available for loadPosts');
       setLoading(false);
@@ -45,6 +42,13 @@ const PostFeed = () => {
       // Simplified to use getPosts for now
       const fetchedPosts = await getPosts();
       console.log("Fetched posts:", fetchedPosts?.length || 0);
+      
+      if (!fetchedPosts || fetchedPosts.length === 0) {
+        console.log("No posts returned from API");
+        setPosts([]);
+        setLoading(false);
+        return;
+      }
       
       // Client-side filtering based on tab
       let filteredPosts = [...fetchedPosts];
@@ -87,7 +91,7 @@ const PostFeed = () => {
               
             if (!mediaError && mediaData && mediaData.length > 0) {
               post.media = mediaData;
-              console.log(`Added media to post ${post.id}:`, mediaData);
+              console.log(`Added media to post ${post.id}:`, mediaData.length);
             }
           } catch (err) {
             console.error(`Error fetching media for post ${post.id}:`, err);
@@ -107,7 +111,13 @@ const PostFeed = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [activeTab, user, toast]);
+
+  // Use useEffect with the memoized loadPosts function
+  useEffect(() => {
+    console.log("PostFeed: Loading posts with tab:", activeTab);
+    loadPosts();
+  }, [loadPosts]);
 
   const handleRefresh = async () => {
     return loadPosts();
@@ -135,8 +145,8 @@ const PostFeed = () => {
     
     const media = post.media[0];
     // Check if media_type is present and determine the media type
-    const mediaType = media.media_type.startsWith('image/') || media.media_type === 'image' ? 'image' : 
-                     media.media_type.startsWith('video/') || media.media_type === 'video' ? 'video' : 
+    const mediaType = media.media_type?.startsWith('image/') || media.media_type === 'image' ? 'image' : 
+                     media.media_type?.startsWith('video/') || media.media_type === 'video' ? 'video' : 
                      'gif';
     
     const canView = 
@@ -234,6 +244,18 @@ const PostFeed = () => {
         variant: "destructive",
       });
     }
+  };
+
+  const handleCommentCountChange = (postId: string, newCount: number) => {
+    setPosts(prevPosts => prevPosts.map(p => {
+      if (p.id === postId) {
+        return {
+          ...p,
+          comments_count: newCount
+        };
+      }
+      return p;
+    }));
   };
 
   const getSubscriptionBadge = (post: PostType) => {
@@ -459,15 +481,21 @@ const PostFeed = () => {
                         className={`flex items-center gap-1 text-sm ${post.is_liked ? 'text-red-500' : 'text-gray-500 hover:text-red-500'}`}
                         onClick={() => handleLikePost(post.id)}
                       >
-                        <Heart className={`h-4 w-4 ${post.is_liked ? 'fill-current' : ''}`} /> {post.likes_count}
+                        <Heart className={`h-4 w-4 ${post.is_liked ? 'fill-current' : ''}`} /> {post.likes_count || 0}
                       </button>
                       <button 
                         className="flex items-center gap-1 text-gray-500 text-sm hover:text-blue-500"
                         onClick={() => navigate(`/comments?postId=${post.id}`)}
                       >
-                        <MessageCircle className="h-4 w-4" /> {post.comments_count}
+                        <MessageCircle className="h-4 w-4" /> {post.comments_count || 0}
                       </button>
                     </div>
+                    
+                    <CommentSection 
+                      postId={post.id} 
+                      commentsCount={post.comments_count || 0}
+                      onCommentCountChange={(newCount) => handleCommentCountChange(post.id, newCount)}
+                    />
                     
                     {post.id !== posts[posts.length - 1].id && <Separator className="my-6" />}
                   </div>

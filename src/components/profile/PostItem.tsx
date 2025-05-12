@@ -11,6 +11,9 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { shouldShowWatermark } from "@/services/securePhotoService";
 
+// Add new import
+import Watermark from "@/components/media/Watermark";
+
 type PostItemProps = {
   post: Post;
   handleLikePost: (postId: string) => void;
@@ -327,9 +330,7 @@ const PostItem = ({ post, handleLikePost }: PostItemProps) => {
               {(!userCanViewThisContent || shouldDisplayWatermark) && (
                 <div className="absolute inset-0 overflow-hidden">
                   <div className="absolute inset-0 w-full h-full flex items-center justify-center">
-                    <div className="font-bold text-white text-6xl opacity-50 transform -rotate-12 select-none whitespace-nowrap">
-                      PREMIUM
-                    </div>
+                    <Watermark />
                   </div>
                 </div>
               )}
@@ -355,13 +356,7 @@ const PostItem = ({ post, handleLikePost }: PostItemProps) => {
               </div>
               
               {(!userCanViewThisContent || shouldDisplayWatermark) && (
-                <div className="absolute inset-0 overflow-hidden">
-                  <div className="absolute inset-0 w-full h-full flex items-center justify-center">
-                    <div className="font-bold text-white text-6xl opacity-50 transform -rotate-12 select-none whitespace-nowrap">
-                      PREMIUM
-                    </div>
-                  </div>
-                </div>
+                <Watermark />
               )}
             </div>
           )}

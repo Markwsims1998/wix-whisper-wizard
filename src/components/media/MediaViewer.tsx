@@ -1,9 +1,9 @@
-
 import React, { useEffect } from 'react';
 import { X, Heart, ChevronLeft, ChevronRight, Play, ArrowUpRight, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { Link } from 'react-router-dom';
+import Watermark from "./Watermark";
 
 interface MediaViewerProps {
   type: 'image' | 'video';
@@ -158,9 +158,7 @@ const MediaViewer = ({ type, media, onClose, onLike, onPrev, onNext, postId }: M
               />
               {/* Watermark for non-gold members */}
               {!isGoldMember && (
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-30">
-                  <h1 className="text-white text-5xl font-bold transform -rotate-30">HappyKinks</h1>
-                </div>
+                <Watermark opacity={0.3} fontSize="5xl" />
               )}
             </div>
           )}
@@ -199,9 +197,7 @@ const MediaViewer = ({ type, media, onClose, onLike, onPrev, onNext, postId }: M
                 )}
                 {/* Watermark for non-gold members */}
                 {!isGoldMember && (
-                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-30">
-                    <h1 className="text-white text-5xl font-bold transform -rotate-30">HappyKinks</h1>
-                  </div>
+                  <Watermark opacity={0.3} fontSize="5xl" />
                 )}
               </div>
             </div>

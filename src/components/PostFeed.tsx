@@ -13,6 +13,9 @@ import RefreshableFeed from "./RefreshableFeed";
 import { supabase } from "@/lib/supabaseClient";
 import { shouldShowWatermark } from "@/services/securePhotoService";
 
+// Add new import
+import Watermark from "@/components/media/Watermark";
+
 const PostFeed = () => {
   const [activeTab, setActiveTab] = useState("all");
   const [loading, setLoading] = useState(true);
@@ -414,13 +417,7 @@ const PostFeed = () => {
                                 </div>
                               )}
                               {(!subscriptionDetails.canViewPhotos || shouldShowWatermark(post.media[0].file_url)) && (
-                                <div className="absolute inset-0 overflow-hidden">
-                                  <div className="absolute inset-0 w-full h-full flex items-center justify-center">
-                                    <div className="font-bold text-white text-6xl opacity-50 transform -rotate-12 select-none whitespace-nowrap">
-                                      PREMIUM
-                                    </div>
-                                  </div>
-                                </div>
+                                <Watermark />
                               )}
                             </div>
                           </div>
@@ -436,91 +433,79 @@ const PostFeed = () => {
                                     `${post.media[0].file_url}&watermark=true` : 
                                     `${post.media[0].file_url}?watermark=true`) 
                                   : post.media[0].file_url}
-                                controls 
-                                autoPlay 
-                                className="w-full"
-                              >
-                                Your browser does not support the video tag.
-                              </video>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="absolute top-2 right-2 bg-black/40 hover:bg-black/60 text-white p-1.5 h-auto rounded-full"
-                                onClick={handleVideoClose}
-                              >
-                                <X size={16} />
-                              </Button>
-                              
-                              {shouldShowWatermark(post.media[0].file_url) && (
-                                <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                                  <div className="absolute inset-0 w-full h-full flex items-center justify-center">
-                                    <div className="font-bold text-white text-6xl opacity-50 transform -rotate-12 select-none whitespace-nowrap">
-                                      PREMIUM
-                                    </div>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          ) : (
-                            <div 
-                              className="relative aspect-video cursor-pointer"
-                              onClick={() => handleMediaClick(post)}
-                            >
-                              <img 
-                                src={post.media[0].thumbnail_url || post.media[0].file_url} 
-                                alt="Video thumbnail" 
-                                className={`w-full object-cover ${!subscriptionDetails.canViewVideos ? 'blur-sm filter saturate-50' : ''}`}
-                              />
-                              <div 
-                                className="absolute inset-0 flex items-center justify-center"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleMediaClick(post, true);
-                                }}
-                              >
-                                {subscriptionDetails.canViewVideos ? (
-                                  <div className="w-14 h-14 rounded-full bg-white/30 flex items-center justify-center">
-                                    <div className="w-12 h-12 rounded-full bg-white/80 flex items-center justify-center">
-                                      <Play className="h-6 w-6 text-red-600 ml-1" />
-                                    </div>
-                                  </div>
-                                ) : (
-                                  <>
-                                    <Lock className="h-12 w-12 text-white/70 mb-2" />
-                                    <div className="absolute bottom-8 text-center">
-                                      <p className="text-white/80 mb-4">Video content requires a subscription</p>
-                                      <Button 
-                                        size="sm" 
-                                        variant="outline" 
-                                        className="bg-white/20 hover:bg-white/30 text-white border-white/20"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          navigate('/shop');
-                                        }}
-                                      >
-                                        View Plans
-                                      </Button>
-                                    </div>
-                                  </>
+                                  controls 
+                                  autoPlay 
+                                  className="w-full"
+                                >
+                                  Your browser does not support the video tag.
+                                </video>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="absolute top-2 right-2 bg-black/40 hover:bg-black/60 text-white p-1.5 h-auto rounded-full"
+                                  onClick={handleVideoClose}
+                                >
+                                  <X size={16} />
+                                </Button>
+                                
+                                {shouldShowWatermark(post.media[0].file_url) && (
+                                  <Watermark />
                                 )}
                               </div>
-                              
-                              {(!subscriptionDetails.canViewVideos || shouldShowWatermark(post.media[0].file_url)) && (
-                                <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                                  <div className="absolute inset-0 w-full h-full flex items-center justify-center">
-                                    <div className="font-bold text-white text-6xl opacity-50 transform -rotate-12 select-none whitespace-nowrap">
-                                      PREMIUM
+                            ) : (
+                              <div 
+                                className="relative aspect-video cursor-pointer"
+                                onClick={() => handleMediaClick(post)}
+                              >
+                                <img 
+                                  src={post.media[0].thumbnail_url || post.media[0].file_url} 
+                                  alt="Video thumbnail" 
+                                  className={`w-full object-cover ${!subscriptionDetails.canViewVideos ? 'blur-sm filter saturate-50' : ''}`}
+                                />
+                                <div 
+                                  className="absolute inset-0 flex items-center justify-center"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleMediaClick(post, true);
+                                  }}
+                                >
+                                  {subscriptionDetails.canViewVideos ? (
+                                    <div className="w-14 h-14 rounded-full bg-white/30 flex items-center justify-center">
+                                      <div className="w-12 h-12 rounded-full bg-white/80 flex items-center justify-center">
+                                        <Play className="h-6 w-6 text-red-600 ml-1" />
+                                      </div>
                                     </div>
-                                  </div>
+                                  ) : (
+                                    <>
+                                      <Lock className="h-12 w-12 text-white/70 mb-2" />
+                                      <div className="absolute bottom-8 text-center">
+                                        <p className="text-white/80 mb-4">Video content requires a subscription</p>
+                                        <Button 
+                                          size="sm" 
+                                          variant="outline" 
+                                          className="bg-white/20 hover:bg-white/30 text-white border-white/20"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            navigate('/shop');
+                                          }}
+                                        >
+                                          View Plans
+                                        </Button>
+                                      </div>
+                                    </>
+                                  )}
                                 </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                      
-                      {post.media[0].media_type === 'gif' && (
-                        <div 
+                                
+                                {(!subscriptionDetails.canViewVideos || shouldShowWatermark(post.media[0].file_url)) && (
+                                  <Watermark />
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        
+                        {post.media[0].media_type === 'gif' && (
+                          <div 
                           className="mt-2 mb-4 rounded-lg overflow-hidden cursor-pointer"
                           onClick={() => handleMediaClick(post)}
                           >

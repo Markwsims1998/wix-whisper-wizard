@@ -18,6 +18,7 @@ import Sidebar from "@/components/Sidebar";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { shouldShowWatermark, getSecurePhotoUrl } from "@/services/securePhotoService";
+import Watermark from "@/components/media/Watermark";
 
 // Define the LikeUser interface for proper typing
 export interface LikeUser {
@@ -461,13 +462,7 @@ const Post = () => {
                         </div>
                       )}
                       {isWatermarked && (
-                        <div className="absolute inset-0 overflow-hidden">
-                          <div className="absolute inset-0 w-full h-full flex items-center justify-center">
-                            <div className="font-bold text-white text-6xl opacity-50 transform -rotate-12 select-none whitespace-nowrap">
-                              © HappyKinks
-                            </div>
-                          </div>
-                        </div>
+                        <Watermark />
                       )}
                     </div>
                   ) : media.media_type.startsWith('video/') || media.media_type === 'video' ? (
@@ -503,13 +498,7 @@ const Post = () => {
                         </>
                       )}
                       {(!subscriptionDetails.canViewVideos || media.file_url?.includes('watermark=true')) && (
-                        <div className="absolute inset-0 overflow-hidden">
-                          <div className="absolute inset-0 w-full h-full flex items-center justify-center">
-                            <div className="font-bold text-white text-6xl opacity-50 transform -rotate-12 select-none whitespace-nowrap">
-                              © HappyKinks
-                            </div>
-                          </div>
-                        </div>
+                        <Watermark />
                       )}
                     </div>
                   ) : media.media_type === 'gif' ? (

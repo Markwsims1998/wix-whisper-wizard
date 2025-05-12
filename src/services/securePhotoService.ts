@@ -99,7 +99,15 @@ export const shouldShowWatermark = (url: string | undefined | null): boolean => 
   if (!url) return false;
   
   // Check if the URL is from the watermarked bucket
-  return url.includes('photos-watermarked');
+  const isWatermarked = url.includes('photos-watermarked');
+  
+  // Also check if there's a watermark query parameter
+  const hasWatermarkParam = url.includes('watermark=true');
+  
+  // Check if URL contains 'premium' but doesn't have a premium indicator
+  const isPremiumContent = url.includes('photos-premium') || url.includes('/premium/');
+  
+  return isWatermarked || hasWatermarkParam || isPremiumContent;
 };
 
 /**

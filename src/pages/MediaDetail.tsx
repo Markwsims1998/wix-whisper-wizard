@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams, Link } from "react-router-dom";
 import { Heart, User, ChevronLeft, MessageCircle } from "lucide-react";
@@ -539,7 +538,7 @@ const MediaDetail = () => {
                 <div className="mt-8">
                   <h3 className="text-md font-medium mb-3">Who loved this ({likesCount})</h3>
                   <div className="flex flex-wrap gap-2">
-                    {displayedLikes.map((likeUser) => (
+                    {displayedLikes.map((likeUser: MediaDetailLikeUser) => (
                       <Link 
                         to={getProfileUrl(likeUser.id, likeUser.username)} 
                         key={likeUser.id || Math.random().toString()}

@@ -1,3 +1,4 @@
+
 import { Separator } from "@/components/ui/separator";
 import { User, Heart, MessageCircle, Lock, Gift, Play, Pause, X } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -411,7 +412,7 @@ const PostFeed = () => {
                               {!subscriptionDetails.canViewPhotos && (
                                 <div className="absolute inset-0 overflow-hidden">
                                   <div className="absolute inset-0 w-full h-full flex items-center justify-center">
-                                    <div className="font-bold text-white text-6xl opacity-50 transform -rotate-30 select-none whitespace-nowrap">
+                                    <div className="font-bold text-white text-6xl opacity-50 transform -rotate-12 select-none whitespace-nowrap">
                                       PREMIUM
                                     </div>
                                   </div>

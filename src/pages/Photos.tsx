@@ -241,7 +241,7 @@ const Photos = () => {
                       <img 
                         src={photo.thumbnail || photo.image} 
                         alt={photo.title || 'Photo'} 
-                        className="w-full h-full object-cover"
+                        className={`w-full h-full object-cover ${!subscriptionDetails.canViewPhotos ? 'blur-sm filter saturate-50' : ''}`}
                         loading="lazy"
                       />
                       {!subscriptionDetails.canViewPhotos && (

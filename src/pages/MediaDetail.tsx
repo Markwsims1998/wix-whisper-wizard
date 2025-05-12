@@ -242,7 +242,7 @@ const MediaDetail = () => {
 
   // Generate the correct profile URL using username if available, otherwise ID
   const getProfileUrl = (userId: string, username?: string | null) => {
-    return username ? `/profile/${userId}` : `/profile/${userId}`;
+    return username ? `/profile/${username}` : `/profile/${userId}`;
   };
 
   // Display users who liked the post, limited to 50 by default

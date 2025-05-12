@@ -349,7 +349,7 @@ export const likePost = async (postId: string, userId: string): Promise<{ succes
   }
 };
 
-// Fix the getLikesForPost function
+// Fixed getLikesForPost function
 export const getLikesForPost = async (postId: string) => {
   try {
     const { data, error } = await supabase
@@ -371,7 +371,7 @@ export const getLikesForPost = async (postId: string) => {
       return [];
     }
     
-    // Fixed: Properly access individual profile properties
+    // Fixed: Map each item in the array individually
     return data.map(item => {
       // Check if profiles exists and is an object
       const profile = item.profiles;

@@ -168,7 +168,7 @@ const CommentsPage = () => {
         return [];
       }
       
-      // Fixed: Properly access individual profile properties
+      // Fixed: Map each item in the array properly
       return data.map(item => {
         const profile = item.profiles;
         if (!profile) {
@@ -176,8 +176,7 @@ const CommentsPage = () => {
             id: '',
             username: '',
             full_name: '',
-            avatar_url: null,
-            profile_picture_url: null
+            avatar_url: null
           };
         }
         

@@ -22,6 +22,7 @@ import { RelationshipStatus } from "@/components/profile/types";
 export interface RelationshipDialogProps {
   open: boolean;
   setOpen: (open: boolean) => void;
+  onOpenChange?: (open: boolean) => void; // Added this prop to fix the error
   selectedRelationshipStatus: string | null;
   setSelectedRelationshipStatus: (status: string | null) => void;
   relationshipPartners: string[];
@@ -34,6 +35,9 @@ export interface RelationshipDialogProps {
   handleAddPartner: (partnerId: string) => void;
   relationshipStatuses: RelationshipStatus[];
   handleSaveRelationship: () => void;
+  userId?: string; // Added optional userId prop
+  name?: string; // Added optional name prop
+  setFriendshipStatus?: (status: "none" | "pending" | "friends") => void; // Added optional setFriendshipStatus prop
 }
 
 const RelationshipDialog = ({

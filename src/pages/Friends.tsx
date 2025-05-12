@@ -9,6 +9,7 @@ import { Card } from "@/components/ui/card";
 import FriendsList from "@/components/friends/FriendsList";
 import FriendRequestsList from "@/components/friends/FriendRequestsList";
 import Sidebar from "@/components/Sidebar";
+import Header from "@/components/Header";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2 } from "lucide-react";
 
@@ -50,9 +51,10 @@ const Friends = () => {
   }, [currentUserId, user, isCurrentUser]);
   
   return (
-    <div className="flex">
+    <div className="flex flex-col min-h-screen">
       <Sidebar />
-      <div className="flex-1 p-4 sm:p-6 md:p-8 ml-0 md:ml-[280px]">
+      <Header />
+      <div className="flex-1 p-4 sm:p-6 md:p-8 ml-0 md:ml-[280px] mt-16">
         <div className="max-w-4xl mx-auto">
           <h1 className="text-2xl font-bold mb-6">
             {isCurrentUser ? "My Friends" : `${friends[0]?.full_name || "User"}'s Friends`}

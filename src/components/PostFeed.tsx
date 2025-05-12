@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import MediaViewer from "@/components/media/MediaViewer";
 import { useAuth } from "@/contexts/auth/AuthProvider";
-import { getPosts, getFeedPosts, likePost, Post as PostType } from "@/services/feedService";
+import { getPosts, likePost, Post as PostType } from "@/services/feedService";
 import { format } from "date-fns";
 import RefreshableFeed from "./RefreshableFeed";
 
@@ -41,12 +41,20 @@ const PostFeed = () => {
     console.log(`Loading ${activeTab} posts for user: ${user.id}, location: ${userLocation}`);
     
     try {
-      const fetchedPosts = await getFeedPosts(
-        activeTab as 'all' | 'local' | 'hotlist' | 'friends', 
-        user.id,
-        userLocation
-      );
-      setPosts(fetchedPosts);
+      // Simplified to use getPosts for now
+      const fetchedPosts = await getPosts();
+      
+      // Client-side filtering based on tab
+      let filteredPosts = [...fetchedPosts];
+      
+      if (activeTab === 'hotlist') {
+        // Sort by likes count for hotlist
+        filteredPosts = filteredPosts.sort((a, b) => 
+          (b.likes_count || 0) - (a.likes_count || 0)
+        );
+      }
+      
+      setPosts(filteredPosts);
     } catch (err) {
       console.error('Error loading posts:', err);
       toast({
@@ -126,23 +134,23 @@ const PostFeed = () => {
         return {
           ...p,
           is_liked: !p.is_liked,
-          likes_count: p.is_liked ? Math.max(0, p.likes_count - 1) : p.likes_count + 1
+          likes_count: p.is_liked ? Math.max(0, (p.likes_count || 0) - 1) : (p.likes_count || 0) + 1
         };
       }
       return p;
     }));
     
     // Then perform the actual API call
-    const { success, error } = await likePost(postId, user.id);
+    const { success } = await likePost(postId, user.id);
     
-    if (!success && error) {
+    if (!success) {
       // Revert the optimistic update if there was an error
       setPosts(prevPosts => prevPosts.map(p => {
         if (p.id === postId) {
           return {
             ...p,
             is_liked: isCurrentlyLiked,
-            likes_count: isCurrentlyLiked ? p.likes_count + 1 : Math.max(0, p.likes_count - 1)
+            likes_count: isCurrentlyLiked ? (p.likes_count || 0) + 1 : Math.max(0, (p.likes_count || 0) - 1)
           };
         }
         return p;
@@ -150,7 +158,7 @@ const PostFeed = () => {
       
       toast({
         title: "Error",
-        description: error,
+        description: "Failed to update like status",
         variant: "destructive",
       });
     }

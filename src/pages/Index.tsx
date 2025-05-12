@@ -165,17 +165,14 @@ const Index = () => {
     setIsPostLoading(true);
     
     try {
-      let mediaUrl = selectedGif;
-      let mediaType = selectedGif ? 'gif' : undefined;
-      
       const { success, post, error } = await createPost(
         postText,
         user.id,
-        mediaUrl,
-        mediaType
+        selectedGif,
+        selectedGif ? 'gif' : undefined
       );
       
-      if (success && post) {
+      if (success) {
         toast({
           title: "Post Created",
           description: "Your post has been published successfully.",
@@ -186,10 +183,10 @@ const Index = () => {
         setSelectedGif(null);
         
         // Refresh the feed (handled by the PostFeed component)
-      } else if (error) {
+      } else {
         toast({
           title: "Error Creating Post",
-          description: error,
+          description: error || "Failed to create post",
           variant: "destructive",
         });
       }

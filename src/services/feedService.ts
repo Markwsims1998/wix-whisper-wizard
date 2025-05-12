@@ -1,3 +1,4 @@
+
 import { supabase } from "@/lib/supabaseClient";
 
 // Export the Post type so it can be used in other files
@@ -13,6 +14,7 @@ export interface Post {
     full_name?: string;
     avatar_url?: string | null;
     profile_picture_url?: string | null;
+    subscription_tier?: string;
   };
   is_liked?: boolean;
   likes_count?: number;
@@ -21,6 +23,7 @@ export interface Post {
     id: string;
     file_url: string;
     media_type: string;
+    thumbnail_url?: string;
   }>;
 }
 
@@ -39,12 +42,14 @@ export const getPosts = async (): Promise<Post[]> => {
           username,
           full_name,
           avatar_url,
-          profile_picture_url
+          profile_picture_url,
+          subscription_tier
         ),
         media: media (
           id,
           file_url,
-          media_type
+          media_type,
+          thumbnail_url
         ),
         likes (
           post_id
@@ -65,11 +70,43 @@ export const getPosts = async (): Promise<Post[]> => {
       ...post,
       likes_count: post.likes?.length || 0,
       comments_count: post.comments?.length || 0,
+      author: post.author ? post.author[0] : undefined
     }));
 
     return postsWithLikes as Post[];
   } catch (error) {
     console.error("Error getting posts:", error);
+    return [];
+  }
+};
+
+// Add the getFeedPosts function
+export const getFeedPosts = async (
+  feedType: 'all' | 'local' | 'hotlist' | 'friends' = 'all', 
+  userId: string,
+  location: string = 'New York'
+): Promise<Post[]> => {
+  try {
+    // For simplicity, we'll just use getPosts for now and filter client-side
+    const allPosts = await getPosts();
+    
+    switch (feedType) {
+      case 'local':
+        // Filter by location (not implemented in this example)
+        return allPosts;
+      case 'hotlist':
+        // Sort by likes count
+        return [...allPosts].sort((a, b) => 
+          (b.likes_count || 0) - (a.likes_count || 0)
+        );
+      case 'friends':
+        // Filter by friends (simplified implementation)
+        return allPosts;
+      default:
+        return allPosts;
+    }
+  } catch (error) {
+    console.error("Error getting feed posts:", error);
     return [];
   }
 };
@@ -89,12 +126,14 @@ export const getUserPosts = async (userId: string): Promise<Post[]> => {
           username,
           full_name,
           avatar_url,
-          profile_picture_url
+          profile_picture_url,
+          subscription_tier
         ),
         media: media (
           id,
           file_url,
-          media_type
+          media_type,
+          thumbnail_url
         ),
         likes (
           post_id
@@ -116,6 +155,7 @@ export const getUserPosts = async (userId: string): Promise<Post[]> => {
       ...post,
       likes_count: post.likes?.length || 0,
       comments_count: post.comments?.length || 0,
+      author: post.author ? post.author[0] : undefined
     }));
 
     return postsWithLikes as Post[];
@@ -125,7 +165,7 @@ export const getUserPosts = async (userId: string): Promise<Post[]> => {
   }
 };
 
-export const getPostById = async (postId: string): Promise<{ success: boolean; post: Post | null }> => {
+export const getPostById = async (postId: string): Promise<{ success: boolean; post: Post | null; error?: string }> => {
   try {
     const { data: post, error } = await supabase
       .from('posts')
@@ -140,12 +180,14 @@ export const getPostById = async (postId: string): Promise<{ success: boolean; p
           username,
           full_name,
           avatar_url,
-          profile_picture_url
+          profile_picture_url,
+          subscription_tier
         ),
         media: media (
           id,
           file_url,
-          media_type
+          media_type,
+          thumbnail_url
         ),
         likes (
           post_id
@@ -159,7 +201,7 @@ export const getPostById = async (postId: string): Promise<{ success: boolean; p
 
     if (error) {
       console.error("Error fetching post:", error);
-      return { success: false, post: null };
+      return { success: false, post: null, error: error.message };
     }
 
     // Add is_liked and counts
@@ -167,16 +209,22 @@ export const getPostById = async (postId: string): Promise<{ success: boolean; p
       ...post,
       likes_count: post.likes?.length || 0,
       comments_count: post.comments?.length || 0,
+      author: post.author ? post.author[0] : undefined
     };
 
     return { success: true, post: postWithLikes as Post };
   } catch (error) {
     console.error("Error getting post:", error);
-    return { success: false, post: null };
+    return { success: false, post: null, error: "Unexpected error occurred" };
   }
 };
 
-export const createPost = async (userId: string, content: string): Promise<{ success: boolean; post: Post | null }> => {
+export const createPost = async (
+  content: string, 
+  userId: string, 
+  mediaUrl?: string | null, 
+  mediaType?: string
+): Promise<{ success: boolean; post?: Post; error?: string }> => {
   try {
     const { data: post, error } = await supabase
       .from('posts')
@@ -194,12 +242,14 @@ export const createPost = async (userId: string, content: string): Promise<{ suc
           username,
           full_name,
           avatar_url,
-          profile_picture_url
+          profile_picture_url,
+          subscription_tier
         ),
         media: media (
           id,
           file_url,
-          media_type
+          media_type,
+          thumbnail_url
         ),
         likes (
           post_id
@@ -212,7 +262,26 @@ export const createPost = async (userId: string, content: string): Promise<{ suc
 
     if (error) {
       console.error("Error creating post:", error);
-      return { success: false, post: null };
+      return { success: false, error: error.message };
+    }
+
+    // Add media if provided
+    if (mediaUrl && mediaType) {
+      const { error: mediaError } = await supabase
+        .from('media')
+        .insert([
+          { 
+            user_id: userId, 
+            post_id: post.id, 
+            file_url: mediaUrl, 
+            media_type: mediaType 
+          },
+        ]);
+
+      if (mediaError) {
+        console.error("Error adding media:", mediaError);
+        // Still return success since the post was created
+      }
     }
 
     // Add is_liked and counts
@@ -220,16 +289,17 @@ export const createPost = async (userId: string, content: string): Promise<{ suc
       ...post,
       likes_count: post.likes?.length || 0,
       comments_count: post.comments?.length || 0,
+      author: post.author ? post.author[0] : undefined
     };
 
     return { success: true, post: postWithLikes as Post };
   } catch (error) {
     console.error("Error creating post:", error);
-    return { success: false, post: null };
+    return { success: false, error: "Unexpected error occurred" };
   }
 };
 
-export const likePost = async (postId: string, userId: string): Promise<{ success: boolean }> => {
+export const likePost = async (postId: string, userId: string): Promise<{ success: boolean; error?: string }> => {
   try {
     // Check if the user has already liked the post
     const { data: existingLike, error: selectError } = await supabase
@@ -241,7 +311,7 @@ export const likePost = async (postId: string, userId: string): Promise<{ succes
 
     if (selectError && (selectError.message !== 'No rows found')) {
       console.error("Error checking existing like:", selectError);
-      return { success: false };
+      return { success: false, error: selectError.message };
     }
 
     if (existingLike) {
@@ -254,7 +324,7 @@ export const likePost = async (postId: string, userId: string): Promise<{ succes
 
       if (deleteError) {
         console.error("Error unliking post:", deleteError);
-        return { success: false };
+        return { success: false, error: deleteError.message };
       }
 
       return { success: true };
@@ -268,14 +338,14 @@ export const likePost = async (postId: string, userId: string): Promise<{ succes
 
       if (insertError) {
         console.error("Error liking post:", insertError);
-        return { success: false };
+        return { success: false, error: insertError.message };
       }
 
       return { success: true };
     }
   } catch (error) {
     console.error("Error liking post:", error);
-    return { success: false };
+    return { success: false, error: "Unexpected error occurred" };
   }
 };
 

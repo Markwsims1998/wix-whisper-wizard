@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -8,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Loader2, Upload } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth/AuthProvider";
-import { uploadMedia } from "@/services/mediaService";
+import { uploadMedia, uploadMediaFile, saveMediaMetadata } from "@/services/mediaService";
 import { uploadSecurePhoto } from "@/services/securePhotoService";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { supabase } from "@/lib/supabaseClient";
@@ -82,10 +81,11 @@ const ContentUploader: React.FC<ContentUploaderProps> = ({
     setUploading(true);
     
     try {
-      console.log('[ContentUploader] Starting upload process for content type:', contentType);
-      
+      let fileUrl = '';
+      let thumbnailUrl = '';
+      let postId = '';
+
       // Create a post first to get the post ID
-      console.log('[ContentUploader] Creating post for content upload');
       const { data: postData, error: postError } = await supabase
         .from('posts')
         .insert({
@@ -96,31 +96,52 @@ const ContentUploader: React.FC<ContentUploaderProps> = ({
         .single();
         
       if (postError) {
-        console.error('[ContentUploader] Error creating post:', postError);
+        console.error('Error creating post:', postError);
         throw new Error('Failed to create post');
       }
       
-      const postId = postData.id;
-      console.log('[ContentUploader] Created post with ID:', postId);
+      postId = postData.id;
+      console.log('Created post with ID:', postId);
       
       if (selectedFile) {
-        // Use the uploadMedia function which handles both the file upload and metadata saving
-        console.log('[ContentUploader] Using uploadMedia to handle upload and metadata');
+        // Handle file upload based on content type
+        if (contentType === 'photo') {
+          // Use secure photo upload with watermarking for photos
+          const result = await uploadSecurePhoto(
+            selectedFile,
+            user.id,
+            subscriptionDetails.tier
+          );
+          
+          if (!result) throw new Error('Failed to upload photo');
+          
+          fileUrl = result.url;
+          // Also store the watermarked URL for reference
+          thumbnailUrl = result.watermarkedUrl;
+        } else {
+          // Upload video file
+          const result = await uploadMediaFile(selectedFile, contentType, user.id);
+          if (!result) throw new Error('Failed to upload video');
+          
+          fileUrl = result.url;
+          thumbnailUrl = result.thumbnailUrl || '';
+        }
         
-        const mediaData = await uploadMedia(selectedFile, {
+        // Save media metadata to database
+        const mediaData = await saveMediaMetadata({
           title,
           description,
           category,
           userId: user.id,
+          fileUrl,
+          thumbnailUrl,
           contentType,
           existingPostId: postId
         });
         
         if (!mediaData) {
-          throw new Error(`Failed to upload ${contentType}`);
+          throw new Error(`Failed to save ${contentType} metadata`);
         }
-        
-        console.log('[ContentUploader] Media uploaded successfully with ID:', mediaData.id);
       }
       
       toast({
@@ -142,7 +163,7 @@ const ContentUploader: React.FC<ContentUploaderProps> = ({
         onSuccess();
       }
     } catch (error) {
-      console.error(`[ContentUploader] Error uploading ${type}:`, error);
+      console.error(`Error uploading ${type}:`, error);
       toast({
         title: "Upload Failed",
         description: `There was a problem uploading your ${type}. Please try again.`,

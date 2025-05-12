@@ -1,13 +1,12 @@
+
 import { supabase } from '@/lib/supabaseClient';
 import { Video } from './videoService';
-import { uploadSecurePhoto } from './securePhotoService';
 
 export interface MediaItem {
   id: string;
   title: string | null;
   file_url: string;
   thumbnail_url: string | null;
-  watermarked_url?: string | null;  // Add the watermarked URL field
   category: string | null;
   views: number | null;
   media_type: string;
@@ -28,8 +27,6 @@ export const fetchMedia = async (
   category: string = 'all'
 ): Promise<MediaItem[]> => {
   try {
-    console.log(`[fetchMedia] Fetching ${contentType}s for category: ${category}`);
-    
     let query = supabase
       .from('media')
       .select(`
@@ -50,14 +47,13 @@ export const fetchMedia = async (
     const { data, error } = await query;
     
     if (error) {
-      console.error(`[fetchMedia] Error fetching ${contentType}s:`, error);
+      console.error(`Error fetching ${contentType}s:`, error);
       return [];
     }
     
-    console.log(`[fetchMedia] Found ${data?.length || 0} ${contentType}s`);
     return data || [];
   } catch (err) {
-    console.error(`[fetchMedia] Error in fetch${contentType.charAt(0).toUpperCase() + contentType.slice(1)}s:`, err);
+    console.error(`Error in fetch${contentType.charAt(0).toUpperCase() + contentType.slice(1)}s:`, err);
     return [];
   }
 };
@@ -112,6 +108,8 @@ export const convertToVideoFormat = (mediaItems: MediaItem[]): Video[] => {
   }));
 };
 
+// NEW FUNCTIONS FOR UPLOADING MEDIA
+
 /**
  * Upload a media file to Supabase storage
  */
@@ -119,74 +117,49 @@ export const uploadMediaFile = async (
   file: File,
   contentType: 'photo' | 'video',
   userId: string
-): Promise<{ url: string; thumbnailUrl?: string; watermarkedUrl?: string } | null> => {
+): Promise<{ url: string; thumbnailUrl?: string } | null> => {
   try {
-    console.log('[uploadMediaFile] Started:', {
-      fileName: file.name, 
-      fileSize: file.size,
-      contentType, 
-      userId
-    });
-    
     if (!file || !userId) {
-      console.error('[uploadMediaFile] Missing required parameters for upload');
+      console.error('Missing required parameters for upload');
       return null;
     }
 
     const fileExt = file.name.split('.').pop();
     const fileName = `${userId}/${Date.now()}.${fileExt}`;
     
-    // Use different upload method based on content type
-    if (contentType === 'photo') {
-      // For photos, use secure upload with watermarking
-      console.log('[uploadMediaFile] Using secure photo upload with watermarking');
-      const result = await uploadSecurePhoto(file, userId, 'free');
+    // Use different bucket based on content type
+    const bucketName = contentType === 'photo' ? 'photos-premium' : 'videos';
+    
+    // Upload file to storage
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from(bucketName)
+      .upload(fileName, file, {
+        cacheControl: '3600',
+        upsert: false
+      });
       
-      if (!result) {
-        console.error('[uploadMediaFile] Failed to upload photo with watermarking');
-        return null;
-      }
-      
-      console.log('[uploadMediaFile] Photo upload successful with watermarking:', result);
-      return {
-        url: result.url,
-        watermarkedUrl: result.watermarkedUrl
-      };
-    } else {
-      // For videos, use simple upload
-      const bucketName = 'videos';
-      
-      // Upload file to storage
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from(bucketName)
-        .upload(fileName, file, {
-          cacheControl: '3600',
-          upsert: false
-        });
-        
-      if (uploadError) {
-        console.error(`[uploadMediaFile] Error uploading ${contentType}:`, uploadError);
-        return null;
-      }
-      
-      // Get public URL for the file
-      const { data: urlData } = supabase.storage
-        .from(bucketName)
-        .getPublicUrl(fileName);
-        
-      const fileUrl = urlData?.publicUrl;
-      
-      // For videos, we could generate a thumbnail here
-      // For simplicity, we'll just use the video itself as the thumbnail
-      let thumbnailUrl = fileUrl;
-      
-      return { 
-        url: fileUrl, 
-        thumbnailUrl 
-      };
+    if (uploadError) {
+      console.error(`Error uploading ${contentType}:`, uploadError);
+      return null;
     }
+    
+    // Get public URL for the file
+    const { data: urlData } = supabase.storage
+      .from(bucketName)
+      .getPublicUrl(fileName);
+      
+    const fileUrl = urlData?.publicUrl;
+    
+    // For videos, we could generate a thumbnail here
+    // For simplicity, we'll just use the video itself as the thumbnail
+    let thumbnailUrl = contentType === 'video' ? fileUrl : undefined;
+    
+    return { 
+      url: fileUrl, 
+      thumbnailUrl 
+    };
   } catch (error) {
-    console.error(`[uploadMediaFile] Error in uploadMediaFile:`, error);
+    console.error(`Error in uploadMediaFile:`, error);
     return null;
   }
 };
@@ -202,23 +175,13 @@ export const saveMediaMetadata = async (
     userId: string;
     fileUrl: string;
     thumbnailUrl?: string;
-    watermarkedUrl?: string;
     contentType: 'photo' | 'video';
     location?: string;
     tags?: string[];
     existingPostId?: string;
-    mediaType?: string; // Add mediaType parameter
   }
 ): Promise<MediaItem | null> => {
   try {
-    console.log('[saveMediaMetadata] Saving media metadata with:', { 
-      title: mediaData.title,
-      category: mediaData.category,
-      contentType: mediaData.contentType,
-      hasWatermarkedUrl: !!mediaData.watermarkedUrl,
-      mediaType: mediaData.mediaType
-    });
-    
     let postId = mediaData.existingPostId;
     
     // Only create a post if we don't have an existing post ID
@@ -234,29 +197,15 @@ export const saveMediaMetadata = async (
         .single();
         
       if (postError) {
-        console.error('[saveMediaMetadata] Error creating post for media:', postError);
+        console.error('Error creating post for media:', postError);
         return null;
       }
       
-      console.log('[saveMediaMetadata] Created post for media:', postData.id);
+      console.log('Created post for media:', postData.id);
       postId = postData.id;
     } else {
-      console.log('[saveMediaMetadata] Using existing post ID for media:', postId);
+      console.log('Using existing post ID for media:', postId);
     }
-    
-    // Determine the correct media_type value to satisfy the constraint
-    // Map MIME types to simpler values that match the constraint
-    let simplifiedMediaType = 'image'; // Default for photos
-    
-    if (mediaData.contentType === 'video') {
-      simplifiedMediaType = 'video';
-    } else if (mediaData.mediaType) {
-      // If mediaType is provided, extract the main type (before the slash)
-      const mainType = mediaData.mediaType.split('/')[0].toLowerCase();
-      simplifiedMediaType = mainType === 'video' ? 'video' : 'image';
-    }
-    
-    console.log('[saveMediaMetadata] Using simplified media_type:', simplifiedMediaType);
     
     // Then save the media linked to the post
     const { data, error } = await supabase
@@ -267,24 +216,22 @@ export const saveMediaMetadata = async (
         user_id: mediaData.userId,
         file_url: mediaData.fileUrl,
         thumbnail_url: mediaData.thumbnailUrl,
-        watermarked_url: mediaData.watermarkedUrl, // Explicitly store the watermarked URL
         content_type: mediaData.contentType,
-        media_type: simplifiedMediaType, // Use the simplified media_type
+        media_type: mediaData.contentType === 'photo' ? 'image/jpeg' : 'video/mp4',
         post_id: postId // Link media to the post
       })
       .select('*, user:user_id(id, username, full_name, avatar_url)')
       .single();
       
     if (error) {
-      console.error('[saveMediaMetadata] Error saving media metadata:', error);
-      console.error('[saveMediaMetadata] Error details:', JSON.stringify(error));
+      console.error('Error saving media metadata:', error);
       return null;
     }
     
-    console.log('[saveMediaMetadata] Media saved successfully to database:', data.id);
+    console.log('Media saved successfully:', data);
     return data;
   } catch (error) {
-    console.error('[saveMediaMetadata] Error in saveMediaMetadata:', error);
+    console.error('Error in saveMediaMetadata:', error);
     return null;
   }
 };
@@ -306,41 +253,21 @@ export const uploadMedia = async (
   }
 ): Promise<MediaItem | null> => {
   try {
-    console.log('[uploadMedia] Starting upload process', {
-      contentType: metadata.contentType,
-      fileName: file.name,
-      fileSize: file.size,
-      existingPostId: metadata.existingPostId
-    });
-    
     // Step 1: Upload the file to storage
     const uploadResult = await uploadMediaFile(file, metadata.contentType, metadata.userId);
-    if (!uploadResult) {
-      console.error('[uploadMedia] File upload failed');
-      return null;
-    }
-    
-    console.log('[uploadMedia] File upload successful, result:', uploadResult);
+    if (!uploadResult) return null;
     
     // Step 2: Save metadata to database
     const mediaData = await saveMediaMetadata({
       ...metadata,
       fileUrl: uploadResult.url,
       thumbnailUrl: uploadResult.thumbnailUrl,
-      watermarkedUrl: uploadResult.watermarkedUrl, // Add the watermarked URL
-      existingPostId: metadata.existingPostId,
-      mediaType: file.type
+      existingPostId: metadata.existingPostId
     });
-    
-    if (mediaData) {
-      console.log('[uploadMedia] Media upload completed successfully:', mediaData.id);
-    } else {
-      console.error('[uploadMedia] Failed to save media metadata');
-    }
     
     return mediaData;
   } catch (error) {
-    console.error('[uploadMedia] Error in uploadMedia:', error);
+    console.error('Error in uploadMedia:', error);
     return null;
   }
 };

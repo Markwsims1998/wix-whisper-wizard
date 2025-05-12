@@ -6,7 +6,6 @@ export interface Photo {
   title: string | null;
   image: string;
   thumbnail?: string;
-  watermarkedUrl?: string | null;  // Add watermarked URL to the interface
   category: string;
   author: string;
   views: string | number;
@@ -22,53 +21,32 @@ export interface Photo {
 
 export const fetchPhotos = async (category: string = 'all'): Promise<Photo[]> => {
   try {
-    console.log(`[fetchPhotos] Fetching photos for category: ${category}`);
+    console.log(`Fetching photos for category: ${category}`);
     
     // Fetch photos from the database
     const mediaItems = await fetchMedia('photo', category);
     
     if (mediaItems.length > 0) {
-      console.log(`[fetchPhotos] Found ${mediaItems.length} photos in database`);
-      const photos = mediaItems.map(item => {
-        // Log watermarked URL for debugging
-        if (item.watermarked_url) {
-          console.log(`[fetchPhotos] Photo ${item.id} has watermarked URL: ${item.watermarked_url}`);
-        } else {
-          console.log(`[fetchPhotos] Photo ${item.id} has NO watermarked URL`);
-        }
-        
-        // Create the photo object with all necessary fields
-        const photo = {
-          id: item.id,
-          title: item.title || 'Untitled Photo',
-          image: item.file_url,
-          thumbnail: item.thumbnail_url || item.file_url,
-          watermarkedUrl: item.watermarked_url || null,  // Ensure watermarkedUrl is set correctly
-          category: item.category || 'uncategorized',
-          author: item.user?.full_name || item.user?.username || 'Unknown User',
-          views: item.views || 0,
-          likes: 0, // We don't have likes in the media table yet
-          postId: item.post_id || item.id,
-          user: item.user
-        };
-        
-        console.log(`[fetchPhotos] Processed photo ${item.id}:`, {
-          url: photo.image,
-          watermarkedUrl: photo.watermarkedUrl,
-          thumbnail: photo.thumbnail,
-          postId: photo.postId
-        });
-        
-        return photo;
-      });
-      return photos;
+      console.log(`Found ${mediaItems.length} photos in database`);
+      return mediaItems.map(item => ({
+        id: item.id,
+        title: item.title || 'Untitled Photo',
+        image: item.file_url,
+        thumbnail: item.thumbnail_url || item.file_url,
+        category: item.category || 'uncategorized',
+        author: item.user?.full_name || item.user?.username || 'Unknown User',
+        views: item.views || 0,
+        likes: 0, // We don't have likes in the media table yet
+        postId: item.post_id || item.id,
+        user: item.user
+      }));
     }
     
     // If no photos found, return an empty array
-    console.log('[fetchPhotos] No photos found in database');
+    console.log('No photos found in database');
     return [];
   } catch (err) {
-    console.error('[fetchPhotos] Error in fetchPhotos:', err);
+    console.error('Error in fetchPhotos:', err);
     return [];
   }
 };

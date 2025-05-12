@@ -1,4 +1,3 @@
-
 import { Heart, MessageCircle, User } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
@@ -6,7 +5,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Post } from "./types";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/contexts/auth/AuthProvider";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
@@ -86,13 +85,14 @@ const PostItem = ({ post, handleLikePost }: PostItemProps) => {
         .select('id')
         .eq('post_id', post.id)
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
       
       setIsLiked(!!data);
       
       // Get an accurate count of likes
       fetchLikeCount();
     } catch (error) {
+      console.error("Error checking like status:", error);
       // If no like found, error is expected
       setIsLiked(false);
     }
@@ -101,13 +101,17 @@ const PostItem = ({ post, handleLikePost }: PostItemProps) => {
   // Fetch accurate like count 
   const fetchLikeCount = async () => {
     try {
-      const { count } = await supabase
+      const { count, error } = await supabase
         .from('likes')
         .select('id', { count: 'exact', head: true })
         .eq('post_id', post.id);
         
       if (count !== null) {
         setLikesCount(count);
+      }
+      
+      if (error) {
+        console.error('Error fetching like count:', error);
       }
     } catch (error) {
       console.error('Error fetching like count:', error);
@@ -131,12 +135,15 @@ const PostItem = ({ post, handleLikePost }: PostItemProps) => {
   };
   
   const onLikeClick = () => {
-    handleLikePost(post.id);
+    if (!user?.id) return;
     
     // Optimistic UI update
     const newIsLiked = !isLiked;
     setIsLiked(newIsLiked);
     setLikesCount(prev => newIsLiked ? prev + 1 : Math.max(0, prev - 1));
+    
+    // Call parent handler
+    handleLikePost(post.id);
   };
 
   // Generate the correct profile URL using username if available, otherwise ID

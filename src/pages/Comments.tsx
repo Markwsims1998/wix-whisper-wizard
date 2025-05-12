@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { Heart, User } from "lucide-react";
@@ -13,7 +14,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import Sidebar from "@/components/Sidebar";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"; 
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabaseClient";
 
 const CommentsPage = () => {
   const [searchParams] = useSearchParams();
@@ -101,27 +102,42 @@ const CommentsPage = () => {
   const onLikeClick = async () => {
     if (!post || !user) return;
     
-    const { success } = await likePost(post.id, user.id);
-    
-    if (success) {
-      // Optimistic UI update
-      const newIsLiked = !isLiked;
-      setIsLiked(newIsLiked);
-      setLikesCount(prev => newIsLiked ? prev + 1 : Math.max(0, prev - 1));
+    try {
+      const { success, error } = await likePost(post.id, user.id);
       
-      // Update like users
-      if (newIsLiked && user) {
-        const currentUser: LikeUser = {
-          id: user.id,
-          username: user.username || '',
-          full_name: user.name || '',
-          avatar_url: user.profilePicture || null,
-          profile_picture_url: user.profilePicture || null
-        };
-        setLikeUsers(prev => [currentUser, ...prev]);
+      if (success) {
+        // Optimistic UI update
+        const newIsLiked = !isLiked;
+        setIsLiked(newIsLiked);
+        setLikesCount(prev => newIsLiked ? prev + 1 : Math.max(0, prev - 1));
+        
+        // Update like users
+        if (newIsLiked && user) {
+          const currentUser: LikeUser = {
+            id: user.id,
+            username: user.username || '',
+            full_name: user.name || '',
+            avatar_url: user.profilePicture || null,
+            profile_picture_url: user.profilePicture || null
+          };
+          setLikeUsers(prev => [currentUser, ...prev]);
+        } else {
+          setLikeUsers(prev => prev.filter(u => u.id !== user.id));
+        }
       } else {
-        setLikeUsers(prev => prev.filter(u => u.id !== user.id));
+        toast({
+          title: "Error",
+          description: error || "Failed to update like status",
+          variant: "destructive",
+        });
       }
+    } catch (error) {
+      console.error("Error in onLikeClick:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update like status. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 

@@ -1,4 +1,3 @@
-
 import { Separator } from "@/components/ui/separator";
 import { User, Heart, MessageCircle, Lock, Gift } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -12,6 +11,7 @@ import { useAuth } from "@/contexts/auth/AuthProvider";
 import { getPosts, likePost, Post as PostType } from "@/services/feedService";
 import { format } from "date-fns";
 import RefreshableFeed from "./RefreshableFeed";
+import { supabase } from "@/lib/supabaseClient";
 
 const PostFeed = () => {
   const [activeTab, setActiveTab] = useState("all");
@@ -52,6 +52,25 @@ const PostFeed = () => {
         filteredPosts = filteredPosts.sort((a, b) => 
           (b.likes_count || 0) - (a.likes_count || 0)
         );
+      }
+      
+      // Check which posts the current user has liked
+      if (user && user.id) {
+        for (let post of filteredPosts) {
+          try {
+            const { data } = await supabase
+              .from('likes')
+              .select('id')
+              .eq('post_id', post.id)
+              .eq('user_id', user.id)
+              .maybeSingle();
+            
+            post.is_liked = !!data;
+          } catch (error) {
+            console.log(`Error checking like status for post ${post.id}:`, error);
+            post.is_liked = false;
+          }
+        }
       }
       
       setPosts(filteredPosts);
@@ -141,10 +160,32 @@ const PostFeed = () => {
     }));
     
     // Then perform the actual API call
-    const { success } = await likePost(postId, user.id);
-    
-    if (!success) {
-      // Revert the optimistic update if there was an error
+    try {
+      const { success, error } = await likePost(postId, user.id);
+      
+      if (!success) {
+        // Revert the optimistic update if there was an error
+        setPosts(prevPosts => prevPosts.map(p => {
+          if (p.id === postId) {
+            return {
+              ...p,
+              is_liked: isCurrentlyLiked,
+              likes_count: isCurrentlyLiked ? (p.likes_count || 0) + 1 : Math.max(0, (p.likes_count || 0) - 1)
+            };
+          }
+          return p;
+        }));
+        
+        toast({
+          title: "Error",
+          description: error || "Failed to update like status",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error in handleLikePost:", error);
+      
+      // Revert the optimistic update on any error
       setPosts(prevPosts => prevPosts.map(p => {
         if (p.id === postId) {
           return {
@@ -158,7 +199,7 @@ const PostFeed = () => {
       
       toast({
         title: "Error",
-        description: "Failed to update like status",
+        description: "Failed to update like status. Please try again.",
         variant: "destructive",
       });
     }

@@ -1,4 +1,3 @@
-
 import { supabase } from "@/lib/supabaseClient";
 
 // Export the Post type so it can be used in other files
@@ -341,15 +340,20 @@ export const likePost = async (postId: string, userId: string): Promise<{ succes
   try {
     console.log(`Like/unlike post ${postId} by user ${userId}`);
     
+    if (!postId || !userId) {
+      console.error("Missing postId or userId for likePost operation");
+      return { success: false, error: "Missing required parameters" };
+    }
+    
     // Check if the user has already liked the post
     const { data: existingLike, error: selectError } = await supabase
       .from('likes')
       .select('id')
       .eq('post_id', postId)
       .eq('user_id', userId)
-      .single();
+      .maybeSingle();
 
-    if (selectError && (selectError.message !== 'No rows found')) {
+    if (selectError) {
       console.error("Error checking existing like:", selectError);
       return { success: false, error: selectError.message };
     }
@@ -393,10 +397,15 @@ export const likePost = async (postId: string, userId: string): Promise<{ succes
   }
 };
 
-// Fixed getLikesForPost function with proper typing
+// Updated getLikesForPost function with proper typing
 export const getLikesForPost = async (postId: string): Promise<LikeUser[]> => {
   try {
     console.log(`Fetching likes for post: ${postId}`);
+    
+    if (!postId) {
+      console.error("Missing postId for getLikesForPost operation");
+      return [];
+    }
     
     const { data, error } = await supabase
       .from('likes')
@@ -460,77 +469,20 @@ export const getLikesForPost = async (postId: string): Promise<LikeUser[]> => {
   }
 };
 
-export const createComment = async (postId: string, userId: string, content: string): Promise<{ success: boolean }> => {
+export const deleteComment = async (commentId: string): Promise<{ success: boolean; error?: string }> => {
   try {
     const { error } = await supabase
       .from('comments')
-      .insert([
-        { post_id: postId, user_id: userId, content: content },
-      ]);
+      .delete()
+      .eq('id', commentId);
 
     if (error) {
-      console.error("Error creating comment:", error);
-      return { success: false };
+      console.error("Error deleting comment:", error);
+      return { success: false, error: error.message };
     }
 
     return { success: true };
-  } catch (error) {
-    console.error("Error creating comment:", error);
-    return { success: false };
+  } catch (error: any) {
+    return { success: false, error: error.message };
   }
 };
-
-export const getCommentsForPost = async (postId: string): Promise<any[]> => {
-    try {
-      const { data, error } = await supabase
-        .from('comments')
-        .select(`
-          id,
-          content,
-          created_at,
-          user_id,
-          profiles (
-            id,
-            username,
-            full_name,
-            avatar_url,
-            profile_picture_url
-          )
-        `)
-        .eq('post_id', postId)
-        .order('created_at', { ascending: false });
-  
-      if (error) {
-        console.error("Error fetching comments:", error);
-        return [];
-      }
-  
-      return data.map(comment => ({
-        id: comment.id,
-        content: comment.content,
-        created_at: comment.created_at,
-        user: comment.profiles
-      }));
-    } catch (error) {
-      console.error("Error fetching comments:", error);
-      return [];
-    }
-  };
-  
-  export const deleteComment = async (commentId: string): Promise<{ success: boolean; error?: string }> => {
-    try {
-      const { error } = await supabase
-        .from('comments')
-        .delete()
-        .eq('id', commentId);
-  
-      if (error) {
-        console.error("Error deleting comment:", error);
-        return { success: false, error: error.message };
-      }
-  
-      return { success: true };
-    } catch (error: any) {
-      return { success: false, error: error.message };
-    }
-  };

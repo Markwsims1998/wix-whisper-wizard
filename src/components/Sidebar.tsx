@@ -41,7 +41,7 @@ const Sidebar = () => {
           <Link to="/" className="text-xl font-bold text-purple-600 dark:text-purple-400">
             HappyKinks
           </Link>
-          <ModeToggle />
+          <ThemeToggle />
         </div>
         
         {/* Profile Card */}

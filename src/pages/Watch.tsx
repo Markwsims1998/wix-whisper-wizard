@@ -17,6 +17,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { fetchVideos } from "@/services/videoService";
 import VideoCard from "@/components/videos/VideoCard";
+import { useSubscription } from "@/contexts/SubscriptionContext";
+import { shouldShowWatermark } from "@/services/securePhotoService";
 
 const Watch = () => {
   const { id } = useParams<{ id: string }>();
@@ -29,6 +31,7 @@ const Watch = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
+  const { subscriptionDetails } = useSubscription();
   
   useEffect(() => {
     if (id) {
@@ -374,14 +377,28 @@ const Watch = () => {
           ) : video ? (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2">
-                <div className="bg-black rounded-lg overflow-hidden mb-4">
+                <div className="bg-black rounded-lg overflow-hidden mb-4 relative">
                   <video 
                     ref={videoRef}
-                    src={video.video_url} 
+                    src={!subscriptionDetails.canViewVideos || shouldShowWatermark(video.video_url) ? 
+                      (video.video_url.includes('?') ? 
+                        `${video.video_url}&watermark=true` : 
+                        `${video.video_url}?watermark=true`) 
+                      : video.video_url} 
                     poster={video.thumbnail_url}
                     controls
-                    className="w-full aspect-video"
+                    className={`w-full aspect-video ${!subscriptionDetails.canViewVideos ? 'blur-sm filter saturate-50' : ''}`}
                   />
+                  
+                  {(!subscriptionDetails.canViewVideos || shouldShowWatermark(video.video_url)) && (
+                    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                      <div className="absolute inset-0 w-full h-full flex items-center justify-center">
+                        <div className="font-bold text-white text-6xl opacity-50 transform -rotate-12 select-none whitespace-nowrap">
+                          PREMIUM
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 
                 <h1 className="text-xl font-semibold mb-1 dark:text-gray-100">{video.title}</h1>

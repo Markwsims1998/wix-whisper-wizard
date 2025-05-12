@@ -103,11 +103,21 @@ export const securePhotos = async (
 export const shouldShowWatermark = (url: string | undefined | null): boolean => {
   if (!url) return false;
   
-  // Add a more robust check that handles various URL formats
-  // Check for watermark=true parameter or if the URL is from a watermarked bucket
-  return url.includes('?watermark=true') || 
-         url.includes('&watermark=true') || 
-         url.includes('photos-watermarked');
+  // Enhanced check to catch all possible watermark indicators:
+  // 1. Direct watermark parameter in query string
+  // 2. URL from watermarked bucket
+  // 3. Free subscription tier indicator in URL (if present)
+  
+  const hasWatermarkParam = url.includes('watermark=true');
+  const isFromWatermarkedBucket = url.includes('photos-watermarked');
+  const hasFreeIndicator = url.includes('tier=free');
+  
+  // Check for watermark parameter with different prefixes
+  if (url.includes('?watermark=true') || url.includes('&watermark=true')) {
+    return true;
+  }
+  
+  return hasWatermarkParam || isFromWatermarkedBucket || hasFreeIndicator;
 };
 
 /**

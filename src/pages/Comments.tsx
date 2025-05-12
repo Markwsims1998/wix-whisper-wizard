@@ -179,6 +179,10 @@ const CommentsPage = () => {
     return shouldShowWatermark(url);
   };
 
+  // Make sure we're consistently applying the watermark check across all components
+  const mediaUrl = post?.media && post.media.length > 0 ? post.media[0].file_url : null;
+  const shouldDisplayWatermarkVal = mediaUrl ? shouldShowWatermark(mediaUrl) : false;
+
   if (!postId) {
     return (
       <div className="min-h-screen">
@@ -208,6 +212,8 @@ const CommentsPage = () => {
       }}>
         <div className="max-w-3xl mx-auto px-4">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-5 mb-4">
+            
+            
             {isLoading ? (
               <div className="animate-pulse">
                 <div className="flex items-center gap-3 mb-3">
@@ -266,15 +272,20 @@ const CommentsPage = () => {
                   
                   {post.media && post.media.length > 0 && post.media[0].media_type && (
                     <div className="mt-2 mb-4 relative">
-                      {post.media[0].media_type.startsWith('image/') && (
+                      {post.media[0].media_type.startsWith('image/') || post.media[0].media_type === 'image' ? (
                         <div className="relative">
+                          {/* Make sure we're appending watermark=true for non-premium users */}
                           <img 
-                            src={post.media[0].file_url} 
+                            src={!canViewContent('image') || shouldDisplayWatermarkVal ? 
+                              (post.media[0].file_url.includes('?') ? 
+                                `${post.media[0].file_url}&watermark=true` : 
+                                `${post.media[0].file_url}?watermark=true`) 
+                              : post.media[0].file_url} 
                             alt="Post image" 
                             className={`rounded-lg w-full ${!canViewContent('image') ? 'blur-sm filter saturate-50' : ''}`}
                           />
                           
-                          {(!canViewContent('image') || shouldDisplayWatermark(post.media[0].file_url)) && (
+                          {(!canViewContent('image') || shouldDisplayWatermarkVal) && (
                             <div className="absolute inset-0 overflow-hidden">
                               <div className="absolute inset-0 w-full h-full flex items-center justify-center">
                                 <div className="font-bold text-white text-6xl opacity-50 transform -rotate-12 select-none whitespace-nowrap">
@@ -286,24 +297,43 @@ const CommentsPage = () => {
                         </div>
                       )}
                       
-                      {post.media[0].media_type.startsWith('video/') && (
-                        <video 
-                          src={post.media[0].file_url} 
-                          controls 
-                          className={`rounded-lg w-full ${!canViewContent('video') ? 'blur-sm filter saturate-50' : ''}`}
-                        />
+                      {post.media[0].media_type.startsWith('video/') || post.media[0].media_type === 'video' ? (
+                        <div className="relative">
+                          <video 
+                            src={!canViewContent('video') || shouldDisplayWatermarkVal ? 
+                              (post.media[0].file_url.includes('?') ? 
+                                `${post.media[0].file_url}&watermark=true` : 
+                                `${post.media[0].file_url}?watermark=true`) 
+                              : post.media[0].file_url} 
+                            controls 
+                            className={`rounded-lg w-full ${!canViewContent('video') ? 'blur-sm filter saturate-50' : ''}`}
+                          />
+                          
+                          {(!canViewContent('video') || shouldDisplayWatermarkVal) && (
+                            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                              <div className="absolute inset-0 w-full h-full flex items-center justify-center">
+                                <div className="font-bold text-white text-6xl opacity-50 transform -rotate-12 select-none whitespace-nowrap">
+                                  PREMIUM
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       )}
                       
                       {post.media[0].media_type === 'gif' && (
-                        <img 
-                          src={post.media[0].file_url} 
-                          alt="GIF" 
-                          className="rounded-lg w-full"
-                        />
+                        <div className="relative">
+                          <img 
+                            src={post.media[0].file_url} 
+                            alt="GIF" 
+                            className="rounded-lg w-full"
+                          />
+                        </div>
                       )}
                     </div>
                   )}
                 </div>
+                
                 
                 <div className="flex items-center gap-4">
                   <button 
@@ -319,6 +349,7 @@ const CommentsPage = () => {
                 </div>
               </>
             ) : (
+              
               <div className="text-center py-10">
                 <p className="text-xl text-gray-500 dark:text-gray-400">Post not found</p>
                 <Button asChild className="mt-4">
@@ -328,6 +359,7 @@ const CommentsPage = () => {
             )}
           </div>
 
+          
           {post && (
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-5">
               <h2 className="text-lg font-medium mb-4">Comments</h2>

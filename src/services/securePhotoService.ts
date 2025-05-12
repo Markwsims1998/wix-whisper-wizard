@@ -32,7 +32,7 @@ export const getSecurePhotoUrl = async (
     
     // If watermarked URL is provided directly, use it
     if (watermarkedUrl) {
-      console.log('[getSecurePhotoUrl] Using provided watermarked URL');
+      console.log('[getSecurePhotoUrl] Using provided watermarked URL:', watermarkedUrl);
       return watermarkedUrl;
     }
     

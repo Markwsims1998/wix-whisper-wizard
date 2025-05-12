@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -7,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Loader2, Upload } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth/AuthProvider";
-import { uploadMedia, uploadMediaFile, saveMediaMetadata } from "@/services/mediaService";
+import { uploadMedia } from "@/services/mediaService";
 import { uploadSecurePhoto } from "@/services/securePhotoService";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { supabase } from "@/lib/supabaseClient";
@@ -82,11 +83,7 @@ const ContentUploader: React.FC<ContentUploaderProps> = ({
     
     try {
       console.log('[ContentUploader] Starting upload process for content type:', contentType);
-      let fileUrl = '';
-      let thumbnailUrl = '';
-      let watermarkedUrl = '';  // Add variable for watermarked URL
-      let postId = '';
-
+      
       // Create a post first to get the post ID
       console.log('[ContentUploader] Creating post for content upload');
       const { data: postData, error: postError } = await supabase
@@ -103,72 +100,27 @@ const ContentUploader: React.FC<ContentUploaderProps> = ({
         throw new Error('Failed to create post');
       }
       
-      postId = postData.id;
+      const postId = postData.id;
       console.log('[ContentUploader] Created post with ID:', postId);
       
       if (selectedFile) {
-        // Handle file upload based on content type
-        if (contentType === 'photo') {
-          console.log('[ContentUploader] Uploading photo with secure upload process');
-          // Use secure photo upload with watermarking for photos
-          const result = await uploadSecurePhoto(
-            selectedFile,
-            user.id,
-            subscriptionDetails.tier
-          );
-          
-          if (!result) {
-            console.error('[ContentUploader] Secure photo upload failed');
-            throw new Error('Failed to upload photo');
-          }
-          
-          console.log('[ContentUploader] Secure photo upload successful:', result);
-          fileUrl = result.url;
-          // Store watermarked URL explicitly
-          watermarkedUrl = result.watermarkedUrl;
-          thumbnailUrl = result.url; // Use premium URL for thumbnail for premium users
-          
-          console.log('[ContentUploader] Upload URLs:', {
-            fileUrl,
-            watermarkedUrl,
-            thumbnailUrl
-          });
-        } else {
-          // Upload video file
-          const result = await uploadMediaFile(selectedFile, contentType, user.id);
-          if (!result) throw new Error('Failed to upload video');
-          
-          fileUrl = result.url;
-          thumbnailUrl = result.thumbnailUrl || '';
-        }
+        // Use the uploadMedia function which handles both the file upload and metadata saving
+        console.log('[ContentUploader] Using uploadMedia to handle upload and metadata');
         
-        // Save media metadata to database
-        console.log('[ContentUploader] Saving media metadata with URLs:', {
-          fileUrl,
-          thumbnailUrl,
-          watermarkedUrl,
-          postId,
-          mediaType: selectedFile.type // Use actual file type
-        });
-        
-        const mediaData = await saveMediaMetadata({
+        const mediaData = await uploadMedia(selectedFile, {
           title,
           description,
           category,
           userId: user.id,
-          fileUrl,
-          thumbnailUrl,
-          watermarkedUrl,  // Include the watermarked URL
           contentType,
-          existingPostId: postId,
-          mediaType: selectedFile.type // Pass the actual file type
+          existingPostId: postId
         });
         
         if (!mediaData) {
-          throw new Error(`Failed to save ${contentType} metadata`);
+          throw new Error(`Failed to upload ${contentType}`);
         }
         
-        console.log('[ContentUploader] Media metadata saved successfully:', mediaData.id);
+        console.log('[ContentUploader] Media uploaded successfully with ID:', mediaData.id);
       }
       
       toast({

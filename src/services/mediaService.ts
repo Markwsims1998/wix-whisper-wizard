@@ -28,6 +28,8 @@ export const fetchMedia = async (
   category: string = 'all'
 ): Promise<MediaItem[]> => {
   try {
+    console.log(`[fetchMedia] Fetching ${contentType}s for category: ${category}`);
+    
     let query = supabase
       .from('media')
       .select(`
@@ -48,13 +50,14 @@ export const fetchMedia = async (
     const { data, error } = await query;
     
     if (error) {
-      console.error(`Error fetching ${contentType}s:`, error);
+      console.error(`[fetchMedia] Error fetching ${contentType}s:`, error);
       return [];
     }
     
+    console.log(`[fetchMedia] Found ${data?.length || 0} ${contentType}s`);
     return data || [];
   } catch (err) {
-    console.error(`Error in fetch${contentType.charAt(0).toUpperCase() + contentType.slice(1)}s:`, err);
+    console.error(`[fetchMedia] Error in fetch${contentType.charAt(0).toUpperCase() + contentType.slice(1)}s:`, err);
     return [];
   }
 };
@@ -118,7 +121,7 @@ export const uploadMediaFile = async (
   userId: string
 ): Promise<{ url: string; thumbnailUrl?: string; watermarkedUrl?: string } | null> => {
   try {
-    console.log('uploadMediaFile started:', {
+    console.log('[uploadMediaFile] Started:', {
       fileName: file.name, 
       fileSize: file.size,
       contentType, 
@@ -126,7 +129,7 @@ export const uploadMediaFile = async (
     });
     
     if (!file || !userId) {
-      console.error('Missing required parameters for upload');
+      console.error('[uploadMediaFile] Missing required parameters for upload');
       return null;
     }
 
@@ -136,15 +139,15 @@ export const uploadMediaFile = async (
     // Use different upload method based on content type
     if (contentType === 'photo') {
       // For photos, use secure upload with watermarking
-      console.log('Using secure photo upload with watermarking');
+      console.log('[uploadMediaFile] Using secure photo upload with watermarking');
       const result = await uploadSecurePhoto(file, userId, 'free');
       
       if (!result) {
-        console.error('Failed to upload photo with watermarking');
+        console.error('[uploadMediaFile] Failed to upload photo with watermarking');
         return null;
       }
       
-      console.log('Photo upload successful with watermarking:', result);
+      console.log('[uploadMediaFile] Photo upload successful with watermarking:', result);
       return {
         url: result.url,
         watermarkedUrl: result.watermarkedUrl
@@ -162,7 +165,7 @@ export const uploadMediaFile = async (
         });
         
       if (uploadError) {
-        console.error(`Error uploading ${contentType}:`, uploadError);
+        console.error(`[uploadMediaFile] Error uploading ${contentType}:`, uploadError);
         return null;
       }
       
@@ -183,7 +186,7 @@ export const uploadMediaFile = async (
       };
     }
   } catch (error) {
-    console.error(`Error in uploadMediaFile:`, error);
+    console.error(`[uploadMediaFile] Error in uploadMediaFile:`, error);
     return null;
   }
 };
@@ -241,11 +244,19 @@ export const saveMediaMetadata = async (
       console.log('[saveMediaMetadata] Using existing post ID for media:', postId);
     }
     
-    // Determine the correct media_type value - ensure this matches your database constraint
-    const media_type = mediaData.mediaType || 
-      (mediaData.contentType === 'photo' ? 'image/jpeg' : 'video/mp4');
+    // Determine the correct media_type value to satisfy the constraint
+    // Map MIME types to simpler values that match the constraint
+    let simplifiedMediaType = 'image'; // Default for photos
     
-    console.log('[saveMediaMetadata] Using media_type:', media_type);
+    if (mediaData.contentType === 'video') {
+      simplifiedMediaType = 'video';
+    } else if (mediaData.mediaType) {
+      // If mediaType is provided, extract the main type (before the slash)
+      const mainType = mediaData.mediaType.split('/')[0].toLowerCase();
+      simplifiedMediaType = mainType === 'video' ? 'video' : 'image';
+    }
+    
+    console.log('[saveMediaMetadata] Using simplified media_type:', simplifiedMediaType);
     
     // Then save the media linked to the post
     const { data, error } = await supabase
@@ -258,7 +269,7 @@ export const saveMediaMetadata = async (
         thumbnail_url: mediaData.thumbnailUrl,
         watermarked_url: mediaData.watermarkedUrl, // Explicitly store the watermarked URL
         content_type: mediaData.contentType,
-        media_type: media_type, // Use the determined media_type
+        media_type: simplifiedMediaType, // Use the simplified media_type
         post_id: postId // Link media to the post
       })
       .select('*, user:user_id(id, username, full_name, avatar_url)')
@@ -266,6 +277,7 @@ export const saveMediaMetadata = async (
       
     if (error) {
       console.error('[saveMediaMetadata] Error saving media metadata:', error);
+      console.error('[saveMediaMetadata] Error details:', JSON.stringify(error));
       return null;
     }
     
@@ -294,9 +306,21 @@ export const uploadMedia = async (
   }
 ): Promise<MediaItem | null> => {
   try {
+    console.log('[uploadMedia] Starting upload process', {
+      contentType: metadata.contentType,
+      fileName: file.name,
+      fileSize: file.size,
+      existingPostId: metadata.existingPostId
+    });
+    
     // Step 1: Upload the file to storage
     const uploadResult = await uploadMediaFile(file, metadata.contentType, metadata.userId);
-    if (!uploadResult) return null;
+    if (!uploadResult) {
+      console.error('[uploadMedia] File upload failed');
+      return null;
+    }
+    
+    console.log('[uploadMedia] File upload successful, result:', uploadResult);
     
     // Step 2: Save metadata to database
     const mediaData = await saveMediaMetadata({
@@ -308,9 +332,15 @@ export const uploadMedia = async (
       mediaType: file.type
     });
     
+    if (mediaData) {
+      console.log('[uploadMedia] Media upload completed successfully:', mediaData.id);
+    } else {
+      console.error('[uploadMedia] Failed to save media metadata');
+    }
+    
     return mediaData;
   } catch (error) {
-    console.error('Error in uploadMedia:', error);
+    console.error('[uploadMedia] Error in uploadMedia:', error);
     return null;
   }
 };

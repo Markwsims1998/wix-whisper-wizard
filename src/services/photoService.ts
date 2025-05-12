@@ -6,7 +6,7 @@ export interface Photo {
   title: string | null;
   image: string;
   thumbnail?: string;
-  watermarkedUrl?: string;  // Add watermarked URL to the interface
+  watermarkedUrl?: string | null;  // Add watermarked URL to the interface
   category: string;
   author: string;
   views: string | number;
@@ -37,7 +37,8 @@ export const fetchPhotos = async (category: string = 'all'): Promise<Photo[]> =>
           console.log(`[fetchPhotos] Photo ${item.id} has NO watermarked URL`);
         }
         
-        return {
+        // Create the photo object with all necessary fields
+        const photo = {
           id: item.id,
           title: item.title || 'Untitled Photo',
           image: item.file_url,
@@ -50,6 +51,15 @@ export const fetchPhotos = async (category: string = 'all'): Promise<Photo[]> =>
           postId: item.post_id || item.id,
           user: item.user
         };
+        
+        console.log(`[fetchPhotos] Processed photo ${item.id}:`, {
+          url: photo.image,
+          watermarkedUrl: photo.watermarkedUrl,
+          thumbnail: photo.thumbnail,
+          postId: photo.postId
+        });
+        
+        return photo;
       });
       return photos;
     }

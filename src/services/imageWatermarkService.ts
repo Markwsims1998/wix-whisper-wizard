@@ -108,10 +108,19 @@ export const uploadWithWatermark = async (
       
     if (premiumError) {
       console.error('[uploadWithWatermark] Error uploading to premium bucket:', premiumError);
+      console.error('[uploadWithWatermark] Error details:', JSON.stringify(premiumError));
       return null;
     }
     
     console.log('[uploadWithWatermark] Successfully uploaded to premium bucket:', premiumData?.path);
+    
+    // Get the premium URL immediately so we have it even if watermarking fails
+    const { data: premiumUrlData } = supabase.storage
+      .from('photos-premium')
+      .getPublicUrl(filePath);
+    
+    const premiumUrl = premiumUrlData.publicUrl;
+    console.log('[uploadWithWatermark] Premium URL:', premiumUrl);
     
     // Step 2: Create a watermarked version
     console.log('[uploadWithWatermark] Creating watermarked version...');
@@ -142,32 +151,28 @@ export const uploadWithWatermark = async (
       
     if (watermarkedError) {
       console.error('[uploadWithWatermark] Error uploading to watermarked bucket:', watermarkedError);
+      console.error('[uploadWithWatermark] Error details:', JSON.stringify(watermarkedError));
+      
       // Even if watermarked upload fails, we can still return the premium URL
-      const { data: premiumUrlData } = supabase.storage
-        .from('photos-premium')
-        .getPublicUrl(filePath);
-        
       console.warn('[uploadWithWatermark] Returning only premium URL due to watermarking failure');
       return {
-        premiumUrl: premiumUrlData.publicUrl,
-        watermarkedUrl: premiumUrlData.publicUrl // Fallback to premium URL
+        premiumUrl: premiumUrl,
+        watermarkedUrl: premiumUrl // Fallback to premium URL
       };
     }
     
     console.log('[uploadWithWatermark] Successfully uploaded to watermarked bucket:', watermarkedData?.path);
     
-    // Step 4: Get URLs for both files
-    const { data: premiumUrlData } = supabase.storage
-      .from('photos-premium')
-      .getPublicUrl(filePath);
-      
+    // Step 4: Get URL for watermarked file
     const { data: watermarkedUrlData } = supabase.storage
       .from('photos-watermarked')
       .getPublicUrl(filePath);
     
+    const watermarkedUrl = watermarkedUrlData.publicUrl;
+    
     const result = {
-      premiumUrl: premiumUrlData.publicUrl,
-      watermarkedUrl: watermarkedUrlData.publicUrl
+      premiumUrl: premiumUrl,
+      watermarkedUrl: watermarkedUrl
     };
     
     console.log('[uploadWithWatermark] Upload completed successfully', result);

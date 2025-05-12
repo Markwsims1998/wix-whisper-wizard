@@ -13,6 +13,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import Sidebar from "@/components/Sidebar";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge"; // Added missing Badge import
 import { supabase } from "@/lib/supabaseClient";
 import { Video } from "@/services/videoService";
 import { Photo } from "@/services/photoService";

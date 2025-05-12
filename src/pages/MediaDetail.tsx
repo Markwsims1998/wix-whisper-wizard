@@ -20,6 +20,7 @@ import { Photo } from "@/services/photoService";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Info } from "lucide-react";
 import { fetchMedia, convertToVideoFormat } from "@/services/mediaService";
+import CommentInput from "@/components/comments/CommentInput";
 
 // Properly define the MediaDetailLikeUser type to be compatible with LikeUser
 interface MediaDetailLikeUser {
@@ -67,6 +68,7 @@ const MediaDetail = () => {
             views,
             created_at,
             user_id,
+            post_id,
             profiles:user_id (
               id,
               username,
@@ -102,6 +104,7 @@ const MediaDetail = () => {
             views: data.views || 0,
             likes_count: 0,
             created_at: data.created_at,
+            postId: data.post_id, // Set postId for likes and comments
             user: {
               id: data.profiles?.id,
               username: data.profiles?.username,
@@ -119,7 +122,7 @@ const MediaDetail = () => {
             author: data.profiles?.full_name || data.profiles?.username || 'Unknown User',
             views: data.views || 0,
             likes: 0,
-            postId: data.id,
+            postId: data.post_id, // Set postId for likes and comments
             user: {
               id: data.profiles?.id,
               username: data.profiles?.username,
@@ -131,43 +134,75 @@ const MediaDetail = () => {
         
         setMedia(formattedMedia);
         
-        // Check if the current user has liked this media
-        if (user?.id) {
-          const { data: likeData } = await supabase
-            .from('likes')
+        // Check if we need to create a post for this media if it doesn't exist
+        if (!data.post_id && user?.id) {
+          // Create a post for this media to enable likes and comments
+          const { data: postData, error: postError } = await supabase
+            .from('posts')
+            .insert({
+              user_id: data.user_id,
+              content: `${data.title || (mediaType === 'video' ? 'Video' : 'Photo')} upload`
+            })
             .select('id')
-            .eq('post_id', mediaId)
-            .eq('user_id', user.id)
-            .maybeSingle();
+            .single();
+          
+          if (!postError && postData) {
+            console.log("Created post for media:", postData.id);
             
-          setIsLiked(!!likeData);
+            // Link the media to the post
+            await supabase
+              .from('media')
+              .update({ post_id: postData.id })
+              .eq('id', mediaId);
+              
+            // Update our local media object with the new post_id
+            formattedMedia.postId = postData.id;
+            setMedia({ ...formattedMedia });
+          }
         }
         
-        // Count comments
-        const { count: commentCount, error: commentError } = await supabase
-          .from('comments')
-          .select('id', { count: 'exact' })
-          .eq('post_id', mediaId);
-        
-        if (!commentError) {
-          setCommentsCount(commentCount || 0);
+        // Only proceed with likes/comments if we have a post_id
+        if (media?.postId || data.post_id) {
+          const postIdToUse = media?.postId || data.post_id;
+          
+          // Check if the current user has liked this media
+          if (user?.id) {
+            const { data: likeData } = await supabase
+              .from('likes')
+              .select('id')
+              .eq('post_id', postIdToUse)
+              .eq('user_id', user.id)
+              .maybeSingle();
+              
+            setIsLiked(!!likeData);
+          }
+          
+          // Count comments
+          const { count: commentCount, error: commentError } = await supabase
+            .from('comments')
+            .select('id', { count: 'exact' })
+            .eq('post_id', postIdToUse);
+          
+          if (!commentError) {
+            setCommentsCount(commentCount || 0);
+          }
+          
+          // Count likes and get users who liked
+          const likes = await getLikesForPost(postIdToUse);
+          console.log("Likes data:", likes);
+          
+          // Map the likes to MediaDetailLikeUser type
+          const mappedLikeUsers: MediaDetailLikeUser[] = likes.map(user => ({
+            id: user.id,
+            username: user.username,
+            full_name: user.full_name,
+            avatar_url: user.avatar_url,
+            profile_picture_url: user.profile_picture_url
+          }));
+          
+          setLikeUsers(mappedLikeUsers);
+          setLikesCount(likes.length);
         }
-        
-        // Count likes and get users who liked
-        const likes = await getLikesForPost(mediaId);
-        console.log("Likes data:", likes);
-        
-        // Map the likes to MediaDetailLikeUser type
-        const mappedLikeUsers: MediaDetailLikeUser[] = likes.map(user => ({
-          id: user.id,
-          username: user.username,
-          full_name: user.full_name,
-          avatar_url: user.avatar_url,
-          profile_picture_url: user.profile_picture_url
-        }));
-        
-        setLikeUsers(mappedLikeUsers);
-        setLikesCount(likes.length);
         
         // Update view count
         await supabase
@@ -199,7 +234,17 @@ const MediaDetail = () => {
     if (!media || !user) return;
     
     try {
-      const { success, error } = await likePost(media.id, user.id);
+      // Ensure we have a post to reference
+      if (!media.postId) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Cannot like this media - no post reference found."
+        });
+        return;
+      }
+      
+      const { success, error } = await likePost(media.postId, user.id);
       
       if (success) {
         // Optimistic UI update
@@ -239,6 +284,11 @@ const MediaDetail = () => {
 
   const handleCommentCountChange = (newCount: number) => {
     setCommentsCount(newCount);
+  };
+
+  const handleCommentAdded = () => {
+    // Update the comment count when a new comment is added
+    setCommentsCount(prev => prev + 1);
   };
 
   // Generate the correct profile URL using username if available, otherwise ID
@@ -403,12 +453,34 @@ const MediaDetail = () => {
 
           {media && (
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-5">
-              <CommentSection 
-                postId={media.id} 
-                commentsCount={commentsCount}
-                onCommentCountChange={handleCommentCountChange}
-                expanded={true}
-              />
+              {/* Add comment input */}
+              {media.postId && (
+                <div className="mb-4">
+                  <h3 className="text-md font-medium mb-3">Leave a comment</h3>
+                  <CommentInput 
+                    postId={media.postId} 
+                    onCommentAdded={handleCommentAdded} 
+                  />
+                </div>
+              )}
+              
+              {!media.postId && (
+                <Alert className="mb-4">
+                  <Info className="h-4 w-4" />
+                  <AlertDescription>
+                    Comments are not available for this media.
+                  </AlertDescription>
+                </Alert>
+              )}
+              
+              {media.postId && (
+                <CommentSection 
+                  postId={media.postId} 
+                  commentsCount={commentsCount}
+                  onCommentCountChange={handleCommentCountChange}
+                  expanded={true}
+                />
+              )}
               
               {/* Who Loved Section - Fixed to properly access individual user objects */}
               {likesCount > 0 && (

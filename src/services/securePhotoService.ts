@@ -1,10 +1,9 @@
-
 // This function needs to be updated if it doesn't already exist or needs modification
 export const shouldShowWatermark = (url: string | null | undefined): boolean => {
   if (!url) return false;
   
-  // Check if URL already contains watermark parameter
-  return !url.includes('watermark=false');
+  // Check if URL contains watermark parameter or is from watermarked bucket
+  return url.includes('watermark=true') || url.includes('photos-watermarked');
 };
 
 // New function to consistently check video permissions
@@ -74,6 +73,21 @@ export const securePhotos = async <T extends { image?: string; url?: string; thu
 export const getSecurePhotoUrl = (url: string, addWatermark: boolean = false): string => {
   if (!url) return '';
   
+  // If URL already has appropriate watermark setting, return it as is
+  if ((addWatermark && url.includes('watermark=true')) || 
+      (!addWatermark && url.includes('watermark=false'))) {
+    return url;
+  }
+  
+  // If URL contains watermark parameter, replace it
+  if (url.includes('watermark=')) {
+    return url.replace(
+      /watermark=(true|false)/,
+      `watermark=${addWatermark ? 'true' : 'false'}`
+    );
+  }
+  
+  // Otherwise, add the watermark parameter
   const hasQueryParams = url.includes('?');
   const watermarkParam = addWatermark ? 'watermark=true' : 'watermark=false';
   

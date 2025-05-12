@@ -11,8 +11,9 @@ export interface Photo {
   author: string;
   views: string | number;
   likes: number;
+  likes_count?: number;  // Added to match video interface
   postId: string;
-  url?: string; // Add url property
+  url?: string;
   user?: {
     id: string;
     username: string;
@@ -40,6 +41,7 @@ export const fetchPhotos = async (category: string = 'all'): Promise<Photo[]> =>
         author: item.user?.full_name || item.user?.username || 'Unknown User',
         views: item.views || 0,
         likes: 0, // We don't have likes in the media table yet
+        likes_count: 0, // Added to match video interface
         postId: item.post_id || item.id,
         url: item.file_url, // Add url property matching file_url
         user: item.user
@@ -60,7 +62,7 @@ export const getPhotosByCategory = async (category: string = 'all'): Promise<Pho
   return fetchPhotos(category);
 };
 
-// Add the missing deletePhoto function
+// Add the deletePhoto function
 export const deletePhoto = async (photoId: string): Promise<boolean> => {
   try {
     // First, get the photo to know which file to delete

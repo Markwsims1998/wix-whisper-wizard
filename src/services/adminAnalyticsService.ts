@@ -1044,4 +1044,3 @@ export const fetchContentOverview = async (contentId: string): Promise<{
 
     if (!contentData) {
       console.error('Content not found');
-      return null

@@ -15,7 +15,7 @@ import { useSubscription } from "@/contexts/SubscriptionContext";
 interface ContentUploaderProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  type: 'photo' | 'video' | 'post';
+  type: 'photo' | 'video' | 'post';  // Keep 'post' as a valid type
   onSuccess?: () => void;
 }
 
@@ -34,6 +34,9 @@ const ContentUploader: React.FC<ContentUploaderProps> = ({
   const [category, setCategory] = useState("lifestyle");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  // Define the content type for secure upload
+  const contentType: 'photo' | 'video' = type === 'post' ? 'photo' : type as 'photo' | 'video';
 
   const categories = [
     { id: "events", name: "Events" },
@@ -66,10 +69,10 @@ const ContentUploader: React.FC<ContentUploaderProps> = ({
       return;
     }
     
-    if (!selectedFile) {
+    if (!selectedFile && type !== 'post') {
       toast({
         title: "No File Selected",
-        description: `Please select a ${type === 'photo' ? 'photo' : 'video'} to upload.`,
+        description: `Please select a ${contentType === 'photo' ? 'photo' : 'video'} to upload.`,
         variant: "destructive",
       });
       return;
@@ -81,7 +84,7 @@ const ContentUploader: React.FC<ContentUploaderProps> = ({
       let result;
       
       // Use different upload methods based on content type
-      if (type === 'photo') {
+      if (contentType === 'photo' && selectedFile) {
         // Use secure photo upload for photos
         result = await uploadSecurePhoto(
           selectedFile,
@@ -97,26 +100,29 @@ const ContentUploader: React.FC<ContentUploaderProps> = ({
           description,
           category,
           userId: user.id,
-          contentType: 'photo'
+          contentType: contentType
         });
-      } else {
+      } else if (selectedFile) {
         // Use regular upload for videos and other content
         result = await uploadMedia(selectedFile, {
           title,
           description,
           category,
           userId: user.id,
-          contentType: type
+          contentType: contentType
         });
+      } else {
+        // Handle post without file upload
+        throw new Error(`No file selected for upload`);
       }
       
       if (!result) {
-        throw new Error(`Failed to upload ${type}`);
+        throw new Error(`Failed to upload ${contentType}`);
       }
       
       toast({
         title: "Upload Successful",
-        description: `Your ${type} has been uploaded successfully.`,
+        description: `Your ${contentType} has been uploaded successfully.`,
       });
       
       // Reset form
@@ -133,10 +139,10 @@ const ContentUploader: React.FC<ContentUploaderProps> = ({
         onSuccess();
       }
     } catch (error) {
-      console.error(`Error uploading ${type}:`, error);
+      console.error(`Error uploading ${contentType}:`, error);
       toast({
         title: "Upload Failed",
-        description: `There was a problem uploading your ${type}. Please try again.`,
+        description: `There was a problem uploading your ${contentType}. Please try again.`,
         variant: "destructive",
       });
     } finally {
@@ -247,7 +253,7 @@ const ContentUploader: React.FC<ContentUploaderProps> = ({
             </Button>
             <Button 
               type="submit"
-              disabled={uploading || !selectedFile}
+              disabled={uploading || (type !== 'post' && !selectedFile)}
             >
               {uploading ? (
                 <>

@@ -16,45 +16,9 @@ export const getSecurePhotoUrl = async (
     // Check if user has a paid subscription
     const hasPremiumAccess = ['bronze', 'silver', 'gold'].includes(subscriptionTier);
     
-    // For premium users, return the premium URL
-    if (hasPremiumAccess) {
-      return originalUrl;
-    }
-    
-    // For non-premium users, try to get the watermarked version
-    const urlObj = new URL(originalUrl);
-    const path = urlObj.pathname;
-    
-    // Get everything after /object/public/photos-premium/
-    const premiumPrefix = '/object/public/photos-premium/';
-    const filePath = path.includes(premiumPrefix)
-      ? path.split(premiumPrefix)[1]
-      : path.split('/').slice(-2).join('/'); // Fallback to last 2 segments
-    
-    // Check if watermarked version exists
-    const { data: watermarkedData, error: watermarkedError } = await supabase.storage
-      .from('photos-watermarked')
-      .list(filePath.split('/')[0]); // List files in the user folder
-    
-    if (watermarkedError) {
-      console.error('Error checking for watermarked image:', watermarkedError);
-      return originalUrl;
-    }
-    
-    // Find the matching watermarked file
-    const fileName = filePath.split('/').pop() || '';
-    const watermarkedFile = watermarkedData?.find(file => file.name === fileName);
-    
-    if (watermarkedFile) {
-      const { data } = supabase.storage
-        .from('photos-watermarked')
-        .getPublicUrl(filePath);
-      
-      return data.publicUrl;
-    }
-    
-    // If no watermarked version exists, return the original URL
+    // For all users, return the original URL, but the watermark will always be applied in the UI
     return originalUrl;
+    
   } catch (error) {
     console.error('Error getting secure photo URL:', error);
     return originalUrl;
@@ -92,7 +56,7 @@ export const securePhotos = async (
 export const shouldShowWatermark = (url: string | undefined | null): boolean => {
   if (!url) return false;
   
-  // We want to show watermark on all photos
+  // Always show watermark on all photos
   return true;
 };
 

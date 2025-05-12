@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -6,8 +5,18 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Activity, TrendingUp, TrendingDown, Users, Database, AlertTriangle, CreditCard, Eye } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
+import {
+  fetchDashboardStats,
+  fetchWeeklyActivityData,
+  fetchSubscriptionDistribution,
+  fetchRevenueData,
+  fetchRecentActivity,
+  DashboardStats,
+  DataPoint
+} from "@/services/adminAnalyticsService";
+import { adminDashboardPlan } from "./AdminDashboardPlan";
 
 const COLORS = ['#CBD5E1', '#B45309', '#94A3B8', '#EAB308'];
 
@@ -17,7 +26,7 @@ const AdminDashboard = () => {
   const { toast } = useToast();
   
   // Dashboard stats
-  const [stats, setStats] = useState({
+  const [stats, setStats] = useState<DashboardStats>({
     totalUsers: 0,
     activeContent: 0,
     reportedItems: 0,
@@ -28,11 +37,11 @@ const AdminDashboard = () => {
     revenueGrowth: 0,
   });
   
-  const [weeklyStats, setWeeklyStats] = useState([]);
-  const [monthlyRevenue, setMonthlyRevenue] = useState([]);
-  const [subscriptionData, setSubscriptionData] = useState([]);
-  const [recentActivity, setRecentActivity] = useState([]);
-  const [moderationItems, setModerationItems] = useState([]);
+  const [weeklyStats, setWeeklyStats] = useState<DataPoint[]>([]);
+  const [monthlyRevenue, setMonthlyRevenue] = useState<DataPoint[]>([]);
+  const [subscriptionData, setSubscriptionData] = useState<DataPoint[]>([]);
+  const [recentActivity, setRecentActivity] = useState<any[]>([]);
+  const [moderationItems, setModerationItems] = useState<any[]>([]);
   
   // Fetch dashboard data
   useEffect(() => {
@@ -42,129 +51,30 @@ const AdminDashboard = () => {
   const fetchDashboardData = async () => {
     setIsLoading(true);
     try {
-      // Fetch users count
-      const { count: usersCount, error: usersError } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true });
+      // Fetch dashboard stats
+      const dashboardStats = await fetchDashboardStats();
+      setStats(dashboardStats);
       
-      if (usersError) throw usersError;
-      
-      // Fetch content count (posts)
-      const { count: postsCount, error: postsError } = await supabase
-        .from('posts')
-        .select('*', { count: 'exact', head: true });
-      
-      if (postsError) throw postsError;
-      
-      // For demonstration, we'll create some mock stats based on real user counts
-      // In a real app, you would query more tables for these metrics
-      
-      // Set dashboard stats based on real data
-      setStats({
-        totalUsers: usersCount || 0,
-        activeContent: postsCount || 0,
-        reportedItems: Math.floor(postsCount * 0.05) || 0, // 5% of posts as reported items for demo
-        monthlyRevenue: (usersCount || 0) * 12.5, // $12.5 average revenue per user for demo
-        userGrowth: 12, 
-        contentGrowth: 8,
-        reportGrowth: 15,
-        revenueGrowth: 18,
-      });
-      
-      // Generate weekly stats based on real data
-      const { data: weeklyPosts, error: weeklyError } = await supabase
-        .from('posts')
-        .select('created_at')
-        .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString());
-      
-      if (weeklyError) throw weeklyError;
-      
-      // Get counts by day for the week
-      const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-      const dailyCounts = Array(7).fill(0);
-      const userCounts = Array(7).fill(0).map((_, i) => Math.floor(Math.random() * 200) + 200); // Mock user activity
-      
-      weeklyPosts?.forEach(post => {
-        const day = new Date(post.created_at).getDay();
-        dailyCounts[day]++;
-      });
-      
-      const weekData = days.map((name, index) => ({
-        name,
-        content: dailyCounts[index],
-        users: userCounts[index],
-      }));
-      
-      setWeeklyStats(weekData);
-      
-      // Generate revenue data
-      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug'];
-      const revenueData = months.map(name => {
-        // Mock revenue data based on subscription tiers
-        return {
-          name,
-          bronze: Math.floor(Math.random() * 1500) + 2000,
-          silver: Math.floor(Math.random() * 1000) + 1200,
-          gold: Math.floor(Math.random() * 800) + 800,
-        };
-      });
-      
-      setMonthlyRevenue(revenueData);
+      // Fetch weekly activity data
+      const weeklyData = await fetchWeeklyActivityData();
+      setWeeklyStats(weeklyData);
       
       // Fetch subscription distribution
-      const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('subscription_tier');
+      const subscriptionDistribution = await fetchSubscriptionDistribution();
+      setSubscriptionData(subscriptionDistribution);
       
-      if (profilesError) throw profilesError;
-      
-      // Count subscription tiers
-      const tierCounts = {
-        free: 0,
-        bronze: 0,
-        silver: 0,
-        gold: 0,
-      };
-      
-      profiles?.forEach(profile => {
-        const tier = profile.subscription_tier || 'free';
-        tierCounts[tier] = (tierCounts[tier] || 0) + 1;
-      });
-      
-      const subscriptionChartData = [
-        { name: 'Free', value: tierCounts.free || 0 },
-        { name: 'Bronze', value: tierCounts.bronze || 0 },
-        { name: 'Silver', value: tierCounts.silver || 0 },
-        { name: 'Gold', value: tierCounts.gold || 0 },
-      ];
-      
-      setSubscriptionData(subscriptionChartData);
+      // Fetch revenue data based on selected period
+      const revenueData = await fetchRevenueData(period as '7d' | '30d' | '90d');
+      setMonthlyRevenue(revenueData);
       
       // Fetch recent activity
-      const { data: recentPosts, error: recentError } = await supabase
-        .from('posts')
-        .select(`
-          id,
-          content,
-          created_at,
-          user_id,
-          profiles:user_id (
-            username,
-            full_name,
-            avatar_url
-          )
-        `)
-        .order('created_at', { ascending: false })
-        .limit(5);
-      
-      if (recentError) throw recentError;
-      
-      setRecentActivity(recentPosts || []);
+      const recentActivityData = await fetchRecentActivity(5);
+      setRecentActivity(recentActivityData);
       
       // For moderation items, we'll mock data based on real post content
       // In a production app, you'd have a reports table or similar
-      if (recentPosts) {
-        const mockModerationItems = recentPosts.map((post, i) => ({
+      if (recentActivityData.length > 0) {
+        const mockModerationItems = recentActivityData.map((post, i) => ({
           id: post.id,
           type: i % 2 === 0 ? 'Post' : 'Comment',
           content: post.content,
@@ -174,7 +84,6 @@ const AdminDashboard = () => {
         
         setModerationItems(mockModerationItems);
       }
-      
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
       toast({
@@ -194,6 +103,21 @@ const AdminDashboard = () => {
       description: "The dashboard data has been updated",
     });
   };
+
+  const implementationStatus = () => {
+    const totalFeatures = adminDashboardPlan.features.length;
+    const completedFeatures = adminDashboardPlan.features.filter(f => f.status === 'completed').length;
+    const inProgressFeatures = adminDashboardPlan.features.filter(f => f.status === 'in-progress').length;
+    
+    return {
+      completed: completedFeatures,
+      inProgress: inProgressFeatures,
+      planned: totalFeatures - completedFeatures - inProgressFeatures,
+      total: totalFeatures
+    };
+  };
+
+  const status = implementationStatus();
   
   return (
     <div className="space-y-6">
@@ -206,6 +130,47 @@ const AdminDashboard = () => {
           </Button>
         </div>
       </div>
+
+      {/* Implementation Status Card */}
+      <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+        <CardHeader>
+          <CardTitle>Implementation Status</CardTitle>
+          <CardDescription>
+            Current progress on the admin dashboard implementation plan
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-gray-500">Overall Progress</span>
+              <span className="text-sm font-medium">
+                {status.completed} / {status.total} completed
+              </span>
+            </div>
+            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
+              <div 
+                className="bg-blue-600 h-2.5 rounded-full" 
+                style={{ width: `${(status.completed / status.total) * 100}%` }}
+              ></div>
+            </div>
+            
+            <div className="grid grid-cols-3 gap-4 pt-2">
+              <div className="rounded-lg bg-blue-50 dark:bg-blue-900/20 p-3 text-center">
+                <p className="text-xl font-bold text-blue-600 dark:text-blue-400">{status.inProgress}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">In Progress</p>
+              </div>
+              <div className="rounded-lg bg-amber-50 dark:bg-amber-900/20 p-3 text-center">
+                <p className="text-xl font-bold text-amber-600 dark:text-amber-400">{status.planned}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Planned</p>
+              </div>
+              <div className="rounded-lg bg-green-50 dark:bg-green-900/20 p-3 text-center">
+                <p className="text-xl font-bold text-green-600 dark:text-green-400">{status.completed}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Completed</p>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
       
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>

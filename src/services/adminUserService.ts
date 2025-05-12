@@ -1,88 +1,82 @@
 
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from '@/lib/supabaseClient';
 
 export interface AdminUser {
   id: string;
-  username: string;
-  full_name: string;
   email?: string;
-  role: string;
+  username: string;
+  full_name: string | null;
+  avatar_url: string | null;
+  profile_picture_url?: string | null;
+  subscription_tier: string | null;
   status: string;
+  role: string;
   created_at: string;
-  last_sign_in_at?: string;
-  avatar_url?: string;
-  subscription_tier?: string;
+  last_sign_in_at: string | null;
+  updated_at?: string;
 }
 
+/**
+ * Fetches users for the admin dashboard with pagination and filtering
+ */
 export const fetchUsers = async (
-  page = 0,
-  pageSize = 10,
-  sortBy = 'created_at',
+  page: number = 0,
+  limit: number = 10,
+  sortBy: string = 'created_at',
   sortOrder: 'asc' | 'desc' = 'desc',
-  filter?: string
+  search?: string
 ): Promise<{ users: AdminUser[]; total: number }> => {
   try {
-    console.log('Fetching users with params:', { page, pageSize, sortBy, sortOrder, filter });
-    
     let query = supabase
       .from('profiles')
-      .select('id, username, full_name, role, status, created_at, last_sign_in_at, avatar_url, subscription_tier', { count: 'exact' });
+      .select('*', { count: 'exact' });
 
-    // Add search/filter functionality if filter provided
-    if (filter) {
-      query = query.or(`username.ilike.%${filter}%,full_name.ilike.%${filter}%`);
+    // Add search filter if provided
+    if (search) {
+      query = query.or(`username.ilike.%${search}%,full_name.ilike.%${search}%`);
     }
 
     // Add sorting
     query = query.order(sortBy, { ascending: sortOrder === 'asc' });
 
     // Add pagination
-    const from = page * pageSize;
-    const to = from + pageSize - 1;
-    query = query.range(from, to);
+    query = query.range(page * limit, (page + 1) * limit - 1);
 
-    const { data, count, error } = await query;
+    const { data, error, count } = await query;
 
     if (error) {
       console.error('Error fetching users:', error);
-      throw error;
+      throw new Error('Failed to fetch users');
     }
+
+    // Convert to admin user format
+    const adminUsers: AdminUser[] = data.map((profile) => ({
+      id: profile.id,
+      username: profile.username || '',
+      full_name: profile.full_name,
+      avatar_url: profile.avatar_url,
+      profile_picture_url: profile.profile_picture_url,
+      subscription_tier: profile.subscription_tier || 'free',
+      status: profile.status || 'active',
+      role: profile.role || 'user',
+      created_at: profile.created_at,
+      last_sign_in_at: profile.last_sign_in_at,
+      updated_at: profile.updated_at,
+    }));
 
     return {
-      users: data as AdminUser[],
-      total: count || 0
+      users: adminUsers,
+      total: count || 0,
     };
   } catch (error) {
-    console.error('Unexpected error fetching users:', error);
-    return { users: [], total: 0 };
+    console.error('Error in fetchUsers:', error);
+    throw error;
   }
 };
 
-export const getUserDetails = async (userId: string): Promise<AdminUser | null> => {
-  try {
-    // Instead of RPC, directly query the profiles table since we don't have the admin_get_user_details function
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('id, username, full_name, role, status, created_at, last_sign_in_at, avatar_url, subscription_tier')
-      .eq('id', userId)
-      .single();
-
-    if (error) {
-      console.error('Error fetching user details:', error);
-      throw error;
-    }
-
-    if (!data) {
-      return null;
-    }
-
-    return data as AdminUser;
-  } catch (error) {
-    console.error('Unexpected error fetching user details:', error);
-    return null;
-  }
-};
-
+/**
+ * Updates a user's status in the system
+ */
 export const updateUserStatus = async (userId: string, status: string): Promise<boolean> => {
   try {
     const { error } = await supabase
@@ -97,11 +91,14 @@ export const updateUserStatus = async (userId: string, status: string): Promise<
 
     return true;
   } catch (error) {
-    console.error('Unexpected error updating user status:', error);
+    console.error('Error in updateUserStatus:', error);
     return false;
   }
 };
 
+/**
+ * Updates a user's role in the system
+ */
 export const updateUserRole = async (userId: string, role: string): Promise<boolean> => {
   try {
     const { error } = await supabase
@@ -116,26 +113,109 @@ export const updateUserRole = async (userId: string, role: string): Promise<bool
 
     return true;
   } catch (error) {
-    console.error('Unexpected error updating user role:', error);
+    console.error('Error in updateUserRole:', error);
     return false;
   }
 };
 
-export const updateUserSubscription = async (userId: string, tier: string): Promise<boolean> => {
+/**
+ * Fetches detailed user information for admin
+ */
+export const fetchUserDetails = async (userId: string): Promise<AdminUser | null> => {
   try {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('profiles')
-      .update({ subscription_tier: tier })
-      .eq('id', userId);
+      .select('*')
+      .eq('id', userId)
+      .single();
 
     if (error) {
-      console.error('Error updating user subscription tier:', error);
-      return false;
+      console.error('Error fetching user details:', error);
+      return null;
     }
 
-    return true;
+    return {
+      id: data.id,
+      username: data.username || '',
+      full_name: data.full_name,
+      avatar_url: data.avatar_url,
+      profile_picture_url: data.profile_picture_url,
+      subscription_tier: data.subscription_tier || 'free',
+      status: data.status || 'active',
+      role: data.role || 'user',
+      created_at: data.created_at,
+      last_sign_in_at: data.last_sign_in_at,
+      updated_at: data.updated_at,
+    };
   } catch (error) {
-    console.error('Unexpected error updating user subscription tier:', error);
-    return false;
+    console.error('Error in fetchUserDetails:', error);
+    return null;
+  }
+};
+
+/**
+ * Fetches user activity stats
+ */
+export const fetchUserActivityStats = async (userId: string): Promise<{
+  posts: number;
+  comments: number;
+  media: number;
+  lastActive: string | null;
+}> => {
+  try {
+    // Get posts count
+    const { count: postsCount, error: postsError } = await supabase
+      .from('posts')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId);
+
+    if (postsError) {
+      console.error('Error fetching posts count:', postsError);
+      throw postsError;
+    }
+
+    // Get comments count
+    const { count: commentsCount, error: commentsError } = await supabase
+      .from('comments')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId);
+
+    if (commentsError) {
+      console.error('Error fetching comments count:', commentsError);
+      throw commentsError;
+    }
+
+    // Get media count
+    const { count: mediaCount, error: mediaError } = await supabase
+      .from('media')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId);
+
+    if (mediaError) {
+      console.error('Error fetching media count:', mediaError);
+      throw mediaError;
+    }
+
+    // Get last activity date
+    const { data: lastActivityData, error: lastActivityError } = await supabase
+      .from('profiles')
+      .select('last_sign_in_at')
+      .eq('id', userId)
+      .single();
+
+    if (lastActivityError) {
+      console.error('Error fetching last activity:', lastActivityError);
+      throw lastActivityError;
+    }
+
+    return {
+      posts: postsCount || 0,
+      comments: commentsCount || 0,
+      media: mediaCount || 0,
+      lastActive: lastActivityData?.last_sign_in_at || null,
+    };
+  } catch (error) {
+    console.error('Error in fetchUserActivityStats:', error);
+    throw error;
   }
 };

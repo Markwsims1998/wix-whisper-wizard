@@ -447,23 +447,8 @@ const Post = () => {
                         alt={post.content || "Photo"}
                         className={`w-full h-auto object-contain max-h-[600px] ${!userCanViewThisContent ? 'blur-sm filter saturate-50' : ''}`}
                       />
-                      {isWatermarked && (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center">
-                          <Lock className="h-12 w-12 text-white/70 mb-2" />
-                          <p className="text-white/80 mb-4 text-center">Full quality photo requires a subscription</p>
-                          <Button 
-                            size="sm" 
-                            variant="outline" 
-                            className="bg-white/20 hover:bg-white/30 text-white border-white/20"
-                            onClick={() => navigate('/shop')}
-                          >
-                            View Plans
-                          </Button>
-                        </div>
-                      )}
-                      {isWatermarked && (
-                        <Watermark />
-                      )}
+                      {/* Watermark is always applied regardless of subscription */}
+                      <Watermark />
                     </div>
                   ) : media.media_type.startsWith('video/') || media.media_type === 'video' ? (
                     <div className="aspect-video w-full relative">
@@ -497,9 +482,8 @@ const Post = () => {
                           </div>
                         </>
                       )}
-                      {(!subscriptionDetails.canViewVideos || media.file_url?.includes('watermark=true')) && (
-                        <Watermark />
-                      )}
+                      {/* Always show watermark on videos */}
+                      <Watermark />
                     </div>
                   ) : media.media_type === 'gif' ? (
                     <img

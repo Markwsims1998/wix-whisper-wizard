@@ -127,7 +127,7 @@ export const getSubscriptionAwareImageUrl = async (
   isSubscribed: boolean
 ): Promise<string> => {
   try {
-    // Extract the path from the URL to find the watermarked version
+    // Always return watermarked URL for consistent branding
     const urlObj = new URL(originalUrl);
     const path = urlObj.pathname;
     

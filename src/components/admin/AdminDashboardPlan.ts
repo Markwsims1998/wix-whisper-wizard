@@ -22,7 +22,7 @@ export const adminDashboardPlan: AdminDashboardPlan = {
   features: [
     {
       name: 'User Management',
-      status: 'planned',
+      status: 'in-progress',
       description: 'Enhanced user management with filtering, searching, and detailed user profiles',
       tasks: [
         'Implement user search functionality',
@@ -34,7 +34,7 @@ export const adminDashboardPlan: AdminDashboardPlan = {
     },
     {
       name: 'Content Management',
-      status: 'planned',
+      status: 'in-progress',
       description: 'Advanced content moderation tools for photos, videos, and posts',
       tasks: [
         'Create content filtering by type, upload date, and flags',
@@ -46,7 +46,7 @@ export const adminDashboardPlan: AdminDashboardPlan = {
     },
     {
       name: 'Analytics Dashboard',
-      status: 'planned',
+      status: 'in-progress',
       description: 'Real-time analytics dashboard with comprehensive site statistics',
       tasks: [
         'Connect charts to real Supabase data',

@@ -21,6 +21,7 @@ import Basket from "./pages/Basket";
 import Notifications from "./pages/Notifications";
 import Feedback from "./pages/Feedback";
 import Winks from "./pages/Winks";
+import Friends from "./pages/Friends"; // Add this line
 import { useAuth } from "@/contexts/auth/AuthProvider";
 import Footer from "./components/Footer";
 import { useEffect } from "react";
@@ -87,6 +88,8 @@ function App() {
             <Route path="/basket" element={isAuthenticated ? <Basket /> : <Navigate to="/login" replace />} />
             <Route path="/notifications" element={isAuthenticated ? <Notifications /> : <Navigate to="/login" replace />} />
             <Route path="/winks" element={isAuthenticated ? <Winks /> : <Navigate to="/login" replace />} />
+            <Route path="/friends" element={isAuthenticated ? <Friends /> : <Navigate to="/login" replace />} />
+            <Route path="/friends/:userId" element={isAuthenticated ? <Friends /> : <Navigate to="/login" replace />} />
             
             {/* Public routes */}
             <Route path="/login" element={isAuthenticated ? <Navigate to="/" replace /> : <Login />} />

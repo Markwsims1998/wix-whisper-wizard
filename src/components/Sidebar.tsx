@@ -143,7 +143,7 @@ const Sidebar = () => {
   return (
     <>
       {/* Desktop Sidebar */}
-      <div className={`bg-[#2B2A33] min-h-screen ${collapsed ? 'w-[70px]' : 'w-[280px]'} flex flex-col fixed left-0 top-0 transition-all duration-300 ease-in-out dark:bg-gray-900 z-50 hidden md:flex`}>
+      <div className={`bg-[#2B2A33] min-h-screen ${collapsed ? 'w-[70px]' : 'w-[280px]'} flex flex-col fixed left-0 top-0 transition-all duration-300 ease-in-out dark:bg-gray-900 z-50 hidden md:flex sidebar`}>
         <button 
           onClick={() => setCollapsed(!collapsed)}
           className="absolute -right-4 top-24 bg-[#2B2A33] text-gray-400 p-1 rounded-full z-20 dark:bg-gray-900"
@@ -175,6 +175,7 @@ const Sidebar = () => {
             <NavItem icon={<Image className="w-5 h-5" />} label="Photos" isActive={currentPath === "/photos"} to="/photos" collapsed={collapsed} />
             <NavItem icon={<Play className="w-5 h-5" />} label="Videos" isActive={currentPath === "/videos"} to="/videos" collapsed={collapsed} />
             <NavItem icon={<Users className="w-5 h-5" />} label="People" isActive={currentPath === "/people"} to="/people" collapsed={collapsed} />
+            <NavItem icon={<Users className="w-5 h-5" />} label="Friends" isActive={currentPath === "/friends"} to="/friends" collapsed={collapsed} />
             <NavItem 
               icon={<Heart className="w-5 h-5" />} 
               label="Winks" 
@@ -274,6 +275,7 @@ const Sidebar = () => {
                   { icon: <Image className="w-6 h-6" />, label: "Photos", path: "/photos" },
                   { icon: <Play className="w-6 h-6" />, label: "Videos", path: "/videos" },
                   { icon: <Users className="w-6 h-6" />, label: "People", path: "/people" },
+                  { icon: <Users className="w-6 h-6" />, label: "Friends", path: "/friends" },
                   { 
                     icon: <Heart className="w-6 h-6" />, 
                     label: "Winks", 

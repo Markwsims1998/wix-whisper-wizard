@@ -2,12 +2,12 @@
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { AdminUser } from "@/services/adminUserService";
+import { UserData } from "@/services/adminUserService";
 import { UsersTable } from "./UsersTable";
 import { User, Mail, Calendar, Shield, CreditCard } from "lucide-react";
 
 const AdminUsers = () => {
-  const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
+  const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
   const [activeTab, setActiveTab] = useState("all");
 
   return (

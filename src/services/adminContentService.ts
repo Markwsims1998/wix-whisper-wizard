@@ -12,9 +12,9 @@ export interface ContentItem {
   user_id: string;
   user?: {
     username: string;
-    full_name?: string;
-    avatar_url?: string;
-  };
+    full_name?: string | null;
+    avatar_url?: string | null;
+  } | null;
   status?: 'approved' | 'pending' | 'rejected' | 'flagged';
   post_id?: string;
   flags_count?: number;
@@ -68,7 +68,7 @@ export const fetchContent = async (
           content, 
           created_at, 
           user_id,
-          user:profiles!user_id(username, full_name, avatar_url)
+          profiles:user_id(username, full_name, avatar_url)
         `, { count: 'exact' });
       
       if (dateFilter) {
@@ -86,15 +86,21 @@ export const fetchContent = async (
       if (error) {
         console.error('Error fetching posts:', error);
       } else if (posts) {
-        contentItems = posts.map(post => ({
+        const postItems: ContentItem[] = posts.map(post => ({
           id: post.id,
           type: 'post',
           content: post.content,
           created_at: post.created_at,
           user_id: post.user_id,
-          user: post.user,
+          user: post.profiles ? {
+            username: post.profiles.username,
+            full_name: post.profiles.full_name,
+            avatar_url: post.profiles.avatar_url
+          } : null,
           status: 'approved' // Default status
         }));
+        
+        contentItems = postItems;
         totalItems = postsCount || 0;
       }
     }
@@ -114,7 +120,7 @@ export const fetchContent = async (
           created_at, 
           user_id,
           post_id,
-          user:profiles!user_id(username, full_name, avatar_url)
+          profiles:user_id(username, full_name, avatar_url)
         `, { count: 'exact' });
       
       if (mediaType) {
@@ -136,7 +142,7 @@ export const fetchContent = async (
       if (error) {
         console.error('Error fetching media:', error);
       } else if (media) {
-        const mediaItems = media.map(item => ({
+        const mediaItems: ContentItem[] = media.map(item => ({
           id: item.id,
           type: item.content_type as 'photo' | 'video',
           title: item.title || undefined,
@@ -144,7 +150,11 @@ export const fetchContent = async (
           thumbnail_url: item.thumbnail_url || undefined,
           created_at: item.created_at,
           user_id: item.user_id,
-          user: item.user,
+          user: item.profiles ? {
+            username: item.profiles.username,
+            full_name: item.profiles.full_name,
+            avatar_url: item.profiles.avatar_url
+          } : null,
           post_id: item.post_id || undefined,
           status: 'approved' // Default status
         }));
@@ -164,7 +174,7 @@ export const fetchContent = async (
           created_at, 
           user_id,
           post_id,
-          user:profiles!user_id(username, full_name, avatar_url)
+          profiles:user_id(username, full_name, avatar_url)
         `, { count: 'exact' });
       
       if (dateFilter) {
@@ -182,13 +192,17 @@ export const fetchContent = async (
       if (error) {
         console.error('Error fetching comments:', error);
       } else if (comments) {
-        const commentItems = comments.map(comment => ({
+        const commentItems: ContentItem[] = comments.map(comment => ({
           id: comment.id,
           type: 'comment',
           content: comment.content,
           created_at: comment.created_at,
           user_id: comment.user_id,
-          user: comment.user,
+          user: comment.profiles ? {
+            username: comment.profiles.username,
+            full_name: comment.profiles.full_name,
+            avatar_url: comment.profiles.avatar_url
+          } : null,
           post_id: comment.post_id,
           status: 'approved' // Default status
         }));

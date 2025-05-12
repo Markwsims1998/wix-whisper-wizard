@@ -1,6 +1,7 @@
 
 import { supabase } from '@/lib/supabaseClient';
 
+// Type definition for user data
 export interface UserData {
   id: string;
   username: string;
@@ -14,6 +15,9 @@ export interface UserData {
   avatar_url?: string | null;
   last_sign_in_at?: string | null;
 }
+
+// Re-export user type for admin components
+export type AdminUser = UserData;
 
 export interface UserStats {
   total: number;
@@ -41,7 +45,7 @@ export const fetchUsers = async (
   try {
     let query = supabase
       .from('profiles')
-      .select('*, auth_users:auth.users!inner(email, created_at)', { count: 'exact' });
+      .select('*', { count: 'exact' });
 
     // Apply filters
     if (filters.searchQuery) {
@@ -78,7 +82,7 @@ export const fetchUsers = async (
       id: profile.id,
       username: profile.username,
       full_name: profile.full_name,
-      email: profile.auth_users?.email || null,
+      email: null, // Email not directly accessible from profiles
       created_at: profile.created_at,
       subscription_tier: profile.subscription_tier || 'free',
       status: profile.status || 'active',
@@ -105,7 +109,7 @@ export const getUserById = async (userId: string): Promise<UserData | null> => {
   try {
     const { data, error } = await supabase
       .from('profiles')
-      .select('*, auth_users:auth.users!inner(email, created_at)')
+      .select('*')
       .eq('id', userId)
       .single();
     
@@ -118,7 +122,7 @@ export const getUserById = async (userId: string): Promise<UserData | null> => {
       id: data.id,
       username: data.username,
       full_name: data.full_name,
-      email: data.auth_users?.email || null,
+      email: null, // Email not directly accessible from profiles
       created_at: data.created_at,
       subscription_tier: data.subscription_tier || 'free',
       status: data.status || 'active',
@@ -162,6 +166,26 @@ export const updateUser = async (
     console.error('Error in updateUser:', error);
     return false;
   }
+};
+
+/**
+ * Update a user's status
+ */
+export const updateUserStatus = async (
+  userId: string, 
+  status: string
+): Promise<boolean> => {
+  return updateUser(userId, { status });
+};
+
+/**
+ * Update a user's role
+ */
+export const updateUserRole = async (
+  userId: string, 
+  role: string
+): Promise<boolean> => {
+  return updateUser(userId, { role });
 };
 
 /**

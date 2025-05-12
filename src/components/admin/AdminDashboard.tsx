@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -8,13 +9,13 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
 import {
+  DataPoint,
+  DashboardStats,
   fetchDashboardStats,
   fetchWeeklyActivityData,
-  fetchSubscriptionDistribution,
+  getSubscriptionDistribution,
   fetchRevenueData,
-  fetchRecentActivity,
-  DashboardStats,
-  DataPoint
+  fetchRecentActivity
 } from "@/services/adminAnalyticsService";
 import { adminDashboardPlan } from "./AdminDashboardPlan";
 

@@ -1,9 +1,32 @@
-
 import { supabase } from '@/lib/supabaseClient';
 
 export interface ChartData {
   name: string;
   value: number;
+}
+
+export interface DataPoint {
+  name: string;
+  users?: number;
+  content?: number;
+  posts?: number;
+  photos?: number;
+  videos?: number;
+  comments?: number;
+  bronze?: number;
+  silver?: number;
+  gold?: number;
+}
+
+export interface DashboardStats {
+  totalUsers: number;
+  activeContent: number;
+  reportedItems: number;
+  monthlyRevenue: number;
+  userGrowth: number;
+  contentGrowth: number;
+  reportGrowth: number;
+  revenueGrowth: number;
 }
 
 export interface TimeSeriesData {
@@ -26,6 +49,171 @@ export interface ContentStats {
     commentRate: number;
   };
 }
+
+/**
+ * Fetch dashboard stats for the admin overview
+ */
+export const fetchDashboardStats = async (): Promise<DashboardStats> => {
+  try {
+    // Get user stats
+    const userStats = await getUserStats();
+    
+    // Get content stats
+    const contentStats = await getContentStats();
+    
+    // Calculate fake revenue (in production this would come from a real payment system)
+    const premiumCount = userStats.premium;
+    const estimatedMonthlyRevenue = (premiumCount * 9.99).toFixed(2);
+    
+    // Calculate growth percentages (mocked for now)
+    const userGrowth = Math.round(Math.random() * 30) - 5; // -5% to 25%
+    const contentGrowth = Math.round(Math.random() * 40); // 0% to 40%
+    const reportGrowth = Math.round(Math.random() * 10) - 20; // -20% to -10%
+    const revenueGrowth = Math.round(Math.random() * 35) - 5; // -5% to 30%
+    
+    return {
+      totalUsers: userStats.total,
+      activeContent: contentStats.totalPosts + contentStats.totalPhotos + contentStats.totalVideos,
+      reportedItems: Math.round(Math.random() * 50), // Mock data for reported items
+      monthlyRevenue: parseFloat(estimatedMonthlyRevenue),
+      userGrowth,
+      contentGrowth,
+      reportGrowth,
+      revenueGrowth
+    };
+  } catch (error) {
+    console.error("Error fetching dashboard stats:", error);
+    return {
+      totalUsers: 0,
+      activeContent: 0,
+      reportedItems: 0,
+      monthlyRevenue: 0,
+      userGrowth: 0,
+      contentGrowth: 0,
+      reportGrowth: 0,
+      revenueGrowth: 0
+    };
+  }
+};
+
+/**
+ * Get weekly activity data for charts
+ */
+export const fetchWeeklyActivityData = async (): Promise<DataPoint[]> => {
+  try {
+    // Get user activity data
+    const userActivityData = await getUserGrowthData('week');
+    
+    // Convert to the format expected by the charts
+    const weeklyData: DataPoint[] = userActivityData.map(day => ({
+      name: new Date(day.date).toLocaleDateString(undefined, { weekday: 'short' }),
+      users: day.users || 0,
+      content: Math.round(Math.random() * 20) // Mock content creation data
+    }));
+    
+    return weeklyData;
+  } catch (error) {
+    console.error("Error fetching weekly activity data:", error);
+    // Return mock data if there's an error
+    return [
+      { name: "Mon", users: 5, content: 12 },
+      { name: "Tue", users: 7, content: 10 },
+      { name: "Wed", users: 10, content: 15 },
+      { name: "Thu", users: 8, content: 13 },
+      { name: "Fri", users: 12, content: 18 },
+      { name: "Sat", users: 15, content: 20 },
+      { name: "Sun", users: 11, content: 16 }
+    ];
+  }
+};
+
+/**
+ * Get revenue data by date range
+ */
+export const fetchRevenueData = async (period: '7d' | '30d' | '90d'): Promise<DataPoint[]> => {
+  try {
+    // Determine how many data points to generate based on the selected period
+    let dataPoints: number;
+    let dateFormat: Intl.DateTimeFormatOptions;
+    
+    switch (period) {
+      case '7d':
+        dataPoints = 7;
+        dateFormat = { weekday: 'short' };
+        break;
+      case '30d':
+        dataPoints = 30;
+        dateFormat = { month: 'short', day: 'numeric' };
+        break;
+      case '90d':
+        dataPoints = 12; // Use weeks for 90d view
+        dateFormat = { month: 'short', day: 'numeric' };
+        break;
+      default:
+        dataPoints = 7;
+        dateFormat = { weekday: 'short' };
+    }
+    
+    // Generate mock revenue data
+    const revenueData: DataPoint[] = [];
+    
+    for (let i = 0; i < dataPoints; i++) {
+      const date = new Date();
+      
+      if (period === '7d') {
+        date.setDate(date.getDate() - (dataPoints - 1 - i));
+      } else if (period === '30d') {
+        date.setDate(date.getDate() - (dataPoints - 1 - i));
+      } else {
+        // For 90d, use weekly intervals
+        date.setDate(date.getDate() - (dataPoints - 1 - i) * 7);
+      }
+      
+      // Generate random revenue data for each tier
+      revenueData.push({
+        name: date.toLocaleDateString(undefined, dateFormat),
+        bronze: Math.round(Math.random() * 300) + 100,
+        silver: Math.round(Math.random() * 500) + 200,
+        gold: Math.round(Math.random() * 700) + 300
+      });
+    }
+    
+    return revenueData;
+  } catch (error) {
+    console.error("Error fetching revenue data:", error);
+    return [];
+  }
+};
+
+/**
+ * Get recent activities for the dashboard
+ */
+export const fetchRecentActivity = async (limit: number = 5): Promise<any[]> => {
+  try {
+    // Fetch recent posts as activity
+    const { data: posts, error: postsError } = await supabase
+      .from('posts')
+      .select(`
+        id,
+        content,
+        created_at,
+        user_id,
+        profiles:user_id (username, full_name, avatar_url)
+      `)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+      
+    if (postsError) {
+      console.error("Error fetching recent posts:", postsError);
+      return [];
+    }
+    
+    return posts || [];
+  } catch (error) {
+    console.error("Error fetching recent activity:", error);
+    return [];
+  }
+};
 
 /**
  * Get user growth over time

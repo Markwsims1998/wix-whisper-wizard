@@ -5,6 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { Video } from "@/services/videoService";
 import { Link } from "react-router-dom";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabaseClient";
 
 interface VideoCardProps {
   video: Video;
@@ -13,10 +15,12 @@ interface VideoCardProps {
 }
 
 const VideoCard = ({ video, canViewVideos, onVideoClick }: VideoCardProps) => {
+  const [likesCount, setLikesCount] = useState<number>(video.likes_count || 0);
+  
   // Helper function to get the best avatar URL
   const getAvatarUrl = () => {
     if (!video.user) return null;
-    return video.user.avatar_url;
+    return video.user.avatar_url || null;
   };
   
   // Get first letter of user name for avatar fallback
@@ -24,6 +28,44 @@ const VideoCard = ({ video, canViewVideos, onVideoClick }: VideoCardProps) => {
     if (!video.user) return "?";
     return (video.user.full_name || video.user.username || "?").charAt(0).toUpperCase();
   };
+
+  // Listen for likes changes if we have a post_id
+  useEffect(() => {
+    if (!video.postId) return;
+    
+    // Get initial likes count
+    const fetchLikesCount = async () => {
+      try {
+        const { count } = await supabase
+          .from('likes')
+          .select('id', { count: 'exact' })
+          .eq('post_id', video.postId);
+        
+        if (count !== null) {
+          setLikesCount(count);
+        }
+      } catch (error) {
+        console.error("Error fetching likes count:", error);
+      }
+    };
+    
+    fetchLikesCount();
+    
+    // Subscribe to likes changes
+    const channel = supabase
+      .channel('public:likes:post_id=eq.' + video.postId)
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'likes', filter: `post_id=eq.${video.postId}` }, 
+        payload => {
+          // Re-fetch count on any change
+          fetchLikesCount();
+        })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [video.postId]);
 
   if (!canViewVideos) {
     // For users without access, keep click handler for subscription prompt
@@ -82,7 +124,7 @@ const VideoCard = ({ video, canViewVideos, onVideoClick }: VideoCardProps) => {
           </div>
           <div className="flex items-center mt-3">
             <div className="flex items-center text-gray-500 dark:text-gray-300 text-sm bg-gray-100 dark:bg-gray-600 px-3 py-1 rounded-full">
-              <Heart className="h-4 w-4 mr-1 text-red-400" /> {video.likes_count || 0}
+              <Heart className="h-4 w-4 mr-1 text-red-400" /> {likesCount}
             </div>
           </div>
         </div>
@@ -138,7 +180,7 @@ const VideoCard = ({ video, canViewVideos, onVideoClick }: VideoCardProps) => {
         </div>
         <div className="flex items-center mt-3">
           <div className="flex items-center text-gray-500 dark:text-gray-300 text-sm bg-gray-100 dark:bg-gray-600 px-3 py-1 rounded-full">
-            <Heart className="h-4 w-4 mr-1 text-red-400" /> {video.likes_count || 0}
+            <Heart className="h-4 w-4 mr-1 text-red-400" /> {likesCount}
           </div>
         </div>
       </div>

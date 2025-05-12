@@ -12,6 +12,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { fetchPhotos, Photo } from "@/services/photoService";
 import { Link } from "react-router-dom";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { supabase } from "@/lib/supabaseClient";
 
 const Photos = () => {
   const { subscriptionDetails } = useSubscription();
@@ -20,6 +22,7 @@ const Photos = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [photos, setPhotos] = useState<Photo[]>([]);
   const { toast } = useToast();
+  const [photoLikes, setPhotoLikes] = useState<Record<string, number>>({});
 
   // Categories for filtering
   const categories = [
@@ -66,7 +69,31 @@ const Photos = () => {
         setIsLoading(true);
         const photosData = await fetchPhotos(selectedCategory);
         setPhotos(photosData);
+        
+        // Set up like count tracking for each photo
+        const likesRecord: Record<string, number> = {};
+        
+        // Get initial likes counts for all photos with post_id
+        await Promise.all(photosData.map(async (photo) => {
+          if (!photo.postId) return;
+          
+          try {
+            const { count } = await supabase
+              .from('likes')
+              .select('id', { count: 'exact' })
+              .eq('post_id', photo.postId);
+              
+            if (count !== null) {
+              likesRecord[photo.id] = count;
+            }
+          } catch (error) {
+            console.error(`Error fetching likes for photo ${photo.id}:`, error);
+          }
+        }));
+        
+        setPhotoLikes(likesRecord);
         setIsLoading(false);
+        
       } catch (error) {
         console.error("Failed to load photos:", error);
         toast({
@@ -81,6 +108,49 @@ const Photos = () => {
     loadPhotos();
   }, [selectedCategory, toast]);
 
+  // Set up real-time subscriptions for like updates
+  useEffect(() => {
+    // No photos to track yet
+    if (photos.length === 0) return;
+    
+    // Create a channel for each photo with a post_id
+    const channels = photos
+      .filter(photo => photo.postId)
+      .map(photo => {
+        // Set up subscription for likes changes
+        return supabase
+          .channel(`public:likes:photo_${photo.id}`)
+          .on('postgres_changes', 
+            { event: '*', schema: 'public', table: 'likes', filter: `post_id=eq.${photo.postId}` }, 
+            async () => {
+              // Re-fetch the likes count
+              try {
+                const { count } = await supabase
+                  .from('likes')
+                  .select('id', { count: 'exact' })
+                  .eq('post_id', photo.postId);
+                  
+                if (count !== null) {
+                  setPhotoLikes(prev => ({
+                    ...prev,
+                    [photo.id]: count
+                  }));
+                }
+              } catch (error) {
+                console.error(`Error updating likes for photo ${photo.id}:`, error);
+              }
+            })
+          .subscribe();
+      });
+      
+    // Cleanup subscriptions
+    return () => {
+      channels.forEach(channel => {
+        supabase.removeChannel(channel);
+      });
+    };
+  }, [photos]);
+
   const handleOpenUploader = () => {
     setUploaderOpen(true);
   };
@@ -93,6 +163,16 @@ const Photos = () => {
     });
     // Refresh photos list after successful upload
     fetchPhotos(selectedCategory).then(data => setPhotos(data));
+  };
+
+  const getAvatarUrl = (photo: Photo) => {
+    if (!photo.user) return null;
+    return photo.user.avatar_url;
+  };
+  
+  const getInitial = (photo: Photo) => {
+    if (!photo.user) return "?";
+    return (photo.user.full_name || photo.user.username || "?").charAt(0).toUpperCase();
   };
 
   return (
@@ -173,25 +253,27 @@ const Photos = () => {
                     </div>
                     <div className="p-3 dark:text-gray-100">
                       <div className="flex items-center gap-2">
-                        <div className="h-10 w-10 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center overflow-hidden">
-                          {photo.user?.avatar_url ? (
-                            <img 
-                              src={photo.user.avatar_url} 
-                              alt={photo.user.username} 
-                              className="h-full w-full object-cover" 
+                        <Avatar className="h-10 w-10 bg-gray-200 dark:bg-gray-600">
+                          {getAvatarUrl(photo) ? (
+                            <AvatarImage 
+                              src={getAvatarUrl(photo) || ''} 
+                              alt={photo.user?.full_name || photo.author} 
+                              className="h-full w-full object-cover"
                             />
                           ) : (
-                            <User className="h-4 w-4 text-gray-500 dark:text-gray-300" />
+                            <AvatarFallback className="text-gray-500 dark:text-gray-300">
+                              {getInitial(photo)}
+                            </AvatarFallback>
                           )}
-                        </div>
+                        </Avatar>
                         <div className="flex-1">
                           <h3 className="font-medium text-sm line-clamp-1">{photo.title || 'Untitled'}</h3>
-                          <p className="text-xs text-gray-500 dark:text-gray-300">{photo.author}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-300">{photo.user?.full_name || photo.author}</p>
                         </div>
                       </div>
                       <div className="flex items-center justify-end mt-2">
                         <div className="flex items-center text-gray-500 dark:text-gray-300 text-xs bg-gray-100 dark:bg-gray-600 px-2 py-1 rounded-full">
-                          <Heart className="h-3 w-3 mr-1 text-red-400" /> {photo.likes}
+                          <Heart className="h-3 w-3 mr-1 text-red-400" /> {photoLikes[photo.id] || 0}
                         </div>
                       </div>
                     </div>

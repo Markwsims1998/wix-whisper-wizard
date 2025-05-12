@@ -72,10 +72,12 @@ const FriendCard = ({ friend, isCurrentUser }: FriendCardProps) => {
           <Link to={`/profile?id=${friend.id}`}>
             <Avatar className="h-12 w-12">
               {friend.avatar_url ? (
-                <AvatarImage src={friend.avatar_url} alt={friend.full_name} />
+                <AvatarImage src={friend.avatar_url} alt={friend.full_name || friend.username || 'User'} />
               ) : (
                 <AvatarFallback className="bg-purple-100 text-purple-600 dark:bg-purple-900 dark:text-purple-300">
-                  {friend.full_name && friend.full_name[0]?.toUpperCase() || <User size={20} />}
+                  {(friend.full_name && friend.full_name[0]?.toUpperCase()) || 
+                   (friend.username && friend.username[0]?.toUpperCase()) || 
+                   <User size={20} />}
                 </AvatarFallback>
               )}
               <div className={`absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white ${friend.status === 'online' ? 'bg-green-500' : 'bg-gray-400'}`} />
@@ -83,7 +85,7 @@ const FriendCard = ({ friend, isCurrentUser }: FriendCardProps) => {
           </Link>
           <div>
             <Link to={`/profile?id=${friend.id}`} className="font-medium hover:underline">
-              {friend.full_name || 'User'}
+              {friend.full_name || friend.username || 'User'}
             </Link>
             <p className="text-xs text-gray-500 dark:text-gray-400">{friend.username ? `@${friend.username}` : ''}</p>
             <p className="text-xs text-gray-500 dark:text-gray-400">{getLastActiveText()}</p>

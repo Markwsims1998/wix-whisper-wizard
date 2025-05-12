@@ -89,7 +89,7 @@ const ProfileFriends = ({ userId, limit = 6 }: ProfileFriendsProps) => {
               >
                 <Avatar className="w-16 h-16 border-2 border-transparent group-hover:border-purple-400 transition-all">
                   {friend.avatar_url ? (
-                    <AvatarImage src={friend.avatar_url} alt={friend.full_name} />
+                    <AvatarImage src={friend.avatar_url} alt={friend.full_name || friend.username || 'User'} />
                   ) : (
                     <AvatarFallback className="bg-purple-100 text-purple-600 dark:bg-purple-900 dark:text-purple-300">
                       {friend.full_name?.[0] || friend.username?.[0] || <User size={20} />}

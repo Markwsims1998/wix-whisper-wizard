@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
@@ -172,7 +173,7 @@ const Profile = () => {
               </CardContent>
             </Card>
             
-            {/* Friends Section - NEW */}
+            {/* Friends Section */}
             {profileId && (
               <div className="mt-6">
                 <ProfileFriends userId={profileId} />

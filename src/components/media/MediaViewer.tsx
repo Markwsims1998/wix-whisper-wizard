@@ -231,7 +231,7 @@ const MediaViewer = ({ type, media, onClose, onLike, onPrev, onNext, postId }: M
               </div>
               <div>
                 <Link 
-                  to={authorUsername ? `/profile?name=${authorUsername}` : '#'}
+                  to={authorUsername ? `/profile?id=${media.user?.id}` : '#'}
                   className="text-white font-medium hover:underline"
                   onClick={(e) => e.stopPropagation()}
                 >

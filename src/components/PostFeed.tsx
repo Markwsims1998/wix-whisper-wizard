@@ -1,5 +1,5 @@
 import { Separator } from "@/components/ui/separator";
-import { User, Heart, MessageCircle, Lock, Gift } from "lucide-react";
+import { User, Heart, MessageCircle, Lock, Gift, Play } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
@@ -23,6 +23,12 @@ const PostFeed = () => {
   const { toast } = useToast();
   const { user } = useAuth();
 
+  // Load posts immediately when component mounts and whenever tab changes
+  useEffect(() => {
+    console.log("PostFeed: Loading posts with tab:", activeTab);
+    loadPosts();
+  }, [activeTab]);
+
   const loadPosts = async () => {
     if (!user) {
       console.log('No user available for loadPosts');
@@ -38,6 +44,7 @@ const PostFeed = () => {
     try {
       // Simplified to use getPosts for now
       const fetchedPosts = await getPosts();
+      console.log("Fetched posts:", fetchedPosts?.length || 0);
       
       // Client-side filtering based on tab
       let filteredPosts = [...fetchedPosts];
@@ -88,6 +95,7 @@ const PostFeed = () => {
         }
       }
       
+      console.log("Final processed posts:", filteredPosts.length);
       setPosts(filteredPosts);
     } catch (err) {
       console.error('Error loading posts:', err);
@@ -139,10 +147,12 @@ const PostFeed = () => {
     if (canView) {
       setSelectedMedia({
         type: mediaType,
-        url: media.file_url,
+        ...media,
         title: post.content,
         author: post.author?.full_name || 'Unknown',
-        likes: post.likes_count
+        likes: post.likes_count,
+        user: post.author,
+        postId: post.id
       });
     } else {
       toast({
@@ -378,6 +388,10 @@ const PostFeed = () => {
                                   size="sm" 
                                   variant="outline" 
                                   className="bg-white/20 hover:bg-white/30 text-white border-white/20"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    navigate('/shop');
+                                  }}
                                 >
                                   View Plans
                                 </Button>
@@ -392,7 +406,7 @@ const PostFeed = () => {
                               <div className="absolute inset-0 flex items-center justify-center">
                                 <div className="w-16 h-16 rounded-full bg-white/30 flex items-center justify-center">
                                   <div className="w-14 h-14 rounded-full bg-white/80 flex items-center justify-center">
-                                    <div className="w-0 h-0 border-t-8 border-b-8 border-l-12 border-t-transparent border-b-transparent border-l-red-600 ml-1"></div>
+                                    <Play className="h-6 w-6 text-red-600 ml-1" />
                                   </div>
                                 </div>
                               </div>
@@ -416,6 +430,10 @@ const PostFeed = () => {
                                   size="sm" 
                                   variant="outline" 
                                   className="bg-white/20 hover:bg-white/30 text-white border-white/20"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    navigate('/shop');
+                                  }}
                                 >
                                   View Plans
                                 </Button>
@@ -463,13 +481,10 @@ const PostFeed = () => {
       {selectedMedia && (
         <MediaViewer
           type={selectedMedia.type}
-          media={{
-            url: selectedMedia.url,
-            title: selectedMedia.title,
-            author: selectedMedia.author,
-            likes: selectedMedia.likes
-          }}
+          media={selectedMedia}
           onClose={() => setSelectedMedia(null)}
+          onLike={() => selectedMedia.postId && handleLikePost(selectedMedia.postId)}
+          postId={selectedMedia.postId}
         />
       )}
     </div>

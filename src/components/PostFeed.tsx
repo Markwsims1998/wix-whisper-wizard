@@ -1,7 +1,8 @@
+
 import { Separator } from "@/components/ui/separator";
-import { User, Heart, MessageCircle, Lock, Gift, Play } from "lucide-react";
+import { User, Heart, MessageCircle, Lock, Gift, Play, Pause, X } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { Button } from "@/components/ui/button";
@@ -20,6 +21,7 @@ const PostFeed = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
+  const [playingVideo, setPlayingVideo] = useState<string | null>(null);
 
   // Memoize loadPosts to avoid dependency issues
   const loadPosts = useCallback(async () => {
@@ -115,6 +117,14 @@ const PostFeed = () => {
     loadPosts();
   }, [loadPosts]);
 
+  // Stop video playback when component unmounts
+  useEffect(() => {
+    return () => {
+      // Clean up any playing videos
+      setPlayingVideo(null);
+    };
+  }, []);
+
   const handleRefresh = async () => {
     return loadPosts();
   };
@@ -133,9 +143,9 @@ const PostFeed = () => {
       navigate(`/profile?id=${author.id}`);
     }
   };
-  
-  // Modified to navigate to post page instead of showing media viewer
-  const handleMediaClick = (post: PostType) => {
+
+  // Modified to handle both video play and post navigation
+  const handleMediaClick = (post: PostType, isPlayButton: boolean = false) => {
     if (!post.media || post.media.length === 0) return;
     
     const media = post.media[0];
@@ -144,6 +154,28 @@ const PostFeed = () => {
                      media.media_type?.startsWith('video/') || media.media_type === 'video' ? 'video' : 
                      'gif';
     
+    // For videos, check if play button was clicked
+    if (mediaType === 'video' && isPlayButton) {
+      // Check subscription for videos
+      if (subscriptionDetails.canViewVideos) {
+        // Toggle video playback
+        if (playingVideo === post.id) {
+          setPlayingVideo(null);
+        } else {
+          setPlayingVideo(post.id);
+        }
+        return;
+      } else {
+        toast({
+          title: "Subscription Required",
+          description: "Please upgrade your subscription to view video content.",
+        });
+        navigate("/shop");
+        return;
+      }
+    }
+    
+    // For images or non-play button clicks on videos, navigate to post page
     const canView = 
       (mediaType === 'video' && subscriptionDetails.canViewVideos) || 
       (mediaType === 'photo' && subscriptionDetails.canViewPhotos) ||
@@ -159,6 +191,11 @@ const PostFeed = () => {
       });
       navigate("/shop");
     }
+  };
+
+  const handleVideoClose = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setPlayingVideo(null);
   };
 
   const handleLikePost = async (postId: string) => {
@@ -361,87 +398,126 @@ const PostFeed = () => {
                     <p className="mb-4">{post.content}</p>
                     
                     {post.media && post.media.length > 0 && post.media[0].media_type && (
-                      <div 
-                        className="relative mt-2 mb-4 cursor-pointer"
-                        onClick={() => handleMediaClick(post)}
-                      >
+                      <div className="relative mt-2 mb-4">
                         {post.media[0].media_type.startsWith('image/') || post.media[0].media_type === 'image' ? (
-                          subscriptionDetails.canViewPhotos ? (
-                            <img 
-                              src={post.media[0].file_url} 
-                              alt="Post image" 
-                              className="rounded-lg w-full"
-                            />
-                          ) : (
-                            <div className="relative">
+                          <div
+                            className="cursor-pointer" 
+                            onClick={() => handleMediaClick(post)}
+                          >
+                            {subscriptionDetails.canViewPhotos ? (
                               <img 
                                 src={post.media[0].file_url} 
                                 alt="Post image" 
-                                className="rounded-lg w-full blur-sm filter saturate-50"
+                                className="rounded-lg w-full"
                               />
-                              <div className="absolute inset-0 flex flex-col items-center justify-center">
-                                <Lock className="h-12 w-12 text-white/70 mb-2" />
-                                <p className="text-white/80 mb-4">Full quality photo requires a subscription</p>
-                                <Button 
-                                  size="sm" 
-                                  variant="outline" 
-                                  className="bg-white/20 hover:bg-white/30 text-white border-white/20"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    navigate('/shop');
-                                  }}
-                                >
-                                  View Plans
-                                </Button>
+                            ) : (
+                              <div className="relative">
+                                <img 
+                                  src={post.media[0].file_url} 
+                                  alt="Post image" 
+                                  className="rounded-lg w-full blur-sm filter saturate-50"
+                                />
+                                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                  <Lock className="h-12 w-12 text-white/70 mb-2" />
+                                  <p className="text-white/80 mb-4">Full quality photo requires a subscription</p>
+                                  <Button 
+                                    size="sm" 
+                                    variant="outline" 
+                                    className="bg-white/20 hover:bg-white/30 text-white border-white/20"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      navigate('/shop');
+                                    }}
+                                  >
+                                    View Plans
+                                  </Button>
+                                </div>
                               </div>
-                            </div>
-                          )
+                            )}
+                          </div>
                         ) : null}
                         
                         {(post.media[0].media_type.startsWith('video/') || post.media[0].media_type === 'video') && (
-                          subscriptionDetails.canViewVideos ? (
-                            <div className="relative rounded-lg overflow-hidden bg-black aspect-video">
-                              <div className="absolute inset-0 flex items-center justify-center">
-                                <div className="w-16 h-16 rounded-full bg-white/30 flex items-center justify-center">
-                                  <div className="w-14 h-14 rounded-full bg-white/80 flex items-center justify-center">
-                                    <Play className="h-6 w-6 text-red-600 ml-1" />
-                                  </div>
-                                </div>
-                              </div>
-                              <img 
-                                src={post.media[0].thumbnail_url || post.media[0].file_url} 
-                                alt="Video thumbnail" 
-                                className="w-full object-cover opacity-70"
-                              />
-                            </div>
-                          ) : (
-                            <div className="relative rounded-lg overflow-hidden bg-black aspect-video">
-                              <img 
-                                src={post.media[0].thumbnail_url || post.media[0].file_url} 
-                                alt="Video thumbnail" 
-                                className="w-full object-cover opacity-70 blur-sm"
-                              />
-                              <div className="absolute inset-0 flex flex-col items-center justify-center">
-                                <Lock className="h-12 w-12 text-white/70 mb-2" />
-                                <p className="text-white/80 mb-4">Video content requires a subscription</p>
-                                <Button 
-                                  size="sm" 
-                                  variant="outline" 
-                                  className="bg-white/20 hover:bg-white/30 text-white border-white/20"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    navigate('/shop');
-                                  }}
+                          <div className="rounded-lg overflow-hidden bg-black">
+                            {playingVideo === post.id ? (
+                              <div className="relative">
+                                <video 
+                                  src={post.media[0].file_url}
+                                  controls 
+                                  autoPlay 
+                                  className="w-full"
                                 >
-                                  View Plans
+                                  Your browser does not support the video tag.
+                                </video>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="absolute top-2 right-2 bg-black/40 hover:bg-black/60 text-white p-1.5 h-auto rounded-full"
+                                  onClick={handleVideoClose}
+                                >
+                                  <X size={16} />
                                 </Button>
                               </div>
-                            </div>
-                          )
+                            ) : (
+                              <div 
+                                className="relative aspect-video cursor-pointer"
+                                onClick={() => handleMediaClick(post)}
+                              >
+                                {subscriptionDetails.canViewVideos ? (
+                                  <>
+                                    <img 
+                                      src={post.media[0].thumbnail_url || post.media[0].file_url} 
+                                      alt="Video thumbnail" 
+                                      className="w-full object-cover"
+                                    />
+                                    <div 
+                                      className="absolute inset-0 flex items-center justify-center"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleMediaClick(post, true);
+                                      }}
+                                    >
+                                      <div className="w-14 h-14 rounded-full bg-white/30 flex items-center justify-center">
+                                        <div className="w-12 h-12 rounded-full bg-white/80 flex items-center justify-center">
+                                          <Play className="h-6 w-6 text-red-600 ml-1" />
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </>
+                                ) : (
+                                  <>
+                                    <img 
+                                      src={post.media[0].thumbnail_url || post.media[0].file_url} 
+                                      alt="Video thumbnail" 
+                                      className="w-full object-cover opacity-70 blur-sm"
+                                    />
+                                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                      <Lock className="h-12 w-12 text-white/70 mb-2" />
+                                      <p className="text-white/80 mb-4">Video content requires a subscription</p>
+                                      <Button 
+                                        size="sm" 
+                                        variant="outline" 
+                                        className="bg-white/20 hover:bg-white/30 text-white border-white/20"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          navigate('/shop');
+                                        }}
+                                      >
+                                        View Plans
+                                      </Button>
+                                    </div>
+                                  </>
+                                )}
+                              </div>
+                            )}
+                          </div>
                         )}
                         
                         {post.media[0].media_type === 'gif' && (
-                          <div className="mt-2 mb-4 rounded-lg overflow-hidden">
+                          <div 
+                            className="mt-2 mb-4 rounded-lg overflow-hidden cursor-pointer"
+                            onClick={() => handleMediaClick(post)}
+                          >
                             <img 
                               src={post.media[0].file_url} 
                               alt="GIF" 

@@ -1,7 +1,6 @@
-
 import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate, Link } from "react-router-dom";
-import { Heart, MessageCircle, ArrowLeft, User } from "lucide-react";
+import { Heart, MessageCircle, ArrowLeft, User, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -46,23 +45,7 @@ const Post = () => {
   const [loadingLikes, setLoadingLikes] = useState(false);
   const [showAllLikes, setShowAllLikes] = useState(false);
 
-  // Check subscription for access to content
-  useEffect(() => {
-    const canViewContent = 
-      (mediaType === 'video' && subscriptionDetails.canViewVideos) || 
-      (mediaType === 'photo' && subscriptionDetails.canViewPhotos) ||
-      !mediaType; // If no media type specified, allow access
-    
-    if (!canViewContent) {
-      toast({
-        title: "Subscription Required",
-        description: `You need a subscription to view ${mediaType} content.`,
-        variant: "destructive",
-      });
-      navigate('/shop');
-    }
-  }, [mediaType, subscriptionDetails, navigate, toast]);
-
+  // Instead of redirecting, we'll load the content and overlay restrictions if needed
   useEffect(() => {
     if (postId) {
       loadPostDetails(postId);
@@ -127,6 +110,16 @@ const Post = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Check if the user can view the content based on subscription
+  const canViewContent = (mediaType: string) => {
+    if (mediaType === 'video') {
+      return subscriptionDetails.canViewVideos;
+    } else if (mediaType === 'photo') {
+      return subscriptionDetails.canViewPhotos;
+    }
+    return true; // If no media or unknown type, allow viewing
   };
 
   const checkLikeStatus = async (postId: string) => {
@@ -260,18 +253,15 @@ const Post = () => {
     setCommentsCount(prev => Math.max(0, prev - 1));
   };
 
-  // Generate the correct profile URL using username if available, otherwise ID
   const getProfileUrl = (userId: string, username?: string) => {
     return `/profile?id=${userId}`;
   };
 
-  // Get avatar URL helper function
   const getAvatarUrl = (author: any) => {
     if (!author) return null;
     return author.profile_picture_url || author.avatar_url || null;
   };
 
-  // Display users who liked the post, limited to 50 by default
   const displayedLikes = showAllLikes ? likeUsers : likeUsers.slice(0, 50);
 
   if (loading) {
@@ -330,6 +320,14 @@ const Post = () => {
     );
   }
 
+  // Determine media type from the media object
+  const currentMediaType = media ? 
+    (media.media_type.startsWith('image/') || media.media_type === 'image' ? 'photo' : 
+     media.media_type.startsWith('video/') || media.media_type === 'video' ? 'video' : null) : null;
+
+  // Check if user can view this specific content
+  const userCanViewThisContent = !currentMediaType || canViewContent(currentMediaType);
+
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
       <Sidebar />
@@ -379,22 +377,66 @@ const Post = () => {
               <p className="text-lg mb-4">{post.content}</p>
               
               {media && (
-                <div className="bg-black rounded-lg overflow-hidden mb-6">
+                <div className="bg-black rounded-lg overflow-hidden mb-6 relative">
                   {media.media_type.startsWith('image/') || media.media_type === 'image' ? (
-                    <img
-                      src={media.file_url}
-                      alt={post.content || "Photo"}
-                      className="w-full h-auto object-contain max-h-[600px]"
-                    />
+                    userCanViewThisContent ? (
+                      <img
+                        src={media.file_url}
+                        alt={post.content || "Photo"}
+                        className="w-full h-auto object-contain max-h-[600px]"
+                      />
+                    ) : (
+                      <div className="relative">
+                        <img
+                          src={media.file_url}
+                          alt={post.content || "Photo"}
+                          className="w-full h-auto object-contain max-h-[600px] blur-sm filter saturate-50"
+                        />
+                        <div className="absolute inset-0 flex flex-col items-center justify-center">
+                          <Lock className="h-12 w-12 text-white/70 mb-2" />
+                          <p className="text-white/80 mb-4 text-center">Full quality photo requires a subscription</p>
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            className="bg-white/20 hover:bg-white/30 text-white border-white/20"
+                            onClick={() => navigate('/shop')}
+                          >
+                            View Plans
+                          </Button>
+                        </div>
+                      </div>
+                    )
                   ) : media.media_type.startsWith('video/') || media.media_type === 'video' ? (
-                    <video
-                      src={media.file_url}
-                      controls
-                      className="w-full h-auto"
-                      poster={media.thumbnail_url}
-                    >
-                      Your browser does not support the video tag.
-                    </video>
+                    userCanViewThisContent ? (
+                      <video
+                        src={media.file_url}
+                        controls
+                        className="w-full h-auto"
+                        poster={media.thumbnail_url}
+                      >
+                        Your browser does not support the video tag.
+                      </video>
+                    ) : (
+                      <div className="aspect-video w-full relative">
+                        <img
+                          src={media.thumbnail_url || media.file_url}
+                          alt="Video thumbnail"
+                          className="w-full h-full object-contain blur-sm filter saturate-50"
+                        />
+                        <div className="absolute inset-0 flex flex-col items-center justify-center">
+                          <Lock className="h-12 w-12 text-white/70 mb-2" />
+                          <p className="text-white/80 mb-4 text-center">Video content requires a subscription</p>
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            className="bg-white/20 hover:bg-white/30 text-white border-white/20"
+                            onClick={() => navigate('/shop')}
+                          >
+                            View Plans
+                          </Button>
+                        </div>
+                      </div>
+                    )
                   ) : media.media_type === 'gif' ? (
                     <img
                       src={media.file_url}

@@ -74,7 +74,7 @@ function App() {
             <Route path="/profile" element={isAuthenticated ? <Profile /> : <Navigate to="/login" replace />} />
             <Route path="/profile/:userId" element={isAuthenticated ? <Profile /> : <Navigate to="/login" replace />} />
             
-            {/* Post page - replacing both Media and Comments pages */}
+            {/* Post page */}
             <Route path="/post" element={isAuthenticated ? <Post /> : <Navigate to="/login" replace />} />
             
             {/* Protected routes - redirect to login if not authenticated */}

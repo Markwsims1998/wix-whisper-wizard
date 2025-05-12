@@ -42,23 +42,21 @@ export const securePhotos = async (
   
   const updatedPhotos = await Promise.all(photos.map(async (photo) => {
     try {
-      const imageUrl = photo.image_url || photo.image;
+      const image = photo.image;
       
       if (hasPremiumAccess) {
         // Premium users get the original image
         return {
           ...photo,
-          image: imageUrl,
-          image_url: imageUrl,
-          thumbnail: photo.thumbnail || imageUrl
+          image: image,
+          thumbnail: photo.thumbnail || undefined
         };
       } else {
         // Non-premium users get the watermarked version
-        const watermarkedUrl = await getSubscriptionAwareImageUrl(imageUrl, false);
+        const watermarkedUrl = await getSubscriptionAwareImageUrl(image, false);
         return {
           ...photo,
           image: watermarkedUrl,
-          image_url: watermarkedUrl,
           thumbnail: watermarkedUrl
         };
       }

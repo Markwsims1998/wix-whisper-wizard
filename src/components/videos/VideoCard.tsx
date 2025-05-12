@@ -5,9 +5,6 @@ import { Link } from 'react-router-dom';
 import { Video } from '@/services/videoService';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { useSubscription } from '@/contexts/SubscriptionContext';
-import Watermark from '@/components/media/Watermark';
-import { shouldShowWatermark } from '@/services/securePhotoService';
 
 export interface VideoCardProps {
   video: Video;
@@ -16,7 +13,6 @@ export interface VideoCardProps {
 
 const VideoCard = ({ video, onLike }: VideoCardProps) => {
   const [isHovered, setIsHovered] = useState(false);
-  const { subscriptionDetails } = useSubscription();
   
   const handleLikeClick = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -34,10 +30,6 @@ const VideoCard = ({ video, onLike }: VideoCardProps) => {
     return (video.user.full_name || video.user.username || "?").charAt(0).toUpperCase();
   };
   
-  // Check if the video URL has a watermark indicator
-  const needsWatermark = shouldShowWatermark(video.video_url);
-  const canViewVideos = subscriptionDetails.canViewVideos;
-  
   return (
     <Link 
       to={`/media/${video.id}?type=video`}
@@ -49,7 +41,7 @@ const VideoCard = ({ video, onLike }: VideoCardProps) => {
         <img 
           src={video.thumbnail_url || video.video_url} 
           alt={video.title || 'Video'} 
-          className={`w-full h-full object-cover ${!canViewVideos ? 'blur-sm filter saturate-50' : ''}`}
+          className="w-full h-full object-cover"
           loading="lazy"
         />
         <Badge className="absolute top-3 right-3 bg-gray-800/80 text-white">
@@ -65,13 +57,6 @@ const VideoCard = ({ video, onLike }: VideoCardProps) => {
         <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-200 flex items-center justify-center opacity-0 group-hover:opacity-100">
           <div className="text-white font-medium">View Video</div>
         </div>
-        
-        {/* Add subscription message watermark for free users */}
-        {!canViewVideos ? (
-          <Watermark showSubscriptionMessage={true} />
-        ) : (
-          needsWatermark && <Watermark />
-        )}
       </div>
       <div className="p-3 dark:text-gray-100">
         <div className="flex items-center gap-2">

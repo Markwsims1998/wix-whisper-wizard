@@ -1,3 +1,4 @@
+
 import { Separator } from "@/components/ui/separator";
 import { User, Heart, MessageCircle, Lock, Gift, Play, Pause, X } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -453,14 +454,10 @@ const PostFeed = () => {
                                   </div>
                                 </div>
                                 
-                                {/* Show subscription message watermark for videos if user is on free tier */}
-                                {!subscriptionDetails.canViewVideos ? (
-                                  <Watermark showSubscriptionMessage={true} />
-                                ) : (
-                                  /* Show regular watermark for premium users if video is watermarked */
-                                  shouldShowWatermark(post.media[0].thumbnail_url || post.media[0].file_url) && (
-                                    <Watermark opacity={0.5} />
-                                  )
+                                {/* Show watermark for free users or if video thumbnail is watermarked */}
+                                {(subscriptionDetails.tier === 'free' || 
+                                  shouldShowWatermark(post.media[0].thumbnail_url || post.media[0].file_url)) && (
+                                  <Watermark opacity={0.5} />
                                 )}
                               </div>
                             )}

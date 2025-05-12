@@ -1,3 +1,4 @@
+
 import { supabase } from "@/lib/supabaseClient";
 
 // Export the Post type so it can be used in other files
@@ -29,8 +30,8 @@ export interface Post {
 // Define a LikeUser interface for proper typing
 export interface LikeUser {
   id: string;
-  username: string;
-  full_name: string;
+  username: string | null;
+  full_name: string | null;
   avatar_url: string | null;
   profile_picture_url?: string | null;
 }
@@ -434,7 +435,7 @@ export const getLikesForPost = async (postId: string): Promise<LikeUser[]> => {
     console.log('Raw likes data:', data);
     
     // Map each item in the array and extract user data properly
-    const likeUsers = data.map(item => {
+    const likeUsers: LikeUser[] = data.map(item => {
       // Check if user exists
       const profileData = item.user;
       

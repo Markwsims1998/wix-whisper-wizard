@@ -1,3 +1,4 @@
+
 import { Heart, MessageCircle, User } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
@@ -21,12 +22,14 @@ const PostItem = ({ post, handleLikePost }: PostItemProps) => {
   const [commentsCount, setCommentsCount] = useState(post.comments_count || 0);
   const [imageError, setImageError] = useState(false);
   const [authorData, setAuthorData] = useState<any>(post.author || null);
+  const [postMedia, setPostMedia] = useState<any[]>([]);
   
   // Check like status and update counts when component mounts
   useEffect(() => {
     if (user?.id && post.id) {
       checkLikeStatus();
       fetchCommentCount();
+      fetchPostMedia();
       
       // Fetch complete author data if needed
       if (post.author && !post.author.profile_picture_url) {
@@ -43,7 +46,40 @@ const PostItem = ({ post, handleLikePost }: PostItemProps) => {
     if (user?.id && post.id) {
       checkLikeStatus();
     }
-  }, [post.id, post.likes_count, user?.id]);
+    
+    // If post media is already provided in the post prop, use it
+    if (post.media && post.media.length > 0) {
+      setPostMedia(post.media);
+    }
+  }, [post.id, post.likes_count, post.media, user?.id]);
+  
+  // Fetch media associated with this post if not already provided
+  const fetchPostMedia = async () => {
+    // If we already have media from post props, don't fetch again
+    if (post.media && post.media.length > 0) {
+      setPostMedia(post.media);
+      return;
+    }
+    
+    try {
+      const { data, error } = await supabase
+        .from('media')
+        .select('*')
+        .eq('post_id', post.id);
+        
+      if (error) {
+        console.error('Error fetching media for post:', error);
+        return;
+      }
+      
+      if (data && data.length > 0) {
+        console.log('Found media for post:', post.id, data);
+        setPostMedia(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch post media:', err);
+    }
+  };
 
   // Fetch complete author data from profiles table
   const fetchAuthorData = async () => {
@@ -183,27 +219,29 @@ const PostItem = ({ post, handleLikePost }: PostItemProps) => {
   };
 
   // Determine if the post contains a photo or video
-  const hasMedia = post.media && post.media.length > 0;
-  const mediaType = hasMedia ? post.media[0].media_type : null;
-  const isImage = mediaType && mediaType.startsWith('image/');
-  const isVideo = mediaType && mediaType.startsWith('video/');
+  const hasMedia = postMedia && postMedia.length > 0;
+  
+  // If we have a media item, determine its type
+  const mediaType = hasMedia ? postMedia[0].media_type : null;
+  const isImage = mediaType && (mediaType.startsWith('image/') || mediaType === 'image');
+  const isVideo = mediaType && (mediaType.startsWith('video/') || mediaType === 'video');
   
   // Get media URL for display
   const getMediaUrl = () => {
     if (!hasMedia) return null;
-    return post.media[0].file_url;
+    return postMedia[0].file_url;
   };
 
   // Get thumbnail URL for media
   const getThumbnailUrl = () => {
     if (!hasMedia) return null;
-    return post.media[0].thumbnail_url || post.media[0].file_url;
+    return postMedia[0].thumbnail_url || postMedia[0].file_url;
   };
 
   // Format media ID
   const getMediaId = () => {
     if (!hasMedia) return null;
-    return post.media[0].id;
+    return postMedia[0].id;
   };
   
   const avatarUrl = getAvatarUrl();

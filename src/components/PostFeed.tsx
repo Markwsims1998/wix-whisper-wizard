@@ -1,4 +1,3 @@
-
 import { Separator } from "@/components/ui/separator";
 import { User, Heart, MessageCircle, Lock, Gift } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -23,11 +22,6 @@ const PostFeed = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
-
-  // Load posts based on active tab
-  useEffect(() => {
-    loadPosts();
-  }, [activeTab, user]);
 
   const loadPosts = async () => {
     if (!user) {
@@ -74,6 +68,25 @@ const PostFeed = () => {
         }
       }
       
+      // For each post, fetch its media if it exists
+      for (const post of filteredPosts) {
+        if (!post.media || post.media.length === 0) {
+          try {
+            const { data: mediaData, error: mediaError } = await supabase
+              .from('media')
+              .select('*')
+              .eq('post_id', post.id);
+              
+            if (!mediaError && mediaData && mediaData.length > 0) {
+              post.media = mediaData;
+              console.log(`Added media to post ${post.id}:`, mediaData);
+            }
+          } catch (err) {
+            console.error(`Error fetching media for post ${post.id}:`, err);
+          }
+        }
+      }
+      
       setPosts(filteredPosts);
     } catch (err) {
       console.error('Error loading posts:', err);
@@ -91,7 +104,6 @@ const PostFeed = () => {
     return loadPosts();
   };
 
-  // Handle profile click to navigate to the user's profile
   const handleProfileClick = (author: any) => {
     if (!author) return;
     
@@ -227,7 +239,6 @@ const PostFeed = () => {
     return null;
   };
   
-  // Update this function to get proper avatar URL
   const getAvatarUrl = (author: any) => {
     if (!author) return null;
     return author.profile_picture_url || author.avatar_url || null;
@@ -343,7 +354,7 @@ const PostFeed = () => {
                         className="relative mt-2 mb-4 cursor-pointer"
                         onClick={() => handleMediaClick(post)}
                       >
-                        {post.media[0].media_type.startsWith('image/') && (
+                        {post.media[0].media_type.startsWith('image/') || post.media[0].media_type === 'image' ? (
                           subscriptionDetails.canViewPhotos ? (
                             <img 
                               src={post.media[0].file_url} 
@@ -370,9 +381,9 @@ const PostFeed = () => {
                               </div>
                             </div>
                           )
-                        )}
+                        ) : null}
                         
-                        {post.media[0].media_type.startsWith('video/') && (
+                        {(post.media[0].media_type.startsWith('video/') || post.media[0].media_type === 'video') && (
                           subscriptionDetails.canViewVideos ? (
                             <div className="relative rounded-lg overflow-hidden bg-black aspect-video">
                               <div className="absolute inset-0 flex items-center justify-center">

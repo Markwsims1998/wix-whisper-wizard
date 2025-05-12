@@ -1,6 +1,7 @@
+
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams, Link } from "react-router-dom";
-import { Heart, User, ChevronLeft, MessageCircle } from "lucide-react";
+import { Heart, User, ChevronLeft, MessageCircle, Info, Lock } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -17,7 +18,6 @@ import { supabase } from "@/lib/supabaseClient";
 import { Video } from "@/services/videoService";
 import { Photo } from "@/services/photoService";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Info, Lock } from "lucide-react";
 import { fetchMedia, convertToVideoFormat } from "@/services/mediaService";
 import CommentInput from "@/components/comments/CommentInput";
 import { useSubscription } from "@/contexts/SubscriptionContext";
@@ -197,16 +197,18 @@ const MediaDetail = () => {
           console.log("Likes data:", likes);
           
           // Map the likes to MediaDetailLikeUser type
-          const mappedLikeUsers: MediaDetailLikeUser[] = likes.map(user => ({
-            id: user.id,
-            username: user.username,
-            full_name: user.full_name,
-            avatar_url: user.avatar_url,
-            profile_picture_url: user.profile_picture_url
-          }));
-          
-          setLikeUsers(mappedLikeUsers);
-          setLikesCount(likes.length);
+          if (Array.isArray(likes)) {
+            const mappedLikeUsers: MediaDetailLikeUser[] = likes.map(user => ({
+              id: user.id,
+              username: user.username,
+              full_name: user.full_name,
+              avatar_url: user.avatar_url,
+              profile_picture_url: user.profile_picture_url
+            }));
+            
+            setLikeUsers(mappedLikeUsers);
+            setLikesCount(likes.length);
+          }
         }
         
         // Update view count

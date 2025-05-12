@@ -69,6 +69,7 @@ export const convertToVideoFormat = (mediaItems: MediaItem[]): Video[] => {
     views: item.views || 0,
     likes_count: 0, // We don't have likes in the media table yet
     created_at: item.created_at,
+    postId: item.post_id || '', // Ensure postId is always a string
     user: item.user || {
       id: item.user_id,
       username: 'unknown',
@@ -149,6 +150,24 @@ export const saveMediaMetadata = async (
   }
 ): Promise<MediaItem | null> => {
   try {
+    // First create a post for this media
+    const { data: postData, error: postError } = await supabase
+      .from('posts')
+      .insert({
+        user_id: mediaData.userId,
+        content: `${mediaData.title || (mediaData.contentType === 'video' ? 'Video' : 'Photo')} upload`
+      })
+      .select('id')
+      .single();
+      
+    if (postError) {
+      console.error('Error creating post for media:', postError);
+      return null;
+    }
+    
+    console.log('Created post for media:', postData.id);
+    
+    // Then save the media linked to the post
     const { data, error } = await supabase
       .from('media')
       .insert({
@@ -158,7 +177,8 @@ export const saveMediaMetadata = async (
         file_url: mediaData.fileUrl,
         thumbnail_url: mediaData.thumbnailUrl,
         content_type: mediaData.contentType,
-        media_type: mediaData.contentType === 'photo' ? 'image' : 'video'
+        media_type: mediaData.contentType === 'photo' ? 'image/jpeg' : 'video/mp4',
+        post_id: postData.id // Link media to the post
       })
       .select('*, user:user_id(id, username, full_name, avatar_url)')
       .single();

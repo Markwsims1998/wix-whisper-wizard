@@ -19,6 +19,7 @@ import { useSubscription } from "@/contexts/SubscriptionContext";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { shouldShowWatermark, getSecurePhotoUrl } from "@/services/securePhotoService";
 import Watermark from "@/components/media/Watermark";
+import VideoSubscriptionLock from '@/components/media/VideoSubscriptionLock';
 
 // Define the LikeUser interface for proper typing
 export interface LikeUser {
@@ -431,17 +432,30 @@ const Post = () => {
                     </div>
                   ) : media.media_type.startsWith('video/') || media.media_type === 'video' ? (
                     <div className="aspect-video w-full relative">
-                      <video
-                        src={media.file_url}
-                        controls
-                        className="w-full h-auto"
-                        poster={media.thumbnail_url}
-                      >
-                        Your browser does not support the video tag.
-                      </video>
-                      {/* Show watermark for videos if user doesn't have premium access */}
-                      {isWatermarked && (
-                        <Watermark />
+                      {subscriptionDetails.canViewVideos ? (
+                        <>
+                          <video
+                            src={media.file_url}
+                            controls
+                            className="w-full h-auto"
+                            poster={media.thumbnail_url}
+                          >
+                            Your browser does not support the video tag.
+                          </video>
+                          {/* Show standard watermark for videos if needed */}
+                          {isWatermarked && (
+                            <Watermark />
+                          )}
+                        </>
+                      ) : (
+                        <>
+                          <img
+                            src={media.thumbnail_url || media.file_url}
+                            alt="Video thumbnail"
+                            className="w-full h-auto object-contain max-h-[600px] blur-sm"
+                          />
+                          <VideoSubscriptionLock />
+                        </>
                       )}
                     </div>
                   ) : media.media_type === 'gif' ? (

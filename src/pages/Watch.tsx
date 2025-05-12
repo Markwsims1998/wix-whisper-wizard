@@ -19,6 +19,7 @@ import { fetchVideos } from "@/services/videoService";
 import VideoCard from "@/components/videos/VideoCard";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { shouldShowWatermark } from "@/services/securePhotoService";
+import VideoSubscriptionLock from '@/components/media/VideoSubscriptionLock';
 
 const Watch = () => {
   const { id } = useParams<{ id: string }>();
@@ -378,26 +379,35 @@ const Watch = () => {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2">
                 <div className="bg-black rounded-lg overflow-hidden mb-4 relative">
-                  <video 
-                    ref={videoRef}
-                    src={!subscriptionDetails.canViewVideos || shouldShowWatermark(video.video_url) ? 
-                      (video.video_url.includes('?') ? 
-                        `${video.video_url}&watermark=true` : 
-                        `${video.video_url}?watermark=true`) 
-                      : video.video_url} 
-                    poster={video.thumbnail_url}
-                    controls
-                    className={`w-full aspect-video ${!subscriptionDetails.canViewVideos ? 'blur-sm filter saturate-50' : ''}`}
-                  />
-                  
-                  {(!subscriptionDetails.canViewVideos || shouldShowWatermark(video.video_url)) && (
-                    <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                      <div className="absolute inset-0 w-full h-full flex items-center justify-center">
-                        <div className="font-bold text-white text-6xl opacity-50 transform -rotate-12 select-none whitespace-nowrap">
-                          PREMIUM
-                        </div>
+                  {subscriptionDetails.canViewVideos ? (
+                    <>
+                      <video 
+                        ref={videoRef}
+                        src={shouldShowWatermark(video.video_url) ? 
+                          (video.video_url.includes('?') ? 
+                            `${video.video_url}&watermark=true` : 
+                            `${video.video_url}?watermark=true`) 
+                          : video.video_url} 
+                        poster={video.thumbnail_url}
+                        controls
+                        className="w-full aspect-video"
+                      />
+                      
+                      {shouldShowWatermark(video.video_url) && (
+                        <Watermark opacity={0.5} />
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <div className="w-full aspect-video relative">
+                        <img
+                          src={video.thumbnail_url || video.video_url}
+                          alt={video.title || "Video thumbnail"}
+                          className="w-full h-full object-cover blur-sm"
+                        />
+                        <VideoSubscriptionLock />
                       </div>
-                    </div>
+                    </>
                   )}
                 </div>
                 

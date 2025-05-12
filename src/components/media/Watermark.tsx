@@ -9,6 +9,7 @@ interface WatermarkProps {
 
 /**
  * A reusable watermark component that displays "© HappyKinks"
+ * Used primarily for images - for videos, use VideoSubscriptionLock instead
  */
 const Watermark: React.FC<WatermarkProps> = ({
   opacity = 0.5,

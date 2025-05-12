@@ -1,4 +1,3 @@
-
 import { Separator } from "@/components/ui/separator";
 import { User, Heart, MessageCircle, Lock, Gift, Play, Pause, X } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -14,6 +13,7 @@ import RefreshableFeed from "./RefreshableFeed";
 import { supabase } from "@/lib/supabaseClient";
 import { shouldShowWatermark } from "@/services/securePhotoService";
 import Watermark from "@/components/media/Watermark";
+import VideoSubscriptionLock from '@/components/media/VideoSubscriptionLock';
 
 const PostFeed = () => {
   const [activeTab, setActiveTab] = useState("all");
@@ -169,6 +169,7 @@ const PostFeed = () => {
         return;
       } else {
         // Don't navigate, just show the overlay
+        navigate('/shop');
         return;
       }
     }
@@ -425,8 +426,7 @@ const PostFeed = () => {
                                 </Button>
                                 
                                 {/* Show watermark for free users or if video is watermarked */}
-                                {(subscriptionDetails.tier === 'free' || 
-                                  shouldShowWatermark(post.media[0].file_url)) && (
+                                {shouldShowWatermark(post.media[0].file_url) && (
                                   <Watermark opacity={0.5} />
                                 )}
                               </div>
@@ -440,24 +440,23 @@ const PostFeed = () => {
                                   alt="Video thumbnail" 
                                   className={`w-full object-cover ${!subscriptionDetails.canViewVideos ? 'blur-sm filter saturate-50' : ''}`}
                                 />
-                                <div 
-                                  className="absolute inset-0 flex items-center justify-center"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleMediaClick(post, true);
-                                  }}
-                                >
-                                  <div className="w-14 h-14 rounded-full bg-white/30 flex items-center justify-center">
-                                    <div className="w-12 h-12 rounded-full bg-white/80 flex items-center justify-center">
-                                      <Play className="h-6 w-6 text-red-600 ml-1" />
+                                
+                                {subscriptionDetails.canViewVideos ? (
+                                  <div 
+                                    className="absolute inset-0 flex items-center justify-center"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleMediaClick(post, true);
+                                    }}
+                                  >
+                                    <div className="w-14 h-14 rounded-full bg-white/30 flex items-center justify-center">
+                                      <div className="w-12 h-12 rounded-full bg-white/80 flex items-center justify-center">
+                                        <Play className="h-6 w-6 text-red-600 ml-1" />
+                                      </div>
                                     </div>
                                   </div>
-                                </div>
-                                
-                                {/* Show watermark for free users or if video thumbnail is watermarked */}
-                                {(subscriptionDetails.tier === 'free' || 
-                                  shouldShowWatermark(post.media[0].thumbnail_url || post.media[0].file_url)) && (
-                                  <Watermark opacity={0.5} />
+                                ) : (
+                                  <VideoSubscriptionLock />
                                 )}
                               </div>
                             )}

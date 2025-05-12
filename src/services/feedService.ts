@@ -45,7 +45,7 @@ export const getPosts = async (): Promise<Post[]> => {
         created_at,
         updated_at,
         user_id,
-        author: profiles (
+        author:profiles!posts_user_id_fkey (
           id,
           username,
           full_name,
@@ -73,14 +73,26 @@ export const getPosts = async (): Promise<Post[]> => {
       return [];
     }
 
-    // Add is_liked and counts
-    const postsWithLikes = posts.map(post => ({
-      ...post,
-      likes_count: post.likes?.length || 0,
-      comments_count: post.comments?.length || 0,
-      author: post.author && post.author[0] ? post.author[0] : undefined
-    }));
+    console.log("Raw posts data:", posts);
 
+    // Add is_liked and counts
+    const postsWithLikes = posts.map(post => {
+      // Make sure we're correctly extracting the author data
+      let authorData = null;
+      if (post.author) {
+        // Handle author data correctly, whether it's an array or a single object
+        authorData = Array.isArray(post.author) ? post.author[0] : post.author;
+      }
+
+      return {
+        ...post,
+        likes_count: post.likes?.length || 0,
+        comments_count: post.comments?.length || 0,
+        author: authorData
+      };
+    });
+
+    console.log("Processed posts with authors:", postsWithLikes);
     return postsWithLikes as Post[];
   } catch (error) {
     console.error("Error getting posts:", error);
@@ -129,7 +141,7 @@ export const getUserPosts = async (userId: string): Promise<Post[]> => {
         created_at,
         updated_at,
         user_id,
-        author: profiles (
+        author:profiles!posts_user_id_fkey (
           id,
           username,
           full_name,
@@ -159,12 +171,21 @@ export const getUserPosts = async (userId: string): Promise<Post[]> => {
     }
 
     // Add is_liked and counts
-    const postsWithLikes = posts.map(post => ({
-      ...post,
-      likes_count: post.likes?.length || 0,
-      comments_count: post.comments?.length || 0,
-      author: post.author && post.author[0] ? post.author[0] : undefined
-    }));
+    const postsWithLikes = posts.map(post => {
+      // Make sure we're correctly extracting the author data
+      let authorData = null;
+      if (post.author) {
+        // Handle author data correctly, whether it's an array or a single object
+        authorData = Array.isArray(post.author) ? post.author[0] : post.author;
+      }
+
+      return {
+        ...post,
+        likes_count: post.likes?.length || 0,
+        comments_count: post.comments?.length || 0,
+        author: authorData
+      };
+    });
 
     return postsWithLikes as Post[];
   } catch (error) {
@@ -183,7 +204,7 @@ export const getPostById = async (postId: string): Promise<{ success: boolean; p
         created_at,
         updated_at,
         user_id,
-        author: profiles (
+        author:profiles!posts_user_id_fkey (
           id,
           username,
           full_name,
@@ -212,14 +233,22 @@ export const getPostById = async (postId: string): Promise<{ success: boolean; p
       return { success: false, post: null, error: error.message };
     }
 
+    // Fix author data format
+    let authorData = null;
+    if (post.author) {
+      // Handle author data correctly, whether it's an array or a single object
+      authorData = Array.isArray(post.author) ? post.author[0] : post.author;
+    }
+
     // Add is_liked and counts
     const postWithLikes = {
       ...post,
       likes_count: post.likes?.length || 0,
       comments_count: post.comments?.length || 0,
-      author: post.author && post.author[0] ? post.author[0] : undefined
+      author: authorData
     };
 
+    console.log("Fetched post with author:", postWithLikes);
     return { success: true, post: postWithLikes as Post };
   } catch (error) {
     console.error("Error getting post:", error);
@@ -361,10 +390,10 @@ export const likePost = async (postId: string, userId: string): Promise<{ succes
 export const getLikesForPost = async (postId: string): Promise<LikeUser[]> => {
   try {
     const { data, error } = await supabase
-      .from('post_likes')
+      .from('likes')
       .select(`
         user_id,
-        profiles!relationships_follower_id_fkey(
+        user:profiles!likes_user_id_fkey(
           id,
           username,
           full_name,
@@ -384,10 +413,12 @@ export const getLikesForPost = async (postId: string): Promise<LikeUser[]> => {
       return [];
     }
     
+    console.log('Raw likes data:', data);
+    
     // Map each item in the array individually and properly typed
     return data.map(item => {
-      // Check if profiles exists and is an array with at least one item
-      const profileData = item.profiles;
+      // Check if user exists
+      const profileData = item.user;
       if (!profileData) {
         return {
           id: '',

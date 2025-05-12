@@ -1,37 +1,36 @@
 
-import { supabase } from "@/integrations/supabase/client";
-import { createActivity } from "./activityService";
+import { supabase } from "@/lib/supabaseClient";
 
 export interface Comment {
   id: string;
   content: string;
-  post_id: string;
-  user_id: string;
   created_at: string;
-  updated_at: string;
-  author?: {
+  user_id: string;
+  author: {
     id: string;
     username?: string;
     full_name?: string;
-    avatar_url?: string;
-    profile_picture_url?: string;
+    avatar_url?: string | null;
+    profile_picture_url?: string | null;
     subscription_tier?: string;
-  };
+  } | null;
 }
 
 export const fetchComments = async (postId: string): Promise<Comment[]> => {
   try {
-    console.log("Fetching comments for post:", postId);
     const { data, error } = await supabase
       .from('comments')
       .select(`
-        *,
-        author:user_id(
-          id, 
-          username, 
-          full_name, 
+        id,
+        content,
+        created_at,
+        user_id,
+        author:profiles!comments_user_id_fkey (
+          id,
+          username,
+          full_name,
           avatar_url,
-          profile_picture_url, 
+          profile_picture_url,
           subscription_tier
         )
       `)
@@ -39,66 +38,79 @@ export const fetchComments = async (postId: string): Promise<Comment[]> => {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Error fetching comments:', error);
+      console.error("Error fetching comments:", error);
       return [];
     }
 
-    console.log("Fetched comments:", data);
-    return data || [];
+    console.log("Raw comments data:", data);
+
+    // Process the comments data to ensure author is properly structured
+    const processedComments = data.map(comment => {
+      let authorData = null;
+      if (comment.author) {
+        // Handle author data correctly, whether it's an array or a single object
+        authorData = Array.isArray(comment.author) ? comment.author[0] : comment.author;
+      }
+      
+      return {
+        ...comment,
+        author: authorData
+      };
+    });
+
+    console.log("Processed comments with authors:", processedComments);
+    return processedComments;
   } catch (error) {
-    console.error('Error fetching comments:', error);
+    console.error("Error fetching comments:", error);
     return [];
   }
 };
 
-export const createComment = async (
-  content: string,
-  postId: string, 
-  userId: string
-): Promise<{ success: boolean; data?: Comment; error?: string }> => {
+export const createComment = async (postId: string, userId: string, content: string): Promise<{ success: boolean; comment?: Comment }> => {
   try {
     const { data, error } = await supabase
       .from('comments')
-      .insert({ post_id: postId, user_id: userId, content })
+      .insert([
+        { post_id: postId, user_id: userId, content: content },
+      ])
       .select(`
-        *,
-        author:user_id(
-          id, 
-          username, 
-          full_name, 
+        id,
+        content,
+        created_at,
+        user_id,
+        author:profiles!comments_user_id_fkey (
+          id,
+          username,
+          full_name,
           avatar_url,
-          profile_picture_url,
-          subscription_tier
+          profile_picture_url
         )
       `)
       .single();
 
     if (error) {
-      return { success: false, error: error.message };
+      console.error("Error creating comment:", error);
+      return { success: false };
     }
 
-    // Get post owner to create notification
-    const { data: postData } = await supabase
-      .from('posts')
-      .select('user_id')
-      .eq('id', postId)
-      .single();
-
-    // Create notification for post owner if it's not the same person
-    if (postData && postData.user_id !== userId) {
-      await createActivity(
-        postData.user_id, // recipient (post owner)
-        userId,           // actor (comment creator)
-        'comment',
-        'commented on your post',
-        postId,
-        data.id          // comment_id
-      );
+    // Process author data
+    let authorData = null;
+    if (data.author) {
+      authorData = Array.isArray(data.author) ? data.author[0] : data.author;
     }
 
-    return { success: true, data };
-  } catch (error: any) {
-    return { success: false, error: error.message };
+    const comment = {
+      ...data,
+      author: authorData
+    };
+
+    return { 
+      success: true,
+      comment
+    };
+  } catch (error) {
+    console.error("Error creating comment:", error);
+    return { success: false };
   }
 };
 
@@ -110,6 +122,7 @@ export const deleteComment = async (commentId: string): Promise<{ success: boole
       .eq('id', commentId);
 
     if (error) {
+      console.error("Error deleting comment:", error);
       return { success: false, error: error.message };
     }
 

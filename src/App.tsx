@@ -37,35 +37,31 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
-        <AuthProvider>
-          <SubscriptionProvider>
-            <BrowserRouter>
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/home" element={<HomePage />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/profile" element={<Profile />} />
-                <Route path="/messages" element={<Messages />} />
-                <Route path="/people" element={<People />} />
-                <Route path="/photos" element={<Photos />} />
-                <Route path="/settings" element={<Settings />} />
-                <Route path="/videos" element={<Videos />} />
-                <Route path="/watch" element={<Watch />} />
-                <Route path="/shop" element={<Shop />} />
-                <Route path="/basket" element={<Basket />} />
-                <Route path="/admin/*" element={<Admin />} />
-                <Route path="/comments/:postId" element={<Comments />} />
-                <Route path="/notifications" element={<Notifications />} />
-                <Route path="/activity" element={<Activity />} />
-                <Route path="/winks" element={<Winks />} />
-                <Route path="/feedback" element={<Feedback />} />
-                <Route path="/friends" element={<Friends />} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-              <Toaster />
-            </BrowserRouter>
-          </SubscriptionProvider>
-        </AuthProvider>
+        <SubscriptionProvider>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/home" element={<HomePage />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/messages" element={<Messages />} />
+            <Route path="/people" element={<People />} />
+            <Route path="/photos" element={<Photos />} />
+            <Route path="/settings" element={<Settings />} />
+            <Route path="/videos" element={<Videos />} />
+            <Route path="/watch" element={<Watch />} />
+            <Route path="/shop" element={<Shop />} />
+            <Route path="/basket" element={<Basket />} />
+            <Route path="/admin/*" element={<Admin />} />
+            <Route path="/comments/:postId" element={<Comments />} />
+            <Route path="/notifications" element={<Notifications />} />
+            <Route path="/activity" element={<Activity />} />
+            <Route path="/winks" element={<Winks />} />
+            <Route path="/feedback" element={<Feedback />} />
+            <Route path="/friends" element={<Friends />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+          <Toaster />
+        </SubscriptionProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );

@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { Heart, User } from "lucide-react";
@@ -15,6 +14,8 @@ import Footer from "@/components/Footer";
 import Sidebar from "@/components/Sidebar";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"; 
 import { supabase } from "@/lib/supabaseClient";
+import { useSubscription } from "@/contexts/SubscriptionContext";
+import { shouldShowWatermark } from "@/services/securePhotoService";
 
 const CommentsPage = () => {
   const [searchParams] = useSearchParams();
@@ -28,6 +29,7 @@ const CommentsPage = () => {
   const [showAllLikes, setShowAllLikes] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
+  const { subscriptionDetails } = useSubscription();
 
   useEffect(() => {
     const loadPost = async () => {
@@ -153,8 +155,30 @@ const CommentsPage = () => {
   // Display users who liked the post, limited to 50 by default
   const displayedLikes = showAllLikes ? likeUsers : likeUsers.slice(0, 50);
 
-  // We've removed the duplicated getLikesForPost function and are now importing it from feedService.ts
+  // Get media type for proper display
+  const getMediaType = () => {
+    if (!post?.media || post.media.length === 0) return null;
+    
+    const mediaType = post.media[0].media_type;
+    if (mediaType?.startsWith('image/') || mediaType === 'image') return 'image';
+    if (mediaType?.startsWith('video/') || mediaType === 'video') return 'video';
+    return mediaType;
+  };
   
+  // Check if user can view this content based on subscription
+  const canViewContent = (mediaType: string | null) => {
+    if (!mediaType) return true;
+    if (mediaType.includes('image')) return subscriptionDetails.canViewPhotos;
+    if (mediaType.includes('video')) return subscriptionDetails.canViewVideos;
+    return true;
+  };
+  
+  // Determine if image should show watermark
+  const shouldDisplayWatermark = (url: string | undefined) => {
+    if (!url) return false;
+    return shouldShowWatermark(url);
+  };
+
   if (!postId) {
     return (
       <div className="min-h-screen">
@@ -241,20 +265,32 @@ const CommentsPage = () => {
                   <p className="text-lg mb-4">{post.content}</p>
                   
                   {post.media && post.media.length > 0 && post.media[0].media_type && (
-                    <div className="mt-2 mb-4">
+                    <div className="mt-2 mb-4 relative">
                       {post.media[0].media_type.startsWith('image/') && (
-                        <img 
-                          src={post.media[0].file_url} 
-                          alt="Post image" 
-                          className="rounded-lg w-full"
-                        />
+                        <div className="relative">
+                          <img 
+                            src={post.media[0].file_url} 
+                            alt="Post image" 
+                            className={`rounded-lg w-full ${!canViewContent('image') ? 'blur-sm filter saturate-50' : ''}`}
+                          />
+                          
+                          {(!canViewContent('image') || shouldDisplayWatermark(post.media[0].file_url)) && (
+                            <div className="absolute inset-0 overflow-hidden">
+                              <div className="absolute inset-0 w-full h-full flex items-center justify-center">
+                                <div className="font-bold text-white text-6xl opacity-50 transform -rotate-12 select-none whitespace-nowrap">
+                                  PREMIUM
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       )}
                       
                       {post.media[0].media_type.startsWith('video/') && (
                         <video 
                           src={post.media[0].file_url} 
                           controls 
-                          className="rounded-lg w-full"
+                          className={`rounded-lg w-full ${!canViewContent('video') ? 'blur-sm filter saturate-50' : ''}`}
                         />
                       )}
                       

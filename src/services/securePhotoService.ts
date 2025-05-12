@@ -1,4 +1,3 @@
-
 import { supabase } from '@/lib/supabaseClient';
 import { Photo } from './photoService';
 import { createClient } from '@supabase/supabase-js';

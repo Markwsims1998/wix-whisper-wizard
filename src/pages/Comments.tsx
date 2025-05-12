@@ -168,9 +168,9 @@ const CommentsPage = () => {
         return [];
       }
       
-      // Map the data to the expected format with proper type handling
-      return data.map(like => {
-        const profile = like.profiles;
+      // Fixed: Properly map each item in the data array
+      return data.map(item => {
+        const profile = item.profiles;
         return {
           id: profile?.id || '',
           username: profile?.username || '',
@@ -340,7 +340,7 @@ const CommentsPage = () => {
                 />
               </div>
               
-              {/* Who Loved Section - Updated to display profile pictures correctly */}
+              {/* Who Loved Section - Fixed to properly handle like user data */}
               {likesCount > 0 && (
                 <div className="mt-8">
                   <h3 className="text-md font-medium mb-3">Who loved this ({likesCount})</h3>

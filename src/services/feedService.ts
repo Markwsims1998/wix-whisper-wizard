@@ -370,9 +370,9 @@ export const getLikesForPost = async (postId: string) => {
       return [];
     }
     
-    // Fixed the array access issue with proper type handling
-    return data.map(like => {
-      const profile = like.profiles;
+    // Fixed: Properly map each item in the data array
+    return data.map(item => {
+      const profile = item.profiles;
       return {
         id: profile?.id || '',
         username: profile?.username || '',

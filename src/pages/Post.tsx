@@ -361,9 +361,6 @@ const Post = () => {
     (media.media_type.startsWith('image/') || media.media_type === 'image' ? 'photo' : 
      media.media_type.startsWith('video/') || media.media_type === 'video' ? 'video' : null) : null;
 
-  // Check if user can view this specific content
-  const userCanViewThisContent = !currentMediaType || canViewContent(currentMediaType);
-  
   // Check if the URL is from the watermarked bucket or the user doesn't have premium access
   const isWatermarked = media && media.file_url ? 
     media.file_url.includes('photos-watermarked') || 
@@ -378,26 +375,6 @@ const Post = () => {
         paddingLeft: 'max(1rem, var(--sidebar-width, 280px))'
       }}>
         <div className="max-w-3xl mx-auto px-4">
-          {/* Subscription Warning Banner */}
-          {currentMediaType && !userCanViewThisContent && (
-            <Alert className="mb-4 border-yellow-300 bg-yellow-50 dark:bg-yellow-900/20 dark:border-yellow-700">
-              <BadgeAlert className="h-5 w-5 text-yellow-600 dark:text-yellow-500" />
-              <AlertTitle className="text-yellow-800 dark:text-yellow-400 font-medium">
-                Premium Content
-              </AlertTitle>
-              <AlertDescription className="text-yellow-700 dark:text-yellow-300">
-                Upgrade your subscription to access full quality {currentMediaType === 'photo' ? 'photos' : 'videos'}.
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="ml-3 border-yellow-400 text-yellow-700 hover:text-yellow-800 hover:bg-yellow-100 dark:border-yellow-700 dark:text-yellow-400 dark:hover:bg-yellow-900/40"
-                  onClick={() => navigate('/shop')}
-                >
-                  View Plans
-                </Button>
-              </AlertDescription>
-            </Alert>
-          )}
           
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-5 mb-4">
             <Link to="/" className="text-blue-500 hover:underline inline-block mb-4">
@@ -445,45 +422,27 @@ const Post = () => {
                       <img
                         src={media.file_url}
                         alt={post.content || "Photo"}
-                        className={`w-full h-auto object-contain max-h-[600px] ${!userCanViewThisContent ? 'blur-sm filter saturate-50' : ''}`}
+                        className="w-full h-auto object-contain max-h-[600px]"
                       />
-                      {/* Watermark is always applied regardless of subscription */}
-                      <Watermark />
+                      {/* Always show watermark for non-premium users */}
+                      {isWatermarked && (
+                        <Watermark />
+                      )}
                     </div>
                   ) : media.media_type.startsWith('video/') || media.media_type === 'video' ? (
                     <div className="aspect-video w-full relative">
-                      {userCanViewThisContent ? (
-                        <video
-                          src={media.file_url}
-                          controls
-                          className="w-full h-auto"
-                          poster={media.thumbnail_url}
-                        >
-                          Your browser does not support the video tag.
-                        </video>
-                      ) : (
-                        <>
-                          <img
-                            src={media.thumbnail_url || media.file_url}
-                            alt="Video thumbnail"
-                            className="w-full h-full object-contain blur-sm filter saturate-50"
-                          />
-                          <div className="absolute inset-0 flex flex-col items-center justify-center">
-                            <Lock className="h-12 w-12 text-white/70 mb-2" />
-                            <p className="text-white/80 mb-4 text-center">Video content requires a subscription</p>
-                            <Button 
-                              size="sm" 
-                              variant="outline" 
-                              className="bg-white/20 hover:bg-white/30 text-white border-white/20"
-                              onClick={() => navigate('/shop')}
-                            >
-                              View Plans
-                            </Button>
-                          </div>
-                        </>
+                      <video
+                        src={media.file_url}
+                        controls
+                        className="w-full h-auto"
+                        poster={media.thumbnail_url}
+                      >
+                        Your browser does not support the video tag.
+                      </video>
+                      {/* Show watermark for videos if user doesn't have premium access */}
+                      {isWatermarked && (
+                        <Watermark />
                       )}
-                      {/* Always show watermark on videos */}
-                      <Watermark />
                     </div>
                   ) : media.media_type === 'gif' ? (
                     <img

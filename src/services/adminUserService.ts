@@ -1,221 +1,228 @@
 
 import { supabase } from '@/lib/supabaseClient';
 
-export interface AdminUser {
+export interface UserData {
   id: string;
-  email?: string;
   username: string;
   full_name: string | null;
-  avatar_url: string | null;
-  profile_picture_url?: string | null;
+  email: string | null;
+  created_at: string;
   subscription_tier: string | null;
   status: string;
   role: string;
-  created_at: string;
-  last_sign_in_at: string | null;
-  updated_at?: string;
+  profile_picture_url?: string | null;
+  avatar_url?: string | null;
+  last_sign_in_at?: string | null;
+}
+
+export interface UserStats {
+  total: number;
+  active: number;
+  premium: number;
+  new: {
+    thisWeek: number;
+    thisMonth: number;
+  };
 }
 
 /**
- * Fetches users for the admin dashboard with pagination and filtering
+ * Fetch users with optional filtering
  */
 export const fetchUsers = async (
-  page: number = 0,
-  limit: number = 10,
-  sortBy: string = 'created_at',
-  sortOrder: 'asc' | 'desc' = 'desc',
-  search?: string
-): Promise<{ users: AdminUser[]; total: number }> => {
+  page: number = 1,
+  pageSize: number = 10,
+  filters: {
+    searchQuery?: string;
+    status?: string;
+    subscriptionTier?: string;
+    role?: string;
+  } = {}
+): Promise<{ users: UserData[]; total: number }> => {
   try {
     let query = supabase
       .from('profiles')
-      .select('*', { count: 'exact' });
+      .select('*, auth_users:auth.users!inner(email, created_at)', { count: 'exact' });
 
-    // Add search filter if provided
-    if (search) {
-      query = query.or(`username.ilike.%${search}%,full_name.ilike.%${search}%`);
+    // Apply filters
+    if (filters.searchQuery) {
+      query = query.or(`username.ilike.%${filters.searchQuery}%,full_name.ilike.%${filters.searchQuery}%`);
+    }
+    
+    if (filters.status) {
+      query = query.eq('status', filters.status);
+    }
+    
+    if (filters.subscriptionTier) {
+      query = query.eq('subscription_tier', filters.subscriptionTier);
+    }
+    
+    if (filters.role) {
+      query = query.eq('role', filters.role);
     }
 
-    // Add sorting
-    query = query.order(sortBy, { ascending: sortOrder === 'asc' });
-
-    // Add pagination
-    query = query.range(page * limit, (page + 1) * limit - 1);
-
-    const { data, error, count } = await query;
-
+    // Paginate results
+    const from = (page - 1) * pageSize;
+    const to = from + pageSize - 1;
+    
+    const { data, error, count } = await query
+      .range(from, to)
+      .order('created_at', { ascending: false });
+    
     if (error) {
       console.error('Error fetching users:', error);
-      throw new Error('Failed to fetch users');
+      return { users: [], total: 0 };
     }
 
-    // Convert to admin user format
-    const adminUsers: AdminUser[] = data.map((profile) => ({
+    // Format the user data
+    const users: UserData[] = data.map(profile => ({
       id: profile.id,
-      username: profile.username || '',
+      username: profile.username,
       full_name: profile.full_name,
-      avatar_url: profile.avatar_url,
-      profile_picture_url: profile.profile_picture_url,
+      email: profile.auth_users?.email || null,
+      created_at: profile.created_at,
       subscription_tier: profile.subscription_tier || 'free',
       status: profile.status || 'active',
       role: profile.role || 'user',
-      created_at: profile.created_at,
-      last_sign_in_at: profile.last_sign_in_at,
-      updated_at: profile.updated_at,
+      profile_picture_url: profile.profile_picture_url || null,
+      avatar_url: profile.avatar_url || null,
+      last_sign_in_at: profile.last_sign_in_at || null
     }));
 
     return {
-      users: adminUsers,
-      total: count || 0,
+      users,
+      total: count || 0
     };
   } catch (error) {
     console.error('Error in fetchUsers:', error);
-    throw error;
+    return { users: [], total: 0 };
   }
 };
 
 /**
- * Updates a user's status in the system
+ * Get a single user by ID
  */
-export const updateUserStatus = async (userId: string, status: string): Promise<boolean> => {
-  try {
-    const { error } = await supabase
-      .from('profiles')
-      .update({ status })
-      .eq('id', userId);
-
-    if (error) {
-      console.error('Error updating user status:', error);
-      return false;
-    }
-
-    return true;
-  } catch (error) {
-    console.error('Error in updateUserStatus:', error);
-    return false;
-  }
-};
-
-/**
- * Updates a user's role in the system
- */
-export const updateUserRole = async (userId: string, role: string): Promise<boolean> => {
-  try {
-    const { error } = await supabase
-      .from('profiles')
-      .update({ role })
-      .eq('id', userId);
-
-    if (error) {
-      console.error('Error updating user role:', error);
-      return false;
-    }
-
-    return true;
-  } catch (error) {
-    console.error('Error in updateUserRole:', error);
-    return false;
-  }
-};
-
-/**
- * Fetches detailed user information for admin
- */
-export const fetchUserDetails = async (userId: string): Promise<AdminUser | null> => {
+export const getUserById = async (userId: string): Promise<UserData | null> => {
   try {
     const { data, error } = await supabase
       .from('profiles')
-      .select('*')
+      .select('*, auth_users:auth.users!inner(email, created_at)')
       .eq('id', userId)
       .single();
-
-    if (error) {
-      console.error('Error fetching user details:', error);
+    
+    if (error || !data) {
+      console.error('Error fetching user:', error);
       return null;
     }
-
+    
     return {
       id: data.id,
-      username: data.username || '',
+      username: data.username,
       full_name: data.full_name,
-      avatar_url: data.avatar_url,
-      profile_picture_url: data.profile_picture_url,
+      email: data.auth_users?.email || null,
+      created_at: data.created_at,
       subscription_tier: data.subscription_tier || 'free',
       status: data.status || 'active',
       role: data.role || 'user',
-      created_at: data.created_at,
-      last_sign_in_at: data.last_sign_in_at,
-      updated_at: data.updated_at,
+      profile_picture_url: data.profile_picture_url || null,
+      avatar_url: data.avatar_url || null,
+      last_sign_in_at: data.last_sign_in_at || null
     };
   } catch (error) {
-    console.error('Error in fetchUserDetails:', error);
+    console.error('Error in getUserById:', error);
     return null;
   }
 };
 
 /**
- * Fetches user activity stats
+ * Update a user's profile
  */
-export const fetchUserActivityStats = async (userId: string): Promise<{
-  posts: number;
-  comments: number;
-  media: number;
-  lastActive: string | null;
-}> => {
+export const updateUser = async (
+  userId: string, 
+  updates: {
+    status?: string;
+    role?: string;
+    subscription_tier?: string;
+    full_name?: string;
+    username?: string;
+  }
+): Promise<boolean> => {
   try {
-    // Get posts count
-    const { count: postsCount, error: postsError } = await supabase
-      .from('posts')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', userId);
-
-    if (postsError) {
-      console.error('Error fetching posts count:', postsError);
-      throw postsError;
-    }
-
-    // Get comments count
-    const { count: commentsCount, error: commentsError } = await supabase
-      .from('comments')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', userId);
-
-    if (commentsError) {
-      console.error('Error fetching comments count:', commentsError);
-      throw commentsError;
-    }
-
-    // Get media count
-    const { count: mediaCount, error: mediaError } = await supabase
-      .from('media')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', userId);
-
-    if (mediaError) {
-      console.error('Error fetching media count:', mediaError);
-      throw mediaError;
-    }
-
-    // Get last activity date
-    const { data: lastActivityData, error: lastActivityError } = await supabase
+    const { error } = await supabase
       .from('profiles')
-      .select('last_sign_in_at')
-      .eq('id', userId)
-      .single();
-
-    if (lastActivityError) {
-      console.error('Error fetching last activity:', lastActivityError);
-      throw lastActivityError;
+      .update(updates)
+      .eq('id', userId);
+    
+    if (error) {
+      console.error('Error updating user:', error);
+      return false;
     }
+    
+    return true;
+  } catch (error) {
+    console.error('Error in updateUser:', error);
+    return false;
+  }
+};
 
+/**
+ * Get user statistics
+ */
+export const getUserStats = async (): Promise<UserStats> => {
+  try {
+    // Get total users
+    const { count: totalUsers } = await supabase
+      .from('profiles')
+      .select('id', { count: 'exact', head: true });
+    
+    // Get premium users
+    const { count: premiumUsers } = await supabase
+      .from('profiles')
+      .select('id', { count: 'exact', head: true })
+      .in('subscription_tier', ['bronze', 'silver', 'gold']);
+    
+    // Get active users
+    const { count: activeUsers } = await supabase
+      .from('profiles')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'active');
+    
+    // Get new users this week
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    
+    const { count: newUsersThisWeek } = await supabase
+      .from('profiles')
+      .select('id', { count: 'exact', head: true })
+      .gte('created_at', oneWeekAgo.toISOString());
+    
+    // Get new users this month
+    const oneMonthAgo = new Date();
+    oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+    
+    const { count: newUsersThisMonth } = await supabase
+      .from('profiles')
+      .select('id', { count: 'exact', head: true })
+      .gte('created_at', oneMonthAgo.toISOString());
+    
     return {
-      posts: postsCount || 0,
-      comments: commentsCount || 0,
-      media: mediaCount || 0,
-      lastActive: lastActivityData?.last_sign_in_at || null,
+      total: totalUsers || 0,
+      active: activeUsers || 0,
+      premium: premiumUsers || 0,
+      new: {
+        thisWeek: newUsersThisWeek || 0,
+        thisMonth: newUsersThisMonth || 0
+      }
     };
   } catch (error) {
-    console.error('Error in fetchUserActivityStats:', error);
-    throw error;
+    console.error('Error in getUserStats:', error);
+    return {
+      total: 0,
+      active: 0,
+      premium: 0,
+      new: {
+        thisWeek: 0,
+        thisMonth: 0
+      }
+    };
   }
 };

@@ -16,8 +16,13 @@ export const getSecurePhotoUrl = async (
     // Check if user has a paid subscription
     const hasPremiumAccess = ['bronze', 'silver', 'gold'].includes(subscriptionTier);
     
-    // For all users, return the original URL, but the watermark will always be applied in the UI
-    return originalUrl;
+    if (hasPremiumAccess) {
+      // Premium subscribers get the original URL
+      return originalUrl;
+    } else {
+      // For free users, return watermarked version
+      return await getSubscriptionAwareImageUrl(originalUrl, false);
+    }
     
   } catch (error) {
     console.error('Error getting secure photo URL:', error);
@@ -32,16 +37,29 @@ export const securePhotos = async (
   photos: Photo[], 
   subscriptionTier: string
 ): Promise<Photo[]> => {
-  // Apply watermarking to all photos regardless of subscription
+  // Check if user has a paid subscription
+  const hasPremiumAccess = ['bronze', 'silver', 'gold'].includes(subscriptionTier);
+  
   const updatedPhotos = await Promise.all(photos.map(async (photo) => {
     try {
       const image = photo.image;
       
-      return {
-        ...photo,
-        image: image,
-        thumbnail: photo.thumbnail || undefined
-      };
+      if (hasPremiumAccess) {
+        // Premium users get the original image
+        return {
+          ...photo,
+          image: image,
+          thumbnail: photo.thumbnail || undefined
+        };
+      } else {
+        // Non-premium users get the watermarked version
+        const watermarkedUrl = await getSubscriptionAwareImageUrl(image, false);
+        return {
+          ...photo,
+          image: watermarkedUrl,
+          thumbnail: watermarkedUrl
+        };
+      }
     } catch (error) {
       return photo; // On error, return the original photo
     }
@@ -56,8 +74,12 @@ export const securePhotos = async (
 export const shouldShowWatermark = (url: string | undefined | null): boolean => {
   if (!url) return false;
   
-  // Always show watermark on all photos
-  return true;
+  // Show watermark either if it's from the watermarked bucket
+  // or if it contains the premium bucket path but user doesn't have premium access
+  const isWatermarkedUrl = url.includes('photos-watermarked');
+  const isPremiumUrl = url.includes('photos-premium');
+  
+  return isWatermarkedUrl || isPremiumUrl;
 };
 
 /**
@@ -76,8 +98,11 @@ export const uploadSecurePhoto = async (
       return null;
     }
     
+    // Determine which URL to return as primary based on subscription tier
+    const hasPremiumAccess = ['bronze', 'silver', 'gold'].includes(subscriptionTier);
+    
     return {
-      url: result.premiumUrl,
+      url: hasPremiumAccess ? result.premiumUrl : result.watermarkedUrl,
       watermarkedUrl: result.watermarkedUrl
     };
   } catch (error) {

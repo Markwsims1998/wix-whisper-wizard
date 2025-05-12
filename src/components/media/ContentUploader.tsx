@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Loader2, Upload } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth/AuthProvider";
-import { uploadMedia, uploadMediaFile, saveMediaMetadata } from "@/services/mediaService";
+import { uploadMedia } from "@/services/mediaService";
 import { uploadSecurePhoto } from "@/services/securePhotoService";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { supabase } from "@/lib/supabaseClient";
@@ -118,29 +118,44 @@ const ContentUploader: React.FC<ContentUploaderProps> = ({
           fileUrl = result.url;
           // Also store the watermarked URL for reference
           thumbnailUrl = result.watermarkedUrl;
-        } else {
-          // Upload video file
-          const result = await uploadMediaFile(selectedFile, contentType, user.id);
-          if (!result) throw new Error('Failed to upload video');
           
-          fileUrl = result.url;
-          thumbnailUrl = result.thumbnailUrl || '';
-        }
-        
-        // Save media metadata to database
-        const mediaData = await saveMediaMetadata({
-          title,
-          description,
-          category,
-          userId: user.id,
-          fileUrl,
-          thumbnailUrl,
-          contentType,
-          existingPostId: postId
-        });
-        
-        if (!mediaData) {
-          throw new Error(`Failed to save ${contentType} metadata`);
+          // Save media metadata to database
+          const { data: mediaData, error: mediaError } = await supabase
+            .from('media')
+            .insert({
+              title,
+              category,
+              user_id: user.id,
+              file_url: fileUrl,
+              thumbnail_url: thumbnailUrl,
+              content_type: contentType,
+              media_type: contentType === 'photo' ? 'image/jpeg' : 'video/mp4',
+              post_id: postId,
+              watermarked_url: result.watermarkedUrl
+            })
+            .select()
+            .single();
+          
+          if (mediaError) {
+            console.error('Error saving media metadata:', mediaError);
+            throw new Error('Failed to save media metadata');
+          }
+          
+          console.log('Media saved successfully:', mediaData);
+        } else {
+          // For video uploads, use the regular media upload functionality
+          const mediaData = await uploadMedia(selectedFile, {
+            title,
+            description,
+            category,
+            userId: user.id,
+            contentType,
+            existingPostId: postId
+          });
+          
+          if (!mediaData) {
+            throw new Error(`Failed to upload ${contentType}`);
+          }
         }
       }
       

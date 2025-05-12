@@ -1,6 +1,5 @@
 
 import { supabase } from '@/lib/supabaseClient';
-import { useAuth } from '@/contexts/auth/AuthProvider';
 
 /**
  * Add watermark to an image and return the watermarked blob
@@ -55,7 +54,6 @@ export const addWatermark = async (file: File): Promise<Blob> => {
 
 /**
  * Upload a file to both premium and watermarked buckets
- * We always add watermarks to all photos
  */
 export const uploadWithWatermark = async (
   file: File,
@@ -120,31 +118,52 @@ export const uploadWithWatermark = async (
 
 /**
  * Get the appropriate image URL based on subscription status
- * We now always show watermarked images regardless of subscription status
  */
 export const getSubscriptionAwareImageUrl = async (
   originalUrl: string,
   isSubscribed: boolean
 ): Promise<string> => {
   try {
-    // Always return watermarked URL for consistent branding
-    const urlObj = new URL(originalUrl);
-    const path = urlObj.pathname;
-    
-    // Get everything after /object/public/photos-premium/
-    const premiumPrefix = '/object/public/photos-premium/';
-    const filePath = path.includes(premiumPrefix)
-      ? path.split(premiumPrefix)[1]
-      : path.split('/').slice(-2).join('/'); // Fallback to last 2 segments
-    
-    // Get watermarked version URL
-    const { data: watermarkedUrlData } = supabase.storage
-      .from('photos-watermarked')
-      .getPublicUrl(filePath);
-      
-    return watermarkedUrlData.publicUrl;
+    if (isSubscribed) {
+      // For subscribed users, return premium URL (original)
+      if (originalUrl.includes('photos-watermarked')) {
+        // Convert watermarked URL to premium URL if needed
+        const urlObj = new URL(originalUrl);
+        const path = urlObj.pathname;
+        const watermarkedPrefix = '/object/public/photos-watermarked/';
+        const filePath = path.includes(watermarkedPrefix)
+          ? path.split(watermarkedPrefix)[1]
+          : path.split('/').slice(-2).join('/');
+          
+        const { data: premiumUrlData } = supabase.storage
+          .from('photos-premium')
+          .getPublicUrl(filePath);
+          
+        return premiumUrlData.publicUrl;
+      }
+      return originalUrl;
+    } else {
+      // For non-subscribed users, return watermarked URL
+      if (originalUrl.includes('photos-premium')) {
+        // Convert premium URL to watermarked URL
+        const urlObj = new URL(originalUrl);
+        const path = urlObj.pathname;
+        const premiumPrefix = '/object/public/photos-premium/';
+        const filePath = path.includes(premiumPrefix)
+          ? path.split(premiumPrefix)[1]
+          : path.split('/').slice(-2).join('/');
+          
+        // Get watermarked version URL
+        const { data: watermarkedUrlData } = supabase.storage
+          .from('photos-watermarked')
+          .getPublicUrl(filePath);
+          
+        return watermarkedUrlData.publicUrl;
+      }
+      return originalUrl;
+    }
   } catch (error) {
-    console.error('Error getting watermarked image URL:', error);
+    console.error('Error getting subscription-aware image URL:', error);
     // Fallback to original URL
     return originalUrl;
   }
@@ -157,7 +176,7 @@ export const checkIsSubscribed = async (userId: string): Promise<boolean> => {
   try {
     const { data, error } = await supabase
       .from('profiles')
-      .select('is_subscribed')
+      .select('subscription_tier')
       .eq('id', userId)
       .single();
       
@@ -166,7 +185,7 @@ export const checkIsSubscribed = async (userId: string): Promise<boolean> => {
       return false;
     }
     
-    return data?.is_subscribed || false;
+    return ['bronze', 'silver', 'gold'].includes(data?.subscription_tier || '');
   } catch (error) {
     console.error('Error in checkIsSubscribed:', error);
     return false;

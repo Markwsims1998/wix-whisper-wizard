@@ -1,4 +1,3 @@
-
 import { supabase } from '@/lib/supabaseClient';
 import { Video } from './videoService';
 import { uploadSecurePhoto } from './securePhotoService';
@@ -110,8 +109,6 @@ export const convertToVideoFormat = (mediaItems: MediaItem[]): Video[] => {
   }));
 };
 
-// NEW FUNCTIONS FOR UPLOADING MEDIA
-
 /**
  * Upload a media file to Supabase storage
  */
@@ -121,6 +118,13 @@ export const uploadMediaFile = async (
   userId: string
 ): Promise<{ url: string; thumbnailUrl?: string; watermarkedUrl?: string } | null> => {
   try {
+    console.log('uploadMediaFile started:', {
+      fileName: file.name, 
+      fileSize: file.size,
+      contentType, 
+      userId
+    });
+    
     if (!file || !userId) {
       console.error('Missing required parameters for upload');
       return null;
@@ -132,9 +136,15 @@ export const uploadMediaFile = async (
     // Use different upload method based on content type
     if (contentType === 'photo') {
       // For photos, use secure upload with watermarking
+      console.log('Using secure photo upload with watermarking');
       const result = await uploadSecurePhoto(file, userId, 'free');
-      if (!result) return null;
       
+      if (!result) {
+        console.error('Failed to upload photo with watermarking');
+        return null;
+      }
+      
+      console.log('Photo upload successful with watermarking:', result);
       return {
         url: result.url,
         watermarkedUrl: result.watermarkedUrl
@@ -197,6 +207,13 @@ export const saveMediaMetadata = async (
   }
 ): Promise<MediaItem | null> => {
   try {
+    console.log('Saving media metadata with:', { 
+      title: mediaData.title,
+      category: mediaData.category,
+      contentType: mediaData.contentType,
+      hasWatermarkedUrl: !!mediaData.watermarkedUrl
+    });
+    
     let postId = mediaData.existingPostId;
     
     // Only create a post if we don't have an existing post ID
@@ -231,7 +248,7 @@ export const saveMediaMetadata = async (
         user_id: mediaData.userId,
         file_url: mediaData.fileUrl,
         thumbnail_url: mediaData.thumbnailUrl,
-        watermarked_url: mediaData.watermarkedUrl, // Store the watermarked URL
+        watermarked_url: mediaData.watermarkedUrl, // Explicitly store the watermarked URL
         content_type: mediaData.contentType,
         media_type: mediaData.contentType === 'photo' ? 'image/jpeg' : 'video/mp4',
         post_id: postId // Link media to the post
@@ -244,7 +261,7 @@ export const saveMediaMetadata = async (
       return null;
     }
     
-    console.log('Media saved successfully:', data);
+    console.log('Media saved successfully to database:', data.id);
     return data;
   } catch (error) {
     console.error('Error in saveMediaMetadata:', error);

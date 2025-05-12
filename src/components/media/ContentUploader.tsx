@@ -87,6 +87,7 @@ const ContentUploader: React.FC<ContentUploaderProps> = ({
       let postId = '';
 
       // Create a post first to get the post ID
+      console.log('Creating post for content upload');
       const { data: postData, error: postError } = await supabase
         .from('posts')
         .insert({
@@ -107,6 +108,7 @@ const ContentUploader: React.FC<ContentUploaderProps> = ({
       if (selectedFile) {
         // Handle file upload based on content type
         if (contentType === 'photo') {
+          console.log('Uploading photo with secure upload process');
           // Use secure photo upload with watermarking for photos
           const result = await uploadSecurePhoto(
             selectedFile,
@@ -114,12 +116,22 @@ const ContentUploader: React.FC<ContentUploaderProps> = ({
             subscriptionDetails.tier
           );
           
-          if (!result) throw new Error('Failed to upload photo');
+          if (!result) {
+            console.error('Secure photo upload failed');
+            throw new Error('Failed to upload photo');
+          }
           
+          console.log('Secure photo upload successful:', result);
           fileUrl = result.url;
           // Store watermarked URL explicitly
           watermarkedUrl = result.watermarkedUrl;
           thumbnailUrl = result.url; // Use premium URL for thumbnail for premium users
+          
+          console.log('Upload URLs:', {
+            fileUrl,
+            watermarkedUrl,
+            thumbnailUrl
+          });
         } else {
           // Upload video file
           const result = await uploadMediaFile(selectedFile, contentType, user.id);
@@ -130,6 +142,12 @@ const ContentUploader: React.FC<ContentUploaderProps> = ({
         }
         
         // Save media metadata to database
+        console.log('Saving media metadata with URLs:', {
+          fileUrl,
+          thumbnailUrl,
+          watermarkedUrl
+        });
+        
         const mediaData = await saveMediaMetadata({
           title,
           description,
@@ -145,6 +163,8 @@ const ContentUploader: React.FC<ContentUploaderProps> = ({
         if (!mediaData) {
           throw new Error(`Failed to save ${contentType} metadata`);
         }
+        
+        console.log('Media metadata saved successfully:', mediaData.id);
       }
       
       toast({

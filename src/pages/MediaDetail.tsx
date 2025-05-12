@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams, Link } from "react-router-dom";
 import { Heart, User, ChevronLeft } from "lucide-react";
@@ -241,7 +242,7 @@ const MediaDetail = () => {
   };
 
   // Generate the correct profile URL using username if available, otherwise ID
-  const getProfileUrl = (userId: string, username?: string) => {
+  const getProfileUrl = (userId: string, username?: string | null) => {
     return username ? `/profile/${userId}` : `/profile/${userId}`;
   };
 
@@ -416,7 +417,7 @@ const MediaDetail = () => {
                   <div className="flex flex-wrap gap-2">
                     {displayedLikes.map((likeUser) => (
                       <Link 
-                        to={getProfileUrl(likeUser.id || '', likeUser.username || '')} 
+                        to={getProfileUrl(likeUser.id, likeUser.username)} 
                         key={likeUser.id || Math.random().toString()}
                         title={likeUser.full_name || ''}
                       >

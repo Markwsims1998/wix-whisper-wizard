@@ -31,9 +31,15 @@ const MediaViewer = ({ type, media, onClose, onLike, onPrev, onNext, postId }: M
   
   // Handle background click to close the viewer
   const handleBackgroundClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (e.target === e.currentTarget) {
+    // Only close if clicking directly on the background (not its children)
+    if (e.currentTarget === e.target) {
       onClose();
     }
+  };
+  
+  // Stop propagation for content clicks to prevent closing
+  const handleContentClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
   };
   
   // Determine author information
@@ -50,17 +56,14 @@ const MediaViewer = ({ type, media, onClose, onLike, onPrev, onNext, postId }: M
   
   return (
     <div 
-      className="fixed inset-0 z-50 flex items-center justify-center" 
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-90" 
       onClick={handleBackgroundClick}
     >
       <div className="absolute inset-0 bg-gradient-to-b from-[rgba(15,15,20,0.97)] to-[rgba(15,15,25,0.95)]"></div>
       
       <div className="absolute top-4 right-4 z-10">
         <button 
-          onClick={(e) => {
-            e.stopPropagation();
-            onClose();
-          }}
+          onClick={onClose}
           className="p-2 bg-white/10 backdrop-blur-md text-white rounded-full hover:bg-white/20 transition-all"
           aria-label="Close"
         >
@@ -103,10 +106,10 @@ const MediaViewer = ({ type, media, onClose, onLike, onPrev, onNext, postId }: M
         {/* Media container */}
         <div 
           className="relative max-w-4xl w-full h-full flex items-center justify-center" 
-          onClick={(e) => e.stopPropagation()}
+          onClick={handleContentClick}
         >
           {type === 'image' && (
-            <div className="relative">
+            <div className="relative" onClick={handleContentClick}>
               <img 
                 src={displayUrl} 
                 alt="Full size" 
@@ -122,7 +125,7 @@ const MediaViewer = ({ type, media, onClose, onLike, onPrev, onNext, postId }: M
           )}
           
           {type === 'video' && (
-            <div className="relative w-full max-w-4xl">
+            <div className="relative w-full max-w-4xl" onClick={handleContentClick}>
               {/* In a real app, this would be a video player */}
               <div className="aspect-video relative flex items-center justify-center rounded-lg overflow-hidden shadow-2xl">
                 <img 
@@ -132,7 +135,7 @@ const MediaViewer = ({ type, media, onClose, onLike, onPrev, onNext, postId }: M
                 />
                 <button 
                   className="absolute inset-0 flex items-center justify-center"
-                  onClick={(e) => e.stopPropagation()}
+                  onClick={handleContentClick}
                 >
                   <div className="w-20 h-20 rounded-full bg-white/30 backdrop-blur-md flex items-center justify-center">
                     <div className="w-16 h-16 rounded-full bg-white/80 flex items-center justify-center">
@@ -152,10 +155,9 @@ const MediaViewer = ({ type, media, onClose, onLike, onPrev, onNext, postId }: M
         </div>
         
         {/* Info bar at the bottom */}
-        <div className="absolute bottom-6 left-0 w-full px-6">
+        <div className="absolute bottom-6 left-0 w-full px-6" onClick={handleContentClick}>
           <div 
-            className="max-w-4xl mx-auto flex items-center justify-between bg-white/10 backdrop-blur-md p-4 rounded-lg" 
-            onClick={(e) => e.stopPropagation()}
+            className="max-w-4xl mx-auto flex items-center justify-between bg-white/10 backdrop-blur-md p-4 rounded-lg"
           >
             <div className="flex items-center gap-3">
               <div className="h-12 w-12 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">

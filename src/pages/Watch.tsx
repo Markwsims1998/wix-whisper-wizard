@@ -68,6 +68,7 @@ const Videos = () => {
       setIsLoading(true);
       try {
         const videoData = await fetchVideos(selectedCategory);
+        console.log("Fetched videos:", videoData.length);
         setVideos(videoData);
       } catch (error) {
         console.error("Error loading videos:", error);
@@ -86,12 +87,17 @@ const Videos = () => {
 
   const handleVideoClick = (video: Video) => {
     if (canViewVideos) {
-      // Instead of navigating to a different page, open the video in the viewer
+      // Open the video in the viewer
+      console.log("Opening video in viewer:", video.id);
       setSelectedVideo(video);
     } else {
       // Redirect to shop if not subscribed
       navigate("/shop");
     }
+  };
+  
+  const handleCloseViewer = () => {
+    setSelectedVideo(null);
   };
 
   const handleUploadSuccess = () => {
@@ -193,7 +199,7 @@ const Videos = () => {
             authorPic: selectedVideo.user?.avatar_url || undefined,
             postId: selectedVideo.id
           }}
-          onClose={() => setSelectedVideo(null)}
+          onClose={handleCloseViewer}
           postId={selectedVideo.id}
         />
       )}

@@ -11,26 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import ContentUploader from "@/components/media/ContentUploader";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { fetchMedia, MediaItem } from "@/services/mediaService";
-
-interface Photo {
-  id: string;
-  title: string;
-  image: string;
-  thumbnail?: string;
-  author: string;
-  authorId: string;
-  authorPic?: string;
-  likes: number;
-  category: string;
-  postId?: string;
-  user?: {
-    id: string;
-    username: string;
-    full_name: string | null;
-    avatar_url: string | null;
-  } | null;
-}
+import { fetchPhotos, Photo } from "@/services/photoService";
 
 const Photos = () => {
   const { subscriptionDetails } = useSubscription();
@@ -84,9 +65,8 @@ const Photos = () => {
     const loadPhotos = async () => {
       try {
         setIsLoading(true);
-        const mediaItems = await fetchMedia('photo', selectedCategory);
-        const convertedPhotos = convertToPhotoFormat(mediaItems);
-        setPhotos(convertedPhotos);
+        const photosData = await fetchPhotos(selectedCategory);
+        setPhotos(photosData);
         setIsLoading(false);
       } catch (error) {
         console.error("Failed to load photos:", error);
@@ -102,25 +82,16 @@ const Photos = () => {
     loadPhotos();
   }, [selectedCategory, toast]);
 
-  // Convert MediaItems to Photo format
-  const convertToPhotoFormat = (mediaItems: MediaItem[]): Photo[] => {
-    return mediaItems.map(item => ({
-      id: item.id,
-      title: item.title || 'Untitled Photo',
-      image: item.file_url,
-      thumbnail: item.thumbnail_url || item.file_url,
-      author: item.user?.full_name || item.user?.username || 'Unknown',
-      authorId: item.user_id,
-      authorPic: item.user?.avatar_url || undefined,
-      likes: 0, // We don't have likes count in media table yet
-      category: item.category || 'uncategorized',
-      postId: item.post_id || undefined,
-      user: item.user
-    }));
+  const handlePhotoClick = (photo: Photo, e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    setSelectedPhoto(photo);
   };
 
-  const handlePhotoClick = (photo: Photo) => {
-    setSelectedPhoto(photo);
+  const handleCloseViewer = () => {
+    setSelectedPhoto(null);
   };
 
   const handleOpenUploader = () => {
@@ -134,7 +105,7 @@ const Photos = () => {
       description: "Your photo has been uploaded successfully.",
     });
     // Refresh photos list after successful upload
-    fetchMedia('photo', selectedCategory).then(data => setPhotos(convertToPhotoFormat(data)));
+    fetchPhotos(selectedCategory).then(data => setPhotos(data));
   };
 
   return (
@@ -197,7 +168,7 @@ const Photos = () => {
                   <div 
                     key={photo.id} 
                     className="bg-gray-50 dark:bg-gray-700 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition cursor-pointer group"
-                    onClick={() => handlePhotoClick(photo)}
+                    onClick={(e) => handlePhotoClick(photo, e)}
                   >
                     <div className="relative aspect-square">
                       <img 
@@ -257,7 +228,7 @@ const Photos = () => {
         <MediaViewer 
           type="image"
           media={selectedPhoto}
-          onClose={() => setSelectedPhoto(null)}
+          onClose={handleCloseViewer}
           postId={selectedPhoto.postId}
         />
       )}

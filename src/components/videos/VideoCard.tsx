@@ -13,6 +13,7 @@ interface VideoCardProps {
 const VideoCard = ({ video, canViewVideos, onVideoClick }: VideoCardProps) => {
   const handleClick = (e: React.MouseEvent) => {
     e.preventDefault(); // Prevent default navigation
+    e.stopPropagation(); // Stop event propagation
     onVideoClick(video);
   };
 

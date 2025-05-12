@@ -6,6 +6,7 @@ export interface Photo {
   title: string | null;
   image: string;
   thumbnail?: string;
+  watermarkedUrl?: string;  // Add watermarked URL to the interface
   category: string;
   author: string;
   views: string | number;
@@ -33,6 +34,7 @@ export const fetchPhotos = async (category: string = 'all'): Promise<Photo[]> =>
         title: item.title || 'Untitled Photo',
         image: item.file_url,
         thumbnail: item.thumbnail_url || item.file_url,
+        watermarkedUrl: item.watermarked_url,  // Store the watermarked URL
         category: item.category || 'uncategorized',
         author: item.user?.full_name || item.user?.username || 'Unknown User',
         views: item.views || 0,

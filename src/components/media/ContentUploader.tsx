@@ -83,6 +83,7 @@ const ContentUploader: React.FC<ContentUploaderProps> = ({
     try {
       let fileUrl = '';
       let thumbnailUrl = '';
+      let watermarkedUrl = '';  // Add variable for watermarked URL
       let postId = '';
 
       // Create a post first to get the post ID
@@ -116,8 +117,9 @@ const ContentUploader: React.FC<ContentUploaderProps> = ({
           if (!result) throw new Error('Failed to upload photo');
           
           fileUrl = result.url;
-          // Also store the watermarked URL for reference
-          thumbnailUrl = result.watermarkedUrl;
+          // Store watermarked URL explicitly
+          watermarkedUrl = result.watermarkedUrl;
+          thumbnailUrl = result.url; // Use premium URL for thumbnail for premium users
         } else {
           // Upload video file
           const result = await uploadMediaFile(selectedFile, contentType, user.id);
@@ -135,6 +137,7 @@ const ContentUploader: React.FC<ContentUploaderProps> = ({
           userId: user.id,
           fileUrl,
           thumbnailUrl,
+          watermarkedUrl,  // Include the watermarked URL
           contentType,
           existingPostId: postId
         });

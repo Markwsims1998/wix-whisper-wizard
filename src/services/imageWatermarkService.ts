@@ -119,38 +119,23 @@ export const uploadWithWatermark = async (
 /**
  * Get the appropriate image URL based on subscription status
  */
-export const getSubscriptionAwareImageUrl = async (
-  originalUrl: string,
+export const getSubscriptionAwareImageUrl = (
+  premiumUrl: string,
+  watermarkedUrl: string | null,
   isSubscribed: boolean
-): Promise<string> => {
+): string => {
   // If the user is subscribed, return the premium URL
   if (isSubscribed) {
-    return originalUrl;
+    return premiumUrl;
   }
   
-  // Otherwise, try to get the watermarked version
-  try {
-    // Extract the path from the URL to find the watermarked version
-    const urlObj = new URL(originalUrl);
-    const path = urlObj.pathname;
-    
-    // Get everything after /object/public/photos-premium/
-    const premiumPrefix = '/object/public/photos-premium/';
-    const filePath = path.includes(premiumPrefix)
-      ? path.split(premiumPrefix)[1]
-      : path.split('/').slice(-2).join('/'); // Fallback to last 2 segments
-    
-    // Get watermarked version URL
-    const { data: watermarkedUrlData } = supabase.storage
-      .from('photos-watermarked')
-      .getPublicUrl(filePath);
-      
-    return watermarkedUrlData.publicUrl;
-  } catch (error) {
-    console.error('Error getting watermarked image URL:', error);
-    // Fallback to original URL
-    return originalUrl;
+  // Otherwise, return the watermarked version if available
+  if (watermarkedUrl) {
+    return watermarkedUrl;
   }
+  
+  // Fallback to premium URL if watermarked is not available
+  return premiumUrl;
 };
 
 /**

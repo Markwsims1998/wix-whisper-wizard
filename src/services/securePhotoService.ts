@@ -10,7 +10,8 @@ import { uploadWithWatermark, getSubscriptionAwareImageUrl } from './imageWaterm
 export const getSecurePhotoUrl = async (
   photoId: string,
   subscriptionTier: string,
-  originalUrl: string
+  originalUrl: string,
+  watermarkedUrl?: string | null
 ): Promise<string> => {
   try {
     // Check if user has a paid subscription
@@ -19,6 +20,11 @@ export const getSecurePhotoUrl = async (
     // For premium users, return the premium URL
     if (hasPremiumAccess) {
       return originalUrl;
+    }
+    
+    // If watermarked URL is provided directly, use it
+    if (watermarkedUrl) {
+      return watermarkedUrl;
     }
     
     // For non-premium users, try to get the watermarked version
@@ -76,6 +82,16 @@ export const securePhotos = async (
   // Try to replace URLs with watermarked versions
   const updatedPhotos = await Promise.all(photos.map(async (photo) => {
     try {
+      // Check if we already have a watermarked_url in the database
+      if (photo.watermarkedUrl) {
+        return {
+          ...photo,
+          image: photo.watermarkedUrl,
+          thumbnail: photo.watermarkedUrl
+        };
+      }
+      
+      // Fall back to the older method if watermarkedUrl is not available
       const image = photo.image;
       const watermarkedUrl = await getSecurePhotoUrl('', 'free', image);
       

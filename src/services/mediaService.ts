@@ -1,12 +1,14 @@
 
 import { supabase } from '@/lib/supabaseClient';
 import { Video } from './videoService';
+import { uploadSecurePhoto } from './securePhotoService';
 
 export interface MediaItem {
   id: string;
   title: string | null;
   file_url: string;
   thumbnail_url: string | null;
+  watermarked_url?: string | null;  // Add the watermarked URL field
   category: string | null;
   views: number | null;
   media_type: string;
@@ -117,7 +119,7 @@ export const uploadMediaFile = async (
   file: File,
   contentType: 'photo' | 'video',
   userId: string
-): Promise<{ url: string; thumbnailUrl?: string } | null> => {
+): Promise<{ url: string; thumbnailUrl?: string; watermarkedUrl?: string } | null> => {
   try {
     if (!file || !userId) {
       console.error('Missing required parameters for upload');
@@ -127,37 +129,49 @@ export const uploadMediaFile = async (
     const fileExt = file.name.split('.').pop();
     const fileName = `${userId}/${Date.now()}.${fileExt}`;
     
-    // Use different bucket based on content type
-    const bucketName = contentType === 'photo' ? 'photos-premium' : 'videos';
-    
-    // Upload file to storage
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from(bucketName)
-      .upload(fileName, file, {
-        cacheControl: '3600',
-        upsert: false
-      });
+    // Use different upload method based on content type
+    if (contentType === 'photo') {
+      // For photos, use secure upload with watermarking
+      const result = await uploadSecurePhoto(file, userId, 'free');
+      if (!result) return null;
       
-    if (uploadError) {
-      console.error(`Error uploading ${contentType}:`, uploadError);
-      return null;
+      return {
+        url: result.url,
+        watermarkedUrl: result.watermarkedUrl
+      };
+    } else {
+      // For videos, use simple upload
+      const bucketName = 'videos';
+      
+      // Upload file to storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from(bucketName)
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+        
+      if (uploadError) {
+        console.error(`Error uploading ${contentType}:`, uploadError);
+        return null;
+      }
+      
+      // Get public URL for the file
+      const { data: urlData } = supabase.storage
+        .from(bucketName)
+        .getPublicUrl(fileName);
+        
+      const fileUrl = urlData?.publicUrl;
+      
+      // For videos, we could generate a thumbnail here
+      // For simplicity, we'll just use the video itself as the thumbnail
+      let thumbnailUrl = fileUrl;
+      
+      return { 
+        url: fileUrl, 
+        thumbnailUrl 
+      };
     }
-    
-    // Get public URL for the file
-    const { data: urlData } = supabase.storage
-      .from(bucketName)
-      .getPublicUrl(fileName);
-      
-    const fileUrl = urlData?.publicUrl;
-    
-    // For videos, we could generate a thumbnail here
-    // For simplicity, we'll just use the video itself as the thumbnail
-    let thumbnailUrl = contentType === 'video' ? fileUrl : undefined;
-    
-    return { 
-      url: fileUrl, 
-      thumbnailUrl 
-    };
   } catch (error) {
     console.error(`Error in uploadMediaFile:`, error);
     return null;
@@ -175,6 +189,7 @@ export const saveMediaMetadata = async (
     userId: string;
     fileUrl: string;
     thumbnailUrl?: string;
+    watermarkedUrl?: string;
     contentType: 'photo' | 'video';
     location?: string;
     tags?: string[];
@@ -216,6 +231,7 @@ export const saveMediaMetadata = async (
         user_id: mediaData.userId,
         file_url: mediaData.fileUrl,
         thumbnail_url: mediaData.thumbnailUrl,
+        watermarked_url: mediaData.watermarkedUrl, // Store the watermarked URL
         content_type: mediaData.contentType,
         media_type: mediaData.contentType === 'photo' ? 'image/jpeg' : 'video/mp4',
         post_id: postId // Link media to the post
@@ -262,6 +278,7 @@ export const uploadMedia = async (
       ...metadata,
       fileUrl: uploadResult.url,
       thumbnailUrl: uploadResult.thumbnailUrl,
+      watermarkedUrl: uploadResult.watermarkedUrl, // Add the watermarked URL
       existingPostId: metadata.existingPostId
     });
     

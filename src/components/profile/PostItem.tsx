@@ -1,3 +1,4 @@
+
 import { Heart, MessageCircle, User } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
@@ -148,14 +149,18 @@ const PostItem = ({ post, handleLikePost }: PostItemProps) => {
 
   // Generate the correct profile URL using username if available, otherwise ID
   const getProfileUrl = () => {
-    if (authorData) {
-      if (authorData.username) {
-        return `/profile?name=${authorData.username}`;
-      } else if (authorData.id) {
-        return `/profile?id=${authorData.id}`;
-      }
+    if (!authorData) return "#";
+    
+    // Check if this is the current logged-in user
+    const isCurrentUser = user && authorData.id === user.id;
+    
+    if (isCurrentUser) {
+      // For current user, just return /profile
+      return "/profile";
+    } else {
+      // For other users, use ID parameter
+      return `/profile?id=${authorData.id}`;
     }
-    return "#";
   };
 
   // Get avatar URL with prioritized sources and proper debugging

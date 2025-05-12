@@ -1,3 +1,4 @@
+
 import { Separator } from "@/components/ui/separator";
 import { User, Heart, MessageCircle, Lock, Gift } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -92,12 +93,17 @@ const PostFeed = () => {
 
   // Handle profile click to navigate to the user's profile
   const handleProfileClick = (author: any) => {
-    if (author) {
-      if (author.username) {
-        navigate(`/profile?name=${author.username}`);
-      } else if (author.id) {
-        navigate(`/profile?id=${author.id}`);
-      }
+    if (!author) return;
+    
+    // Check if this is the current logged-in user
+    const isCurrentUser = user && author.id === user.id;
+    
+    if (isCurrentUser) {
+      // For current user, just go to /profile
+      navigate(`/profile`);
+    } else {
+      // For other users, use ID parameter
+      navigate(`/profile?id=${author.id}`);
     }
   };
 

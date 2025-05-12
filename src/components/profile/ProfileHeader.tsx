@@ -307,11 +307,25 @@ const ProfileHeader = ({
       {/* Relationship Dialog for friends */}
       {isDialogOpen && (
         <RelationshipDialog 
-          open={isDialogOpen} 
-          onOpenChange={setIsDialogOpen} 
+          open={isDialogOpen}
+          setOpen={setIsDialogOpen}
+          onOpenChange={setIsDialogOpen}
           userId={userId}
           name={name}
           setFriendshipStatus={setFriendshipStatus}
+          // Add defaults for required props
+          selectedRelationshipStatus={null}
+          setSelectedRelationshipStatus={() => {}}
+          relationshipPartners={[]}
+          handleRemovePartner={() => {}}
+          availablePartners={[]}
+          partnerSearchOpen={false}
+          setPartnerSearchOpen={() => {}}
+          searchQuery=""
+          setSearchQuery={() => {}}
+          handleAddPartner={() => {}}
+          relationshipStatuses={[]}
+          handleSaveRelationship={() => {}}
         />
       )}
     </div>

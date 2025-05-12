@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
@@ -37,7 +36,7 @@ const ProfileTabs: React.FC<ProfileTabsProps> = ({ userId }) => {
           .from('posts')
           .select(`
             *,
-            author:profiles!posts_user_id_fkey (id, full_name, username, avatar_url, subscription_tier)
+            author:profiles!posts_user_id_fkey (id, full_name, username, avatar_url, profile_picture_url, subscription_tier)
           `)
           .eq('user_id', userId)
           .order('created_at', { ascending: false });

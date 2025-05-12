@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/contexts/auth/AuthProvider";
 import Sidebar from "@/components/Sidebar";
@@ -11,20 +11,24 @@ import ProfileHeader from "@/components/profile/ProfileHeader";
 import ProfileTabs from "@/components/profile/ProfileTabs";
 import Footer from "@/components/Footer";
 
-interface ProfileParams {
-  [key: string]: string | undefined;
-  userId?: string;
-}
-
 const Profile = () => {
-  const { userId } = useParams<ProfileParams>();
+  // Use location to get query parameters
+  const location = useLocation();
+  const queryParams = new URLSearchParams(location.search);
+  const paramUserId = queryParams.get('id');
+  
   const { user } = useAuth();
   const navigate = useNavigate();
   const [profileData, setProfileData] = useState<any>(null);
   const [isMyProfile, setIsMyProfile] = useState(false);
   
-  // If no userId is provided, show the current user's profile
-  const profileId = userId || user?.id;
+  // If a userId is provided in URL params, use that, otherwise show the current user's profile
+  const profileId = paramUserId || user?.id;
+  
+  // Debug logs
+  console.log("URL parameter userId:", paramUserId);
+  console.log("Current logged in user:", user?.id);
+  console.log("Profile to display:", profileId);
   
   // Fetch profile data
   useEffect(() => {

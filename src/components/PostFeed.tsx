@@ -12,8 +12,6 @@ import { format } from "date-fns";
 import RefreshableFeed from "./RefreshableFeed";
 import { supabase } from "@/lib/supabaseClient";
 import { shouldShowWatermark } from "@/services/securePhotoService";
-
-// Add new import
 import Watermark from "@/components/media/Watermark";
 
 const PostFeed = () => {
@@ -391,32 +389,11 @@ const PostFeed = () => {
                           >
                             <div className="relative">
                               <img 
-                                src={!subscriptionDetails.canViewPhotos || shouldShowWatermark(post.media[0].file_url) ? 
-                                  (post.media[0].file_url.includes('?') ? 
-                                    `${post.media[0].file_url}&watermark=true` : 
-                                    `${post.media[0].file_url}?watermark=true`) 
-                                  : post.media[0].file_url} 
+                                src={post.media[0].file_url} 
                                 alt="Post image" 
-                                className={`rounded-lg w-full ${!subscriptionDetails.canViewPhotos ? 'blur-sm filter saturate-50' : ''}`}
+                                className="rounded-lg w-full"
                               />
-                              {(!subscriptionDetails.canViewPhotos || shouldShowWatermark(post.media[0].file_url)) && (
-                                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                                  <Lock className="h-12 w-12 text-white/70 mb-2" />
-                                  <p className="text-white/80 mb-4">Full quality photo requires a subscription</p>
-                                  <Button 
-                                    size="sm" 
-                                    variant="outline" 
-                                    className="bg-white/20 hover:bg-white/30 text-white border-white/20"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      navigate('/shop');
-                                    }}
-                                  >
-                                    View Plans
-                                  </Button>
-                                </div>
-                              )}
-                              {(!subscriptionDetails.canViewPhotos || shouldShowWatermark(post.media[0].file_url)) && (
+                              {shouldShowWatermark(post.media[0].file_url) && (
                                 <Watermark />
                               )}
                             </div>
@@ -428,11 +405,7 @@ const PostFeed = () => {
                             {playingVideo === post.id && subscriptionDetails.canViewVideos ? (
                               <div className="relative">
                                 <video 
-                                  src={shouldShowWatermark(post.media[0].file_url) ? 
-                                  (post.media[0].file_url.includes('?') ? 
-                                    `${post.media[0].file_url}&watermark=true` : 
-                                    `${post.media[0].file_url}?watermark=true`) 
-                                  : post.media[0].file_url}
+                                  src={post.media[0].file_url}
                                   controls 
                                   autoPlay 
                                   className="w-full"
@@ -469,34 +442,14 @@ const PostFeed = () => {
                                     handleMediaClick(post, true);
                                   }}
                                 >
-                                  {subscriptionDetails.canViewVideos ? (
-                                    <div className="w-14 h-14 rounded-full bg-white/30 flex items-center justify-center">
-                                      <div className="w-12 h-12 rounded-full bg-white/80 flex items-center justify-center">
-                                        <Play className="h-6 w-6 text-red-600 ml-1" />
-                                      </div>
+                                  <div className="w-14 h-14 rounded-full bg-white/30 flex items-center justify-center">
+                                    <div className="w-12 h-12 rounded-full bg-white/80 flex items-center justify-center">
+                                      <Play className="h-6 w-6 text-red-600 ml-1" />
                                     </div>
-                                  ) : (
-                                    <>
-                                      <Lock className="h-12 w-12 text-white/70 mb-2" />
-                                      <div className="absolute bottom-8 text-center">
-                                        <p className="text-white/80 mb-4">Video content requires a subscription</p>
-                                        <Button 
-                                          size="sm" 
-                                          variant="outline" 
-                                          className="bg-white/20 hover:bg-white/30 text-white border-white/20"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            navigate('/shop');
-                                          }}
-                                        >
-                                          View Plans
-                                        </Button>
-                                      </div>
-                                    </>
-                                  )}
+                                  </div>
                                 </div>
                                 
-                                {(!subscriptionDetails.canViewVideos || shouldShowWatermark(post.media[0].file_url)) && (
+                                {shouldShowWatermark(post.media[0].file_url) && (
                                   <Watermark />
                                 )}
                               </div>

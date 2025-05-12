@@ -321,19 +321,17 @@ const PostItem = ({ post, handleLikePost }: PostItemProps) => {
               className="block cursor-pointer relative"
               onClick={() => navigate(`/post?postId=${post.id}&type=photo`)}
             >
-              <img 
-                src={getMediaUrl()} 
-                alt="Photo attachment" 
-                className={`w-full h-auto rounded-md hover:opacity-95 transition-opacity object-contain max-h-[600px] ${!userCanViewThisContent ? 'blur-sm filter saturate-50' : ''}`}
-              />
-              
-              {(!userCanViewThisContent || shouldDisplayWatermark) && (
-                <div className="absolute inset-0 overflow-hidden">
-                  <div className="absolute inset-0 w-full h-full flex items-center justify-center">
-                    <Watermark />
-                  </div>
-                </div>
-              )}
+              <div className="relative">
+                <img 
+                  src={getMediaUrl()} 
+                  alt="Photo attachment" 
+                  className="w-full h-auto rounded-md hover:opacity-95 transition-opacity object-contain max-h-[600px]"
+                />
+                
+                {shouldDisplayWatermark && (
+                  <Watermark />
+                )}
+              </div>
             </div>
           )}
           
@@ -345,7 +343,7 @@ const PostItem = ({ post, handleLikePost }: PostItemProps) => {
               <img 
                 src={getThumbnailUrl()}
                 alt="Video thumbnail" 
-                className={`w-full h-full object-contain max-h-[600px] ${!userCanViewThisContent ? 'blur-sm filter saturate-50' : ''}`}
+                className="w-full h-full object-contain max-h-[600px]"
               />
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="w-16 h-16 rounded-full bg-black/30 flex items-center justify-center">
@@ -355,7 +353,7 @@ const PostItem = ({ post, handleLikePost }: PostItemProps) => {
                 </div>
               </div>
               
-              {(!userCanViewThisContent || shouldDisplayWatermark) && (
+              {shouldDisplayWatermark && (
                 <Watermark />
               )}
             </div>

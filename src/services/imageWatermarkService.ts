@@ -1,3 +1,4 @@
+
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/contexts/auth/AuthProvider';
 
@@ -54,6 +55,7 @@ export const addWatermark = async (file: File): Promise<Blob> => {
 
 /**
  * Upload a file to both premium and watermarked buckets
+ * We always add watermarks to all photos
  */
 export const uploadWithWatermark = async (
   file: File,
@@ -118,17 +120,12 @@ export const uploadWithWatermark = async (
 
 /**
  * Get the appropriate image URL based on subscription status
+ * We now always show watermarked images regardless of subscription status
  */
 export const getSubscriptionAwareImageUrl = async (
   originalUrl: string,
   isSubscribed: boolean
 ): Promise<string> => {
-  // If the user is subscribed, return the premium URL
-  if (isSubscribed) {
-    return originalUrl;
-  }
-  
-  // Otherwise, try to get the watermarked version
   try {
     // Extract the path from the URL to find the watermarked version
     const urlObj = new URL(originalUrl);

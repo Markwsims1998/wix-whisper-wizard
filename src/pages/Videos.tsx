@@ -9,7 +9,8 @@ import MediaViewer from "@/components/media/MediaViewer";
 import ContentUploader from "@/components/media/ContentUploader";
 import VideoCard from "@/components/videos/VideoCard";
 import VideoFilter from "@/components/videos/VideoFilter";
-import { fetchVideos, Video } from "@/services/videoService";
+import { fetchMedia, convertToVideoFormat } from "@/services/mediaService";
+import { Video } from "@/services/videoService";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Info } from "lucide-react";
@@ -64,8 +65,8 @@ const Videos = () => {
     const loadVideos = async () => {
       setIsLoading(true);
       try {
-        const data = await fetchVideos(selectedCategory);
-        setVideos(data);
+        const mediaItems = await fetchMedia('video', selectedCategory);
+        setVideos(convertToVideoFormat(mediaItems));
       } catch (error) {
         console.error("Error loading videos:", error);
         toast({
@@ -80,9 +81,6 @@ const Videos = () => {
     
     loadVideos();
   }, [selectedCategory, toast]);
-
-  // No need to filter videos here as it's done in the database query
-  const filteredVideos = videos;
 
   const handleVideoClick = (video: Video) => {
     if (canViewVideos) {
@@ -99,7 +97,7 @@ const Videos = () => {
       description: "Your video has been uploaded successfully.",
     });
     // Refresh videos list
-    fetchVideos(selectedCategory).then(data => setVideos(data));
+    fetchMedia('video', selectedCategory).then(data => setVideos(convertToVideoFormat(data)));
   };
 
   return (
@@ -140,9 +138,9 @@ const Videos = () => {
                 <div className="w-16 h-16 border-4 border-purple-200 border-t-purple-500 rounded-full animate-spin mb-4"></div>
                 <p className="text-gray-500 dark:text-gray-400">Loading videos...</p>
               </div>
-            ) : filteredVideos.length > 0 ? (
+            ) : videos.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {filteredVideos.map(video => (
+                {videos.map(video => (
                   <VideoCard 
                     key={video.id}
                     video={video}

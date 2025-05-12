@@ -11,7 +11,26 @@ import { Badge } from "@/components/ui/badge";
 import ContentUploader from "@/components/media/ContentUploader";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { fetchPhotos, Photo } from "@/services/photoService";
+import { fetchMedia, MediaItem } from "@/services/mediaService";
+
+interface Photo {
+  id: string;
+  title: string;
+  image: string;
+  thumbnail?: string;
+  author: string;
+  authorId: string;
+  authorPic?: string;
+  likes: number;
+  category: string;
+  postId?: string;
+  user?: {
+    id: string;
+    username: string;
+    full_name: string | null;
+    avatar_url: string | null;
+  } | null;
+}
 
 const Photos = () => {
   const { subscriptionDetails } = useSubscription();
@@ -65,8 +84,9 @@ const Photos = () => {
     const loadPhotos = async () => {
       try {
         setIsLoading(true);
-        const data = await fetchPhotos(selectedCategory);
-        setPhotos(data);
+        const mediaItems = await fetchMedia('photo', selectedCategory);
+        const convertedPhotos = convertToPhotoFormat(mediaItems);
+        setPhotos(convertedPhotos);
         setIsLoading(false);
       } catch (error) {
         console.error("Failed to load photos:", error);
@@ -82,8 +102,22 @@ const Photos = () => {
     loadPhotos();
   }, [selectedCategory, toast]);
 
-  // No longer need to filter photos here as it's done in the database query
-  const filteredPhotos = photos;
+  // Convert MediaItems to Photo format
+  const convertToPhotoFormat = (mediaItems: MediaItem[]): Photo[] => {
+    return mediaItems.map(item => ({
+      id: item.id,
+      title: item.title || 'Untitled Photo',
+      image: item.file_url,
+      thumbnail: item.thumbnail_url || item.file_url,
+      author: item.user?.full_name || item.user?.username || 'Unknown',
+      authorId: item.user_id,
+      authorPic: item.user?.avatar_url || undefined,
+      likes: 0, // We don't have likes count in media table yet
+      category: item.category || 'uncategorized',
+      postId: item.post_id || undefined,
+      user: item.user
+    }));
+  };
 
   const handlePhotoClick = (photo: Photo) => {
     setSelectedPhoto(photo);
@@ -100,7 +134,7 @@ const Photos = () => {
       description: "Your photo has been uploaded successfully.",
     });
     // Refresh photos list after successful upload
-    fetchPhotos(selectedCategory).then(data => setPhotos(data));
+    fetchMedia('photo', selectedCategory).then(data => setPhotos(convertToPhotoFormat(data)));
   };
 
   return (
@@ -157,9 +191,9 @@ const Photos = () => {
                 <div className="w-16 h-16 border-4 border-purple-200 border-t-purple-500 rounded-full animate-spin mb-4"></div>
                 <p className="text-gray-500 dark:text-gray-400">Loading photos...</p>
               </div>
-            ) : filteredPhotos.length > 0 ? (
+            ) : photos.length > 0 ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-                {filteredPhotos.map(photo => (
+                {photos.map(photo => (
                   <div 
                     key={photo.id} 
                     className="bg-gray-50 dark:bg-gray-700 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition cursor-pointer group"

@@ -168,15 +168,25 @@ const CommentsPage = () => {
         return [];
       }
       
-      // Fixed: Properly map each item in the data array
+      // Fixed: Properly access individual profile properties
       return data.map(item => {
         const profile = item.profiles;
+        if (!profile) {
+          return {
+            id: '',
+            username: '',
+            full_name: '',
+            avatar_url: null,
+            profile_picture_url: null
+          };
+        }
+        
         return {
-          id: profile?.id || '',
-          username: profile?.username || '',
-          full_name: profile?.full_name || '',
-          avatar_url: profile?.avatar_url || null,
-          profile_picture_url: profile?.profile_picture_url || null
+          id: profile.id || '',
+          username: profile.username || '',
+          full_name: profile.full_name || '',
+          avatar_url: profile.avatar_url || null,
+          profile_picture_url: profile.profile_picture_url || null
         };
       });
     } catch (error) {

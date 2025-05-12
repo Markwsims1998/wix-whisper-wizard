@@ -70,7 +70,7 @@ export const getPosts = async (): Promise<Post[]> => {
       ...post,
       likes_count: post.likes?.length || 0,
       comments_count: post.comments?.length || 0,
-      author: post.author ? post.author[0] : undefined
+      author: post.author && post.author[0] ? post.author[0] : undefined
     }));
 
     return postsWithLikes as Post[];
@@ -155,7 +155,7 @@ export const getUserPosts = async (userId: string): Promise<Post[]> => {
       ...post,
       likes_count: post.likes?.length || 0,
       comments_count: post.comments?.length || 0,
-      author: post.author ? post.author[0] : undefined
+      author: post.author && post.author[0] ? post.author[0] : undefined
     }));
 
     return postsWithLikes as Post[];
@@ -209,7 +209,7 @@ export const getPostById = async (postId: string): Promise<{ success: boolean; p
       ...post,
       likes_count: post.likes?.length || 0,
       comments_count: post.comments?.length || 0,
-      author: post.author ? post.author[0] : undefined
+      author: post.author && post.author[0] ? post.author[0] : undefined
     };
 
     return { success: true, post: postWithLikes as Post };
@@ -289,7 +289,7 @@ export const createPost = async (
       ...post,
       likes_count: post.likes?.length || 0,
       comments_count: post.comments?.length || 0,
-      author: post.author ? post.author[0] : undefined
+      author: post.author && post.author[0] ? post.author[0] : undefined
     };
 
     return { success: true, post: postWithLikes as Post };
@@ -349,6 +349,7 @@ export const likePost = async (postId: string, userId: string): Promise<{ succes
   }
 };
 
+// Fix the getLikesForPost function
 export const getLikesForPost = async (postId: string) => {
   try {
     const { data, error } = await supabase
@@ -370,15 +371,26 @@ export const getLikesForPost = async (postId: string) => {
       return [];
     }
     
-    // Fixed: Properly map each item in the data array
+    // Fixed: Properly access individual profile properties
     return data.map(item => {
+      // Check if profiles exists and is an object
       const profile = item.profiles;
+      if (!profile) {
+        return {
+          id: '',
+          username: '',
+          full_name: '',
+          avatar_url: null,
+          profile_picture_url: null
+        };
+      }
+      
       return {
-        id: profile?.id || '',
-        username: profile?.username || '',
-        full_name: profile?.full_name || '',
-        avatar_url: profile?.avatar_url || null,
-        profile_picture_url: profile?.profile_picture_url || null
+        id: profile.id || '',
+        username: profile.username || '',
+        full_name: profile.full_name || '',
+        avatar_url: profile.avatar_url || null,
+        profile_picture_url: profile.profile_picture_url || null
       };
     });
   } catch (error) {
@@ -444,7 +456,7 @@ export const getCommentsForPost = async (postId: string): Promise<any[]> => {
     }
   };
   
-  export const deleteComment = async (commentId: string): Promise<{ success: boolean }> => {
+  export const deleteComment = async (commentId: string): Promise<{ success: boolean; error?: string }> => {
     try {
       const { error } = await supabase
         .from('comments')
@@ -453,12 +465,11 @@ export const getCommentsForPost = async (postId: string): Promise<any[]> => {
   
       if (error) {
         console.error("Error deleting comment:", error);
-        return { success: false };
+        return { success: false, error: error.message };
       }
   
       return { success: true };
-    } catch (error) {
-      console.error("Error deleting comment:", error);
-      return { success: false };
+    } catch (error: any) {
+      return { success: false, error: error.message };
     }
   };

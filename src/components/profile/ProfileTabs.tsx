@@ -115,17 +115,24 @@ const ProfileTabs: React.FC<ProfileTabsProps> = ({ userId }) => {
             const post = like.posts;
             if (!post) return null;
             
-            // Access the first item in the profiles array (if it exists)
+            // Access the profiles array safely
             const profile = post.profiles && post.profiles.length > 0 ? post.profiles[0] : null;
             
             return {
               ...post,
-              author: profile || {},
-              // Get the media array directly without accessing it as an array property 
-              // (since it's already an array)
-              media: post.media || [],
-              likes_count: 0, // We'll fetch this separately
-              comments_count: 0 // We'll fetch this separately
+              author: profile ? {
+                id: profile.id || null,
+                username: profile.username || "Unknown",
+                fullName: profile.full_name || "Unknown User",
+                avatar: profile.avatar_url || null
+              } : {
+                id: null,
+                username: "Unknown",
+                fullName: "Unknown User",
+                avatar: null
+              },
+              // Get the media array directly
+              media: post.media || []
             };
           })
           .filter(Boolean); // Remove null entries

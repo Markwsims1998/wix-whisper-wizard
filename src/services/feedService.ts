@@ -101,25 +101,27 @@ export const getPosts = async (userId?: string): Promise<Post[]> => {
     }
 
     const posts: Post[] = data.map((post) => {
-      const author = post.profiles || {};
+      // Handle the profiles field properly - it might be null or an object, not an array
+      const authorProfile = post.profiles || {};
+      
       return {
         id: post.id,
         content: post.content,
         created_at: post.created_at,
         user_id: post.user_id,
         author: {
-          id: author ? author.id : null,
-          username: author ? author.username : "Unknown",
-          fullName: author ? author.full_name : "Unknown User",
-          avatar: author ? (author.avatar_url || author.profile_picture_url) : null,
-          full_name: author ? author.full_name : null,
-          avatar_url: author ? author.avatar_url : null,
-          profile_picture_url: author ? author.profile_picture_url : null,
-          subscription_tier: author ? author.subscription_tier : null,
+          id: authorProfile.id || null,
+          username: authorProfile.username || "Unknown",
+          fullName: authorProfile.full_name || "Unknown User",
+          avatar: authorProfile.avatar_url || authorProfile.profile_picture_url || null,
+          full_name: authorProfile.full_name || null,
+          avatar_url: authorProfile.avatar_url || null,
+          profile_picture_url: authorProfile.profile_picture_url || null,
+          subscription_tier: authorProfile.subscription_tier || null,
         },
         media: post.media || [],
-        likes_count: post.likes_count ? post.likes_count[0].count : 0,
-        comments_count: post.comments_count ? post.comments_count[0].count : 0,
+        likes_count: post.likes_count?.[0]?.count || 0,
+        comments_count: post.comments_count?.[0]?.count || 0,
       };
     });
 
@@ -195,28 +197,30 @@ export const fetchPosts = async (
     }
 
     const posts: Post[] = data.map((post) => {
-      const author = post.profiles || {};
+      // Handle the profiles field properly - it might be null or an object, not an array
+      const authorProfile = post.profiles || {};
+      
       return {
         id: post.id,
         content: post.content,
         created_at: post.created_at,
         user_id: post.user_id,
         author: {
-          id: author ? author.id : null,
-          username: author ? author.username : "Unknown",
-          fullName: author ? author.full_name : "Unknown User",
-          avatar: author ? (author.avatar_url || author.profile_picture_url) : null,
-          full_name: author ? author.full_name : null,
-          avatar_url: author ? author.avatar_url : null,
-          profile_picture_url: author ? author.profile_picture_url : null,
-          subscription_tier: author ? author.subscription_tier : null,
+          id: authorProfile.id || null,
+          username: authorProfile.username || "Unknown",
+          fullName: authorProfile.full_name || "Unknown User",
+          avatar: authorProfile.avatar_url || authorProfile.profile_picture_url || null,
+          full_name: authorProfile.full_name || null,
+          avatar_url: authorProfile.avatar_url || null,
+          profile_picture_url: authorProfile.profile_picture_url || null,
+          subscription_tier: authorProfile.subscription_tier || null,
         },
         media: post.media ? post.media.map(item => ({
           ...item,
           media_type: item.media_type || item.content_type
         })) : [],
-        likes_count: post.likes_count ? post.likes_count[0].count : 0,
-        comments_count: post.comments_count ? post.comments_count[0].count : 0,
+        likes_count: post.likes_count?.[0]?.count || 0,
+        comments_count: post.comments_count?.[0]?.count || 0,
       };
     });
 
@@ -272,28 +276,30 @@ export const getPostById = async (postId: string): Promise<{ success: boolean; p
       return { success: false, post: null, error: error.message };
     }
 
-    const author = data.profiles || {};
+    // Handle the profiles field properly - it might be null or an object, not an array
+    const authorProfile = data.profiles || {};
+    
     const post: Post = {
       id: data.id,
       content: data.content,
       created_at: data.created_at,
       user_id: data.user_id,
       author: {
-        id: author ? author.id : null,
-        username: author ? author.username : "Unknown",
-        fullName: author ? author.full_name : "Unknown User",
-        avatar: author ? (author.avatar_url || author.profile_picture_url) : null,
-        full_name: author ? author.full_name : null,
-        avatar_url: author ? author.avatar_url : null,
-        profile_picture_url: author ? author.profile_picture_url : null,
-        subscription_tier: author ? author.subscription_tier : null,
+        id: authorProfile.id || null,
+        username: authorProfile.username || "Unknown",
+        fullName: authorProfile.full_name || "Unknown User",
+        avatar: authorProfile.avatar_url || authorProfile.profile_picture_url || null,
+        full_name: authorProfile.full_name || null,
+        avatar_url: authorProfile.avatar_url || null,
+        profile_picture_url: authorProfile.profile_picture_url || null,
+        subscription_tier: authorProfile.subscription_tier || null,
       },
       media: data.media ? data.media.map(item => ({
         ...item,
         media_type: item.media_type || item.content_type
       })) : [],
-      likes_count: data.likes_count ? data.likes_count[0].count : 0,
-      comments_count: data.comments_count ? data.comments_count[0].count : 0,
+      likes_count: data.likes_count?.[0]?.count || 0,
+      comments_count: data.comments_count?.[0]?.count || 0,
     };
 
     return { success: true, post };
@@ -492,11 +498,11 @@ export const getLikesForPost = async (postId: string): Promise<LikeUser[]> => {
     const users: LikeUser[] = data.map((like) => {
       const profile = like.profiles || {};
       return {
-        id: profile.id,
-        username: profile.username,
-        full_name: profile.full_name,
-        avatar_url: profile.avatar_url,
-        profile_picture_url: profile.profile_picture_url
+        id: profile.id || '',
+        username: profile.username || null,
+        full_name: profile.full_name || null,
+        avatar_url: profile.avatar_url || null,
+        profile_picture_url: profile.profile_picture_url || null
       };
     });
 
@@ -541,7 +547,9 @@ export const fetchComments = async (postId: string): Promise<Comment[]> => {
     }
 
     const comments: Comment[] = data.map((comment) => {
-      const author = comment.profiles || {};
+      // Handle the profiles field properly - it might be null or an object, not an array
+      const authorProfile = comment.profiles || {};
+      
       return {
         id: comment.id,
         content: comment.content,
@@ -549,13 +557,13 @@ export const fetchComments = async (postId: string): Promise<Comment[]> => {
         user_id: comment.user_id,
         post_id: comment.post_id,
         author: {
-          id: author ? author.id : null,
-          username: author ? author.username : "Unknown",
-          fullName: author ? author.full_name : "Unknown User",
-          avatar: author ? (author.avatar_url || author.profile_picture_url) : null,
-          full_name: author ? author.full_name : null,
-          avatar_url: author ? author.avatar_url : null,
-          profile_picture_url: author ? author.profile_picture_url : null,
+          id: authorProfile.id || null,
+          username: authorProfile.username || "Unknown",
+          fullName: authorProfile.full_name || "Unknown User",
+          avatar: authorProfile.avatar_url || authorProfile.profile_picture_url || null,
+          full_name: authorProfile.full_name || null,
+          avatar_url: authorProfile.avatar_url || null,
+          profile_picture_url: authorProfile.profile_picture_url || null,
         },
       };
     });
@@ -606,7 +614,9 @@ export const addComment = async (
       return null;
     }
 
-    const author = data.profiles || {};
+    // Handle the profiles field properly - it might be null or an object, not an array
+    const authorProfile = data.profiles || {};
+    
     const newComment: Comment = {
       id: data.id,
       content: data.content,
@@ -614,13 +624,13 @@ export const addComment = async (
       user_id: data.user_id,
       post_id: data.post_id,
       author: {
-        id: author ? author.id : null,
-        username: author ? author.username : "Unknown",
-        fullName: author ? author.full_name : "Unknown User",
-        avatar: author ? (author.avatar_url || author.profile_picture_url) : null,
-        full_name: author ? author.full_name : null,
-        avatar_url: author ? author.avatar_url : null,
-        profile_picture_url: author ? author.profile_picture_url : null,
+        id: authorProfile.id || null,
+        username: authorProfile.username || "Unknown",
+        fullName: authorProfile.full_name || "Unknown User",
+        avatar: authorProfile.avatar_url || authorProfile.profile_picture_url || null,
+        full_name: authorProfile.full_name || null,
+        avatar_url: authorProfile.avatar_url || null,
+        profile_picture_url: authorProfile.profile_picture_url || null,
       },
     };
 

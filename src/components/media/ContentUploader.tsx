@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -115,7 +114,15 @@ const ContentUploader: React.FC<ContentUploaderProps> = ({
         });
         
         if (!mediaData) {
-          throw new Error(`Failed to upload ${contentType}`);
+          // New error logging with more details
+          console.error(`Upload failed for file:`, {
+            filename: selectedFile.name,
+            type: selectedFile.type,
+            size: selectedFile.size,
+            contentType: contentType,
+            category: category
+          });
+          throw new Error(`Failed to upload ${contentType}. Check console for details.`);
         }
         
         console.log(`${contentType} uploaded successfully:`, mediaData);

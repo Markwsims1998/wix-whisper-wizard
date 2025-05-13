@@ -216,6 +216,12 @@ export const saveMediaMetadata = async (
       console.log('Using existing post ID for media:', postId);
     }
     
+    // FIX: Use correct media_type values for database compatibility
+    // Previous values were MIME types (like 'image/jpeg') which violate DB constraints
+    const mediaType = mediaData.contentType === 'photo' ? 'image' : 'video';
+    
+    console.log(`Saving media with type: ${mediaType} for content type: ${mediaData.contentType}`);
+    
     // Then save the media linked to the post
     const { data, error } = await supabase
       .from('media')
@@ -226,7 +232,7 @@ export const saveMediaMetadata = async (
         file_url: mediaData.fileUrl,
         thumbnail_url: mediaData.thumbnailUrl,
         content_type: mediaData.contentType,
-        media_type: mediaData.contentType === 'photo' ? 'image/jpeg' : 'video/mp4',
+        media_type: mediaType, // Use simple 'image' or 'video' instead of MIME types
         post_id: postId // Link media to the post
       })
       .select('*, user:user_id(id, username, full_name, avatar_url)')
@@ -234,6 +240,12 @@ export const saveMediaMetadata = async (
       
     if (error) {
       console.error('Error saving media metadata:', error);
+      console.error('Failed data:', JSON.stringify({
+        title: mediaData.title,
+        category: mediaData.category,
+        contentType: mediaData.contentType,
+        mediaType: mediaType,
+      }));
       return null;
     }
     

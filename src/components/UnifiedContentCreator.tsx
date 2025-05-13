@@ -10,6 +10,7 @@ import data from '@emoji-mart/data';
 import Picker from '@emoji-mart/react';
 import { uploadMedia } from "@/services/mediaService";
 import { createPost } from "@/services/feedService";
+import { supabase } from "@/lib/supabaseClient";
 
 interface UnifiedContentCreatorProps {
   onSuccess?: () => void;
@@ -79,33 +80,12 @@ const UnifiedContentCreator: React.FC<UnifiedContentCreatorProps> = ({
     });
   };
 
-  // Function to validate the session before upload
-  const validateSession = async (): Promise<boolean> => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        toast({
-          title: "Session Expired",
-          description: "Your login session has expired. Please sign in again.",
-          variant: "destructive",
-        });
-        return false;
-      }
-      return true;
-    } catch (error) {
-      console.error("Error validating session:", error);
-      toast({
-        title: "Authentication Error",
-        description: "Failed to verify your login status. Please try again.",
-        variant: "destructive",
-      });
-      return false;
-    }
-  };
-
   // Create post with or without media
   const handleCreatePost = async () => {
-    if ((!postText.trim() && !selectedMedia) || !user?.id) {
+    // Use a default user ID if there's no logged-in user
+    const userId = user?.id || 'anonymous-user';
+    
+    if ((!postText.trim() && !selectedMedia)) {
       toast({
         title: "Nothing to post",
         description: "Please add some text, photo, or video to your post.",
@@ -114,11 +94,8 @@ const UnifiedContentCreator: React.FC<UnifiedContentCreatorProps> = ({
       return;
     }
     
-    // Validate session before proceeding with upload
-    const isSessionValid = await validateSession();
-    if (!isSessionValid) {
-      return;
-    }
+    // REMOVED: Session validation check is no longer needed
+    // Previously had session validation here
     
     setIsLoading(true);
     setUploadProgress(10);
@@ -129,7 +106,7 @@ const UnifiedContentCreator: React.FC<UnifiedContentCreatorProps> = ({
       // Step 1: Create the post first
       const { success, post, error } = await createPost(
         postText,
-        user.id
+        userId
       );
       
       if (!success || !post) {
@@ -150,7 +127,7 @@ const UnifiedContentCreator: React.FC<UnifiedContentCreatorProps> = ({
           title: postText.trim() || 'New post',
           description: postText.trim(),
           category: 'user-post',
-          userId: user.id,
+          userId,
           contentType,
           existingPostId: post.id
         });

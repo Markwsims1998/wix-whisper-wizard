@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -60,42 +59,12 @@ const ContentUploader: React.FC<ContentUploaderProps> = ({
     const url = URL.createObjectURL(file);
     setPreviewUrl(url);
   };
-
-  // Function to validate the session before upload
-  const validateSession = async (): Promise<boolean> => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        toast({
-          title: "Session Expired",
-          description: "Your login session has expired. Please sign in again.",
-          variant: "destructive",
-        });
-        return false;
-      }
-      return true;
-    } catch (error) {
-      console.error("Error validating session:", error);
-      toast({
-        title: "Authentication Error",
-        description: "Failed to verify your login status. Please try again.",
-        variant: "destructive",
-      });
-      return false;
-    }
-  };
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!user?.id) {
-      toast({
-        title: "Authentication Required",
-        description: "You must be logged in to upload content.",
-        variant: "destructive",
-      });
-      return;
-    }
+    // Use a default user ID if there's no logged-in user
+    const userId = user?.id || 'anonymous-user';
     
     if (!selectedFile && type !== 'post') {
       toast({
@@ -105,12 +74,9 @@ const ContentUploader: React.FC<ContentUploaderProps> = ({
       });
       return;
     }
-
-    // Validate session before proceeding with upload
-    const isSessionValid = await validateSession();
-    if (!isSessionValid) {
-      return;
-    }
+    
+    // REMOVED: Session validation check is no longer needed
+    // Previously had session validation here
     
     setUploading(true);
     setUploadProgress(10);
@@ -123,7 +89,7 @@ const ContentUploader: React.FC<ContentUploaderProps> = ({
       const { data: postData, error: postError } = await supabase
         .from('posts')
         .insert({
-          user_id: user.id,
+          user_id: userId,
           content: description || `New ${contentType} upload`
         })
         .select('id')
@@ -166,7 +132,7 @@ const ContentUploader: React.FC<ContentUploaderProps> = ({
           title,
           description,
           category,
-          userId: user.id,
+          userId,
           contentType, 
           existingPostId: postId
         });

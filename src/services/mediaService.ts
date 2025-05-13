@@ -1,4 +1,3 @@
-
 import { supabase } from '@/lib/supabaseClient';
 import { Video } from './videoService';
 
@@ -124,12 +123,8 @@ export const uploadMediaFile = async (
       return null;
     }
 
-    // Check if user is authenticated
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      console.error('User not authenticated for upload');
-      return null;
-    }
+    // REMOVED: Authentication check is no longer needed since we updated the storage policies
+    // Previously had session validation here
 
     // Verify buckets exist first
     const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();

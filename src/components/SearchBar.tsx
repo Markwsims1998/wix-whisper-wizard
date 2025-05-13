@@ -31,11 +31,12 @@ interface UserProfile {
 interface PostItem {
   id: string;
   content: string;
+  user_id: string;
   profiles: {
     username: string | null;
     full_name: string | null;
     avatar_url: string | null;
-  }
+  };
 }
 
 interface MediaItem {
@@ -47,7 +48,7 @@ interface MediaItem {
     username: string | null;
     full_name: string | null;
     avatar_url: string | null;
-  }
+  };
 }
 
 const SearchBar: React.FC = () => {
@@ -118,7 +119,7 @@ const SearchBar: React.FC = () => {
             .limit(activeTab === "all" ? 3 : 10);
             
           if (!postsError && posts) {
-            const postResults: SearchResult[] = posts.map((post: PostItem) => ({
+            const postResults: SearchResult[] = posts.map((post: any) => ({
               id: post.id,
               content: post.content,
               username: post.profiles?.username || undefined,
@@ -145,7 +146,7 @@ const SearchBar: React.FC = () => {
             .limit(activeTab === "all" ? 3 : 10);
             
           if (!photosError && photos) {
-            const photoResults: SearchResult[] = photos.map((photo: MediaItem) => ({
+            const photoResults: SearchResult[] = photos.map((photo: any) => ({
               id: photo.id,
               title: photo.title || undefined,
               file_url: photo.file_url,
@@ -174,7 +175,7 @@ const SearchBar: React.FC = () => {
             .limit(activeTab === "all" ? 3 : 10);
             
           if (!videosError && videos) {
-            const videoResults: SearchResult[] = videos.map((video: MediaItem) => ({
+            const videoResults: SearchResult[] = videos.map((video: any) => ({
               id: video.id,
               title: video.title || undefined,
               file_url: video.file_url,
@@ -405,117 +406,6 @@ const SearchBar: React.FC = () => {
       )}
     </div>
   );
-
-  // Define missing functions
-  function handleSearch(e: React.FormEvent) {
-    e.preventDefault();
-    
-    if (searchTerm.length >= 2) {
-      navigate(`/search?q=${encodeURIComponent(searchTerm)}&tab=${activeTab}`);
-      setIsExpanded(false);
-      setSearchTerm("");
-    }
-  }
-
-  function handleResultClick(result: SearchResult) {
-    switch (result.type) {
-      case 'user':
-        navigate(`/profile?id=${result.id}`);
-        break;
-      case 'post':
-        navigate(`/post?postId=${result.id}`);
-        break;
-      case 'photo':
-        navigate(`/photo?id=${result.id}`);
-        break;
-      case 'video':
-        navigate(`/video?id=${result.id}`);
-        break;
-    }
-    
-    setIsExpanded(false);
-    setSearchTerm("");
-  }
-
-  function renderResultItem(result: SearchResult) {
-    switch (result.type) {
-      case 'user':
-        return (
-          <div className="flex items-center gap-3 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md cursor-pointer"
-               onClick={() => handleResultClick(result)}>
-            <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center overflow-hidden">
-              {result.avatar_url ? (
-                <img src={result.avatar_url} alt={result.full_name || result.username} className="w-full h-full object-cover" />
-              ) : (
-                <User className="h-5 w-5 text-gray-500" />
-              )}
-            </div>
-            <div>
-              <p className="text-sm font-medium">{result.full_name || result.username}</p>
-              {result.full_name && result.username && (
-                <p className="text-xs text-gray-500">@{result.username}</p>
-              )}
-            </div>
-          </div>
-        );
-      
-      case 'post':
-        return (
-          <div className="flex items-center gap-3 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md cursor-pointer"
-               onClick={() => handleResultClick(result)}>
-            <div className="w-10 h-10 rounded bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-              <MessageCircle className="h-5 w-5 text-gray-500" />
-            </div>
-            <div className="flex-1 overflow-hidden">
-              <p className="text-sm font-medium truncate">{result.content}</p>
-              <p className="text-xs text-gray-500">
-                by {result.full_name || result.username || 'Unknown user'}
-              </p>
-            </div>
-          </div>
-        );
-      
-      case 'photo':
-        return (
-          <div className="flex items-center gap-3 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md cursor-pointer"
-               onClick={() => handleResultClick(result)}>
-            <div className="w-14 h-14 rounded bg-gray-200 dark:bg-gray-700 overflow-hidden">
-              {result.thumbnail_url && (
-                <img src={result.thumbnail_url} alt={result.title || 'Photo'} className="w-full h-full object-cover" />
-              )}
-            </div>
-            <div className="flex-1 overflow-hidden">
-              <p className="text-sm font-medium truncate">{result.title || 'Untitled Photo'}</p>
-              <p className="text-xs text-gray-500">
-                by {result.full_name || result.username || 'Unknown user'}
-              </p>
-            </div>
-          </div>
-        );
-      
-      case 'video':
-        return (
-          <div className="flex items-center gap-3 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md cursor-pointer"
-               onClick={() => handleResultClick(result)}>
-            <div className="w-14 h-14 rounded bg-gray-200 dark:bg-gray-700 overflow-hidden">
-              {result.thumbnail_url ? (
-                <img src={result.thumbnail_url} alt={result.title || 'Video'} className="w-full h-full object-cover" />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center">
-                  <Video className="h-6 w-6 text-gray-500" />
-                </div>
-              )}
-            </div>
-            <div className="flex-1 overflow-hidden">
-              <p className="text-sm font-medium truncate">{result.title || 'Untitled Video'}</p>
-              <p className="text-xs text-gray-500">
-                by {result.full_name || result.username || 'Unknown user'}
-              </p>
-            </div>
-          </div>
-        );
-    }
-  }
 };
 
 export default SearchBar;

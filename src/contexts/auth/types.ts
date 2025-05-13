@@ -24,6 +24,13 @@ export interface AuthUser {
   meetSmokers?: boolean;
   canAccommodate?: boolean;
   canTravel?: boolean;
+  relationshipStatus?: string;
+  relationshipPartners?: string[];
+  status?: 'active' | 'banned';
+  lastSignIn?: string;
+  following?: number;
+  followers?: number;
+  joinDate?: string;
   privacySettings?: {
     profileVisibility: 'public' | 'friends' | 'private';
     postVisibility: 'public' | 'friends' | 'private';
@@ -73,11 +80,13 @@ export interface AuthContextType {
   isLoading: boolean;
   isAuthenticated: boolean;
   authChangeEvent?: string | null;
+  loading?: boolean;
   
   // Additional methods needed by components
   logout?: () => Promise<void>;
+  login?: (email: string, password: string) => Promise<void>;
+  signup?: (email: string, password: string) => Promise<void>;
   updateUserProfile?: (updates: Partial<AuthUser>) => Promise<boolean>;
   refreshUserProfile?: () => Promise<void>;
   updatePassword?: (newPassword: string) => Promise<boolean>;
-  loading?: boolean;
 }

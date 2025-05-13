@@ -20,7 +20,7 @@ interface MediaItem {
     username: string | null;
     full_name: string | null;
     avatar_url: string | null;
-  } | null;
+  };
 }
 
 const Photo = () => {
@@ -68,13 +68,29 @@ const Photo = () => {
         if (error) throw error;
         if (!data) throw new Error("Photo not found");
 
-        setPhoto(data);
+        // Transform the data to match the interface
+        const transformedData: MediaItem = {
+          ...data,
+          profiles: {
+            username: data.profiles?.username || null,
+            full_name: data.profiles?.full_name || null,
+            avatar_url: data.profiles?.avatar_url || null
+          }
+        };
+
+        setPhoto(transformedData);
         
         // Record a view for this photo
-        await supabase.from('media_views').insert({
-          media_id: photoId,
-          user_id: (await supabase.auth.getSession()).data.session?.user?.id || '00000000-0000-0000-0000-000000000000'
-        }).catch(e => console.error("Failed to record view", e));
+        await supabase
+          .from('media_views')
+          .insert({
+            media_id: photoId,
+            user_id: (await supabase.auth.getSession()).data.session?.user?.id || '00000000-0000-0000-0000-000000000000'
+          })
+          .then(() => {
+            console.log("View recorded");
+          })
+          .catch(e => console.error("Failed to record view", e));
         
       } catch (error: any) {
         toast({

@@ -4,6 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabaseClient';
 import { AuthUser, AuthContextType } from './types';
+import { useToast } from "@/hooks/use-toast";
 
 // Create the context
 const AuthContext = createContext<AuthContextType>({
@@ -25,6 +26,55 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [authChangeEvent, setAuthChangeEvent] = useState<string | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
+  const { toast } = useToast();
+
+  // Login function
+  const login = async (email: string, password: string) => {
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Login successful",
+        description: "Welcome back!"
+      });
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Login failed",
+        description: error.message || "An error occurred during login"
+      });
+      throw error;
+    }
+  };
+  
+  // Signup function
+  const signup = async (email: string, password: string) => {
+    try {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password
+      });
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Account created",
+        description: "Please check your email to verify your account"
+      });
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Signup failed",
+        description: error.message || "An error occurred during signup"
+      });
+      throw error;
+    }
+  };
 
   // Logout function
   const logout = async () => {
@@ -44,24 +94,32 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     if (!user) return false;
     
     try {
+      // Extract profile updates
+      const profileUpdates: Record<string, any> = {};
+      if (updates.name !== undefined) profileUpdates.full_name = updates.name;
+      if (updates.username !== undefined) profileUpdates.username = updates.username;
+      if (updates.profilePicture !== undefined) profileUpdates.avatar_url = updates.profilePicture;
+      if (updates.coverPhoto !== undefined) profileUpdates.cover_photo_url = updates.coverPhoto;
+      if (updates.gender !== undefined) profileUpdates.gender = updates.gender;
+      if (updates.location !== undefined) profileUpdates.location = updates.location;
+      if (updates.bio !== undefined) profileUpdates.bio = updates.bio;
+      if (updates.darkMode !== undefined) profileUpdates.dark_mode = updates.darkMode;
+      if (updates.useSystemTheme !== undefined) profileUpdates.use_system_theme = updates.useSystemTheme;
+      if (updates.showFeaturedContent !== undefined) profileUpdates.show_featured_content = updates.showFeaturedContent;
+      if (updates.bottomNavPreferences !== undefined) profileUpdates.bottom_nav_preferences = updates.bottomNavPreferences;
+      if (updates.ageRange !== undefined) profileUpdates.age_range = updates.ageRange;
+      if (updates.interestedIn !== undefined) profileUpdates.interested_in = updates.interestedIn;
+      if (updates.meetSmokers !== undefined) profileUpdates.meet_smokers = updates.meetSmokers;
+      if (updates.canAccommodate !== undefined) profileUpdates.can_accommodate = updates.canAccommodate;
+      if (updates.canTravel !== undefined) profileUpdates.can_travel = updates.canTravel;
+      if (updates.relationshipStatus !== undefined) profileUpdates.relationship_status = updates.relationshipStatus;
+      if (updates.relationshipPartners !== undefined) profileUpdates.relationship_partners = updates.relationshipPartners;
+      if (updates.notificationPreferences !== undefined) profileUpdates.notification_preferences = updates.notificationPreferences;
+      if (updates.privacySettings !== undefined) profileUpdates.privacy_settings = updates.privacySettings;
+      
       const { error } = await supabase
         .from('profiles')
-        .update({
-          full_name: updates.name,
-          avatar_url: updates.profilePicture,
-          gender: updates.gender,
-          location: updates.location,
-          bio: updates.bio,
-          dark_mode: updates.darkMode,
-          use_system_theme: updates.useSystemTheme,
-          show_featured_content: updates.showFeaturedContent,
-          bottom_nav_preferences: updates.bottomNavPreferences,
-          notification_preferences: updates.notificationPreferences,
-          privacy_settings: updates.privacySettings,
-          relationship_status: updates.relationshipStatus,
-          cover_photo_url: updates.coverPhoto,
-          username: updates.username
-        })
+        .update(profileUpdates)
         .eq('id', user.id);
       
       if (error) throw error;
@@ -112,6 +170,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         canTravel: profileData?.can_travel,
         privacySettings: profileData?.privacy_settings,
         notificationPreferences: profileData?.notification_preferences,
+        relationshipStatus: profileData?.relationship_status,
+        relationshipPartners: profileData?.relationship_partners,
+        status: profileData?.status,
       });
     } catch (error) {
       console.error('Error refreshing user profile:', error);
@@ -174,6 +235,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
               canTravel: profileData?.can_travel,
               privacySettings: profileData?.privacy_settings,
               notificationPreferences: profileData?.notification_preferences,
+              relationshipStatus: profileData?.relationship_status,
+              relationshipPartners: profileData?.relationship_partners,
+              status: profileData?.status,
             });
 
             // Check if this is a SIGNED_IN event and profile is incomplete
@@ -247,6 +311,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
             canTravel: profileData?.can_travel,
             privacySettings: profileData?.privacy_settings,
             notificationPreferences: profileData?.notification_preferences,
+            relationshipStatus: profileData?.relationship_status,
+            relationshipPartners: profileData?.relationship_partners,
+            status: profileData?.status,
           });
 
           // Check if profile is incomplete and user isn't already on profile completion page
@@ -280,11 +347,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     isLoading,
     isAuthenticated: !!session,
     authChangeEvent,
+    loading: isLoading,
     logout,
+    login,
+    signup,
     updateUserProfile,
     refreshUserProfile,
     updatePassword,
-    loading: isLoading,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

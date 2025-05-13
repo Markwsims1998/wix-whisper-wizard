@@ -53,7 +53,10 @@ export const transformUser = async (supabaseUser: User | null): Promise<AuthUser
           username: supabaseUser.email?.split('@')[0] || '',
           name: supabaseUser.user_metadata?.full_name || 'New User',
           email: supabaseUser.email || '',
-          role: isAdmin ? 'admin' : 'user'
+          role: isAdmin ? 'admin' : 'user',
+          profilePicture: null,
+          subscription: 'free',
+          location: null
         };
       }
       
@@ -150,11 +153,10 @@ export const transformUser = async (supabaseUser: User | null): Promise<AuthUser
       email: supabaseUser.email || '',
       role: userRole,
       profilePicture: profile?.profile_picture_url || profile?.avatar_url,
+      subscription: profile?.subscription_tier || 'free',
+      location: profile?.location,
       coverPhoto: profile?.cover_photo_url,
       gender: profile?.gender,
-      relationshipStatus: profile?.relationship_status,
-      relationshipPartners: profile?.relationship_partners,
-      location: profile?.location,
       bio: profile?.bio,
       darkMode: profile?.dark_mode,
       useSystemTheme: profile?.use_system_theme,
@@ -164,6 +166,8 @@ export const transformUser = async (supabaseUser: User | null): Promise<AuthUser
       privacySettings: privacySettings,
       status: userStatus,
       lastSignIn: profile?.last_sign_in_at,
+      relationshipStatus: profile?.relationship_status,
+      relationshipPartners: profile?.relationship_partners,
       following: 0,
       followers: 0,
       joinDate: profile?.created_at || new Date().toISOString()
@@ -182,7 +186,10 @@ export const transformUser = async (supabaseUser: User | null): Promise<AuthUser
         username: supabaseUser.email?.split('@')[0] || '',
         name: supabaseUser.user_metadata?.full_name || 'Development User',
         email: supabaseUser.email || '',
-        role: isAdmin ? 'admin' : 'user'
+        role: isAdmin ? 'admin' : 'user',
+        profilePicture: null,
+        subscription: 'free',
+        location: null
       };
     }
     

@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/contexts/auth/AuthProvider";
 import { supabase } from "@/lib/supabaseClient";
-import { Image, Film, Heart } from "lucide-react";
+import { Image, Film, Heart, ChevronDown } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import PostFeed from "@/components/PostFeed";
 import { useSubscription } from "@/contexts/SubscriptionContext";
@@ -14,6 +14,8 @@ import Watermark from "@/components/media/Watermark";
 import VideoSubscriptionLock from "@/components/media/VideoSubscriptionLock";
 import { useToast } from "@/hooks/use-toast";
 import PostItem from "@/components/profile/PostItem";
+import { Button } from "@/components/ui/button";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink } from "@/components/ui/pagination";
 
 interface ProfileTabsProps {
   userId: string;
@@ -29,6 +31,12 @@ const ProfileTabs: React.FC<ProfileTabsProps> = ({ userId }) => {
   const { subscriptionTier, subscriptionDetails } = useSubscription();
   const navigate = useNavigate();
   const { toast } = useToast();
+  
+  // Pagination states
+  const [postsLimit, setPostsLimit] = useState(10);
+  const [photosLimit, setPhotosLimit] = useState(20); // 5 rows * 4 columns
+  const [videosLimit, setVideosLimit] = useState(8);  // 4 rows * 2 columns
+  const [likesLimit, setLikesLimit] = useState(10);
   
   // Determine if this is the current user's profile
   const isMyProfile = user?.id === userId;
@@ -190,7 +198,7 @@ const ProfileTabs: React.FC<ProfileTabsProps> = ({ userId }) => {
   };
 
   // Render a grid of media items (photos or videos)
-  const renderMediaGrid = (items: any[], type: 'photo' | 'video') => {
+  const renderMediaGrid = (items: any[], type: 'photo' | 'video', limit: number) => {
     if (items.length === 0) {
       return (
         <div className="text-sm text-gray-500 dark:text-gray-400 py-8 text-center">
@@ -204,53 +212,77 @@ const ProfileTabs: React.FC<ProfileTabsProps> = ({ userId }) => {
       ? "grid-cols-1 sm:grid-cols-2" 
       : "grid-cols-2 md:grid-cols-3 lg:grid-cols-4";
     
+    const itemsToShow = items.slice(0, limit);
+    const hasMore = items.length > limit;
+    
     return (
-      <div className={`grid ${gridColsClass} gap-4`}>
-        {items.map((item) => (
-          <div key={item.id} 
-               className="aspect-square rounded-md overflow-hidden bg-gray-100 dark:bg-gray-700 relative"
-               onClick={type === 'photo' ? () => handlePhotoClick(item) : () => handleVideoClick(item)}
-               style={{ cursor: 'pointer' }}>
-            {type === 'photo' ? (
-              <div className="relative w-full h-full">
-                <img 
-                  src={item.file_url} 
-                  alt={item.title || 'Photo'} 
-                  className="w-full h-full object-cover"
-                />
-                {/* Add watermark for free tier users */}
-                {subscriptionTier === 'free' && (
-                  <Watermark opacity={0.5} />
-                )}
-              </div>
-            ) : (
-              <div className="relative w-full h-full">
-                {item.thumbnail_url ? (
+      <>
+        <div className={`grid ${gridColsClass} gap-4`}>
+          {itemsToShow.map((item) => (
+            <div key={item.id} 
+                className="aspect-square rounded-md overflow-hidden bg-gray-100 dark:bg-gray-700 relative"
+                onClick={type === 'photo' ? () => handlePhotoClick(item) : () => handleVideoClick(item)}
+                style={{ cursor: 'pointer' }}>
+              {type === 'photo' ? (
+                <div className="relative w-full h-full">
                   <img 
-                    src={item.thumbnail_url} 
-                    alt={item.title || 'Video thumbnail'} 
+                    src={item.file_url} 
+                    alt={item.title || 'Photo'} 
                     className="w-full h-full object-cover"
                   />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-gray-200 dark:bg-gray-600">
-                    <Film className="h-10 w-10 text-gray-500 dark:text-gray-400" />
-                  </div>
-                )}
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="rounded-full bg-black bg-opacity-50 p-3">
-                    <Film className="h-8 w-8 text-white" />
-                  </div>
+                  {/* Add watermark for free tier users */}
+                  {subscriptionTier === 'free' && (
+                    <Watermark opacity={0.5} />
+                  )}
                 </div>
-                
-                {/* Add subscription lock for free tier users */}
-                {!subscriptionDetails.canViewVideos && (
-                  <VideoSubscriptionLock />
-                )}
-              </div>
-            )}
+              ) : (
+                <div className="relative w-full h-full">
+                  {item.thumbnail_url ? (
+                    <img 
+                      src={item.thumbnail_url} 
+                      alt={item.title || 'Video thumbnail'} 
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-gray-200 dark:bg-gray-600">
+                      <Film className="h-10 w-10 text-gray-500 dark:text-gray-400" />
+                    </div>
+                  )}
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="rounded-full bg-black bg-opacity-50 p-3">
+                      <Film className="h-8 w-8 text-white" />
+                    </div>
+                  </div>
+                  
+                  {/* Add subscription lock for free tier users */}
+                  {!subscriptionDetails.canViewVideos && (
+                    <VideoSubscriptionLock />
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+        
+        {hasMore && (
+          <div className="flex justify-center mt-6">
+            <Button 
+              variant="outline" 
+              className="flex items-center gap-1"
+              onClick={() => {
+                if (type === 'photo') {
+                  setPhotosLimit(prev => prev + 20); // 5 more rows
+                } else {
+                  setVideosLimit(prev => prev + 8); // 4 more rows
+                }
+              }}
+            >
+              Show More {type === 'photo' ? 'Photos' : 'Videos'}
+              <ChevronDown className="h-4 w-4" />
+            </Button>
           </div>
-        ))}
-      </div>
+        )}
+      </>
     );
   };
 
@@ -272,16 +304,34 @@ const ProfileTabs: React.FC<ProfileTabsProps> = ({ userId }) => {
       );
     }
     
+    const postsToShow = likedPosts.slice(0, likesLimit);
+    const hasMore = likedPosts.length > likesLimit;
+    
     return (
-      <div className="space-y-4">
-        {likedPosts.map(post => (
-          <PostItem 
-            key={post.id} 
-            post={post} 
-            handleLikePost={handleLikePost} 
-          />
-        ))}
-      </div>
+      <>
+        <div className="space-y-4">
+          {postsToShow.map(post => (
+            <PostItem 
+              key={post.id} 
+              post={post} 
+              handleLikePost={handleLikePost} 
+            />
+          ))}
+        </div>
+        
+        {hasMore && (
+          <div className="flex justify-center mt-6">
+            <Button 
+              variant="outline" 
+              className="flex items-center gap-1"
+              onClick={() => setLikesLimit(prev => prev + 10)}
+            >
+              Show More Likes
+              <ChevronDown className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
+      </>
     );
   };
 
@@ -319,11 +369,13 @@ const ProfileTabs: React.FC<ProfileTabsProps> = ({ userId }) => {
       <TabsContent value="posts" className="mt-4">
         <Card>
           <div className="p-4">
-            {/* Use the PostFeed component with userId filter */}
+            {/* Use the PostFeed component with userId filter and limit */}
             <PostFeed 
               userId={userId} 
               showTabs={false} 
-              title={isMyProfile ? "Your Posts" : "User Posts"} 
+              title={isMyProfile ? "Your Posts" : "User Posts"}
+              limit={postsLimit}
+              showMore={() => setPostsLimit(prev => prev + 10)}
             />
           </div>
         </Card>
@@ -339,7 +391,7 @@ const ProfileTabs: React.FC<ProfileTabsProps> = ({ userId }) => {
                 <div className="flex justify-center py-8">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
                 </div>
-              ) : renderMediaGrid(photos, 'photo')}
+              ) : renderMediaGrid(photos, 'photo', photosLimit)}
             </ScrollArea>
           </div>
         </Card>
@@ -355,7 +407,7 @@ const ProfileTabs: React.FC<ProfileTabsProps> = ({ userId }) => {
                 <div className="flex justify-center py-8">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
                 </div>
-              ) : renderMediaGrid(videos, 'video')}
+              ) : renderMediaGrid(videos, 'video', videosLimit)}
             </ScrollArea>
           </div>
         </Card>

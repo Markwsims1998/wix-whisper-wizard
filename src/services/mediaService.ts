@@ -1,4 +1,3 @@
-
 import { supabase } from '@/lib/supabaseClient';
 import { Video } from './videoService';
 
@@ -127,8 +126,12 @@ export const uploadMediaFile = async (
     const fileExt = file.name.split('.').pop();
     const fileName = `${userId}/${Date.now()}.${fileExt}`;
     
-    // Use different bucket based on content type
-    const bucketName = contentType === 'photo' ? 'photos-premium' : 'videos';
+    // Use the appropriate bucket based on content type
+    // Note: We're simply using 'photos' and 'videos' buckets now,
+    // as watermarking is handled on the client-side
+    const bucketName = contentType === 'photo' ? 'photos' : 'videos';
+    
+    console.log(`Uploading ${contentType} to ${bucketName} bucket: ${fileName}`);
     
     // Upload file to storage
     const { data: uploadData, error: uploadError } = await supabase.storage
@@ -149,6 +152,12 @@ export const uploadMediaFile = async (
       .getPublicUrl(fileName);
       
     const fileUrl = urlData?.publicUrl;
+    if (!fileUrl) {
+      console.error('Failed to get public URL for uploaded file');
+      return null;
+    }
+    
+    console.log(`Successfully uploaded ${contentType} to: ${fileUrl}`);
     
     // For videos, we could generate a thumbnail here
     // For simplicity, we'll just use the video itself as the thumbnail

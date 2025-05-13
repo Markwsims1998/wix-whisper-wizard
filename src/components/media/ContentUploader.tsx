@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -8,7 +9,6 @@ import { Loader2, Upload } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth/AuthProvider";
 import { uploadMedia } from "@/services/mediaService";
-import { uploadSecurePhoto } from "@/services/securePhotoService";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -37,13 +37,13 @@ const ContentUploader: React.FC<ContentUploaderProps> = ({
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
-  // Define the content type for secure upload
+  // Define the content type for upload
   const contentType: 'photo' | 'video' = type === 'post' ? 'photo' : type as 'photo' | 'video';
 
   const categories = [
     { id: "events", name: "Events" },
     { id: "portraits", name: "Portraits" },
-    { id: "fashion", name: "Portraits" },
+    { id: "fashion", name: "Fashion" },
     { id: "lifestyle", name: "Lifestyle" },
     { id: "travel", name: "Travel" }
   ];
@@ -83,8 +83,6 @@ const ContentUploader: React.FC<ContentUploaderProps> = ({
     setUploading(true);
     
     try {
-      let fileUrl = '';
-      let thumbnailUrl = '';
       let postId = '';
 
       // Create a post first to get the post ID
@@ -106,59 +104,21 @@ const ContentUploader: React.FC<ContentUploaderProps> = ({
       console.log('Created post with ID:', postId);
       
       if (selectedFile) {
-        // Handle file upload based on content type
-        if (contentType === 'photo') {
-          // Use secure photo upload with watermarking for photos
-          const result = await uploadSecurePhoto(
-            selectedFile,
-            user.id,
-            subscriptionDetails.tier || 'free'  // Ensure we pass an object here
-          );
-          
-          if (!result) throw new Error('Failed to upload photo');
-          
-          fileUrl = result.url;
-          // Also store the watermarked URL for reference
-          thumbnailUrl = result.watermarkedUrl;
-          
-          // Save media metadata to database
-          const { data: mediaData, error: mediaError } = await supabase
-            .from('media')
-            .insert({
-              title,
-              category,
-              user_id: user.id,
-              file_url: fileUrl,
-              thumbnail_url: thumbnailUrl,
-              content_type: contentType,
-              media_type: contentType === 'photo' ? 'image/jpeg' : 'video/mp4',
-              post_id: postId,
-              watermarked_url: result.watermarkedUrl
-            })
-            .select()
-            .single();
-          
-          if (mediaError) {
-            console.error('Error saving media metadata:', mediaError);
-            throw new Error('Failed to save media metadata');
-          }
-          
-          console.log('Media saved successfully:', mediaData);
-        } else {
-          // For video uploads, use the regular media upload functionality
-          const mediaData = await uploadMedia(selectedFile, {
-            title,
-            description,
-            category,
-            userId: user.id,
-            contentType,
-            existingPostId: postId
-          });
-          
-          if (!mediaData) {
-            throw new Error(`Failed to upload ${contentType}`);
-          }
+        // Use the unified uploadMedia function for both photos and videos
+        const mediaData = await uploadMedia(selectedFile, {
+          title,
+          description,
+          category,
+          userId: user.id,
+          contentType, 
+          existingPostId: postId
+        });
+        
+        if (!mediaData) {
+          throw new Error(`Failed to upload ${contentType}`);
         }
+        
+        console.log(`${contentType} uploaded successfully:`, mediaData);
       }
       
       toast({

@@ -1,4 +1,3 @@
-
 import { fetchMedia } from './mediaService';
 import { supabase } from '@/lib/supabaseClient';
 

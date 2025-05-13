@@ -16,10 +16,10 @@ const ProfileCompletion: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [fullName, setFullName] = useState(user?.full_name || "");
+  const [fullName, setFullName] = useState(user?.name || "");
   const [gender, setGender] = useState<string>("");
-  const [location, setLocation] = useState("");
-  const [bio, setBio] = useState("");
+  const [location, setLocation] = useState(user?.location || "");
+  const [bio, setBio] = useState(user?.bio || "");
   const [relationshipStatus, setRelationshipStatus] = useState<string>("");
 
   useEffect(() => {

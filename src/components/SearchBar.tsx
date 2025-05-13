@@ -21,6 +21,35 @@ interface SearchResult {
   type: 'user' | 'post' | 'photo' | 'video';
 }
 
+interface UserProfile {
+  id: string;
+  username: string | null;
+  full_name: string | null;
+  avatar_url: string | null;
+}
+
+interface PostItem {
+  id: string;
+  content: string;
+  profiles: {
+    username: string | null;
+    full_name: string | null;
+    avatar_url: string | null;
+  }
+}
+
+interface MediaItem {
+  id: string;
+  title: string | null;
+  file_url: string;
+  thumbnail_url?: string | null;
+  profiles: {
+    username: string | null;
+    full_name: string | null;
+    avatar_url: string | null;
+  }
+}
+
 const SearchBar: React.FC = () => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -65,16 +94,14 @@ const SearchBar: React.FC = () => {
             .limit(activeTab === "all" ? 3 : 10);
             
           if (!usersError && users) {
-            results = [
-              ...results,
-              ...users.map(user => ({
-                id: user.id,
-                username: user.username,
-                full_name: user.full_name,
-                avatar_url: user.avatar_url,
-                type: 'user' as const
-              }))
-            ];
+            const userResults: SearchResult[] = users.map((user: UserProfile) => ({
+              id: user.id,
+              username: user.username || undefined,
+              full_name: user.full_name || undefined,
+              avatar_url: user.avatar_url || undefined,
+              type: 'user' as const
+            }));
+            results = [...results, ...userResults];
           }
         }
         
@@ -91,17 +118,15 @@ const SearchBar: React.FC = () => {
             .limit(activeTab === "all" ? 3 : 10);
             
           if (!postsError && posts) {
-            results = [
-              ...results,
-              ...posts.map(post => ({
-                id: post.id,
-                content: post.content,
-                username: post.profiles?.username,
-                full_name: post.profiles?.full_name,
-                avatar_url: post.profiles?.avatar_url,
-                type: 'post' as const
-              }))
-            ];
+            const postResults: SearchResult[] = posts.map((post: PostItem) => ({
+              id: post.id,
+              content: post.content,
+              username: post.profiles?.username || undefined,
+              full_name: post.profiles?.full_name || undefined,
+              avatar_url: post.profiles?.avatar_url || undefined,
+              type: 'post' as const
+            }));
+            results = [...results, ...postResults];
           }
         }
         
@@ -120,19 +145,17 @@ const SearchBar: React.FC = () => {
             .limit(activeTab === "all" ? 3 : 10);
             
           if (!photosError && photos) {
-            results = [
-              ...results,
-              ...photos.map(photo => ({
-                id: photo.id,
-                title: photo.title,
-                file_url: photo.file_url,
-                thumbnail_url: photo.thumbnail_url || photo.file_url,
-                username: photo.profiles?.username,
-                full_name: photo.profiles?.full_name,
-                avatar_url: photo.profiles?.avatar_url,
-                type: 'photo' as const
-              }))
-            ];
+            const photoResults: SearchResult[] = photos.map((photo: MediaItem) => ({
+              id: photo.id,
+              title: photo.title || undefined,
+              file_url: photo.file_url,
+              thumbnail_url: photo.thumbnail_url || undefined,
+              username: photo.profiles?.username || undefined,
+              full_name: photo.profiles?.full_name || undefined,
+              avatar_url: photo.profiles?.avatar_url || undefined,
+              type: 'photo' as const
+            }));
+            results = [...results, ...photoResults];
           }
         }
         
@@ -151,19 +174,17 @@ const SearchBar: React.FC = () => {
             .limit(activeTab === "all" ? 3 : 10);
             
           if (!videosError && videos) {
-            results = [
-              ...results,
-              ...videos.map(video => ({
-                id: video.id,
-                title: video.title,
-                file_url: video.file_url,
-                thumbnail_url: video.thumbnail_url || video.file_url,
-                username: video.profiles?.username,
-                full_name: video.profiles?.full_name,
-                avatar_url: video.profiles?.avatar_url,
-                type: 'video' as const
-              }))
-            ];
+            const videoResults: SearchResult[] = videos.map((video: MediaItem) => ({
+              id: video.id,
+              title: video.title || undefined,
+              file_url: video.file_url,
+              thumbnail_url: video.thumbnail_url || undefined,
+              username: video.profiles?.username || undefined,
+              full_name: video.profiles?.full_name || undefined,
+              avatar_url: video.profiles?.avatar_url || undefined,
+              type: 'video' as const
+            }));
+            results = [...results, ...videoResults];
           }
         }
         
@@ -384,6 +405,117 @@ const SearchBar: React.FC = () => {
       )}
     </div>
   );
+
+  // Define missing functions
+  function handleSearch(e: React.FormEvent) {
+    e.preventDefault();
+    
+    if (searchTerm.length >= 2) {
+      navigate(`/search?q=${encodeURIComponent(searchTerm)}&tab=${activeTab}`);
+      setIsExpanded(false);
+      setSearchTerm("");
+    }
+  }
+
+  function handleResultClick(result: SearchResult) {
+    switch (result.type) {
+      case 'user':
+        navigate(`/profile?id=${result.id}`);
+        break;
+      case 'post':
+        navigate(`/post?postId=${result.id}`);
+        break;
+      case 'photo':
+        navigate(`/photo?id=${result.id}`);
+        break;
+      case 'video':
+        navigate(`/video?id=${result.id}`);
+        break;
+    }
+    
+    setIsExpanded(false);
+    setSearchTerm("");
+  }
+
+  function renderResultItem(result: SearchResult) {
+    switch (result.type) {
+      case 'user':
+        return (
+          <div className="flex items-center gap-3 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md cursor-pointer"
+               onClick={() => handleResultClick(result)}>
+            <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center overflow-hidden">
+              {result.avatar_url ? (
+                <img src={result.avatar_url} alt={result.full_name || result.username} className="w-full h-full object-cover" />
+              ) : (
+                <User className="h-5 w-5 text-gray-500" />
+              )}
+            </div>
+            <div>
+              <p className="text-sm font-medium">{result.full_name || result.username}</p>
+              {result.full_name && result.username && (
+                <p className="text-xs text-gray-500">@{result.username}</p>
+              )}
+            </div>
+          </div>
+        );
+      
+      case 'post':
+        return (
+          <div className="flex items-center gap-3 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md cursor-pointer"
+               onClick={() => handleResultClick(result)}>
+            <div className="w-10 h-10 rounded bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+              <MessageCircle className="h-5 w-5 text-gray-500" />
+            </div>
+            <div className="flex-1 overflow-hidden">
+              <p className="text-sm font-medium truncate">{result.content}</p>
+              <p className="text-xs text-gray-500">
+                by {result.full_name || result.username || 'Unknown user'}
+              </p>
+            </div>
+          </div>
+        );
+      
+      case 'photo':
+        return (
+          <div className="flex items-center gap-3 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md cursor-pointer"
+               onClick={() => handleResultClick(result)}>
+            <div className="w-14 h-14 rounded bg-gray-200 dark:bg-gray-700 overflow-hidden">
+              {result.thumbnail_url && (
+                <img src={result.thumbnail_url} alt={result.title || 'Photo'} className="w-full h-full object-cover" />
+              )}
+            </div>
+            <div className="flex-1 overflow-hidden">
+              <p className="text-sm font-medium truncate">{result.title || 'Untitled Photo'}</p>
+              <p className="text-xs text-gray-500">
+                by {result.full_name || result.username || 'Unknown user'}
+              </p>
+            </div>
+          </div>
+        );
+      
+      case 'video':
+        return (
+          <div className="flex items-center gap-3 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md cursor-pointer"
+               onClick={() => handleResultClick(result)}>
+            <div className="w-14 h-14 rounded bg-gray-200 dark:bg-gray-700 overflow-hidden">
+              {result.thumbnail_url ? (
+                <img src={result.thumbnail_url} alt={result.title || 'Video'} className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <Video className="h-6 w-6 text-gray-500" />
+                </div>
+              )}
+            </div>
+            <div className="flex-1 overflow-hidden">
+              <p className="text-sm font-medium truncate">{result.title || 'Untitled Video'}</p>
+              <p className="text-xs text-gray-500">
+                by {result.full_name || result.username || 'Unknown user'}
+              </p>
+            </div>
+          </div>
+        );
+    }
+  }
 };
 
 export default SearchBar;

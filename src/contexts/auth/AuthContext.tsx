@@ -26,6 +26,113 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Logout function
+  const logout = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      setUser(null);
+      setSession(null);
+      navigate('/login');
+    } catch (error) {
+      console.error('Error logging out:', error);
+    }
+  };
+
+  // Update user profile
+  const updateUserProfile = async (updates: Partial<AuthUser>): Promise<boolean> => {
+    if (!user) return false;
+    
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          full_name: updates.name,
+          avatar_url: updates.profilePicture,
+          gender: updates.gender,
+          location: updates.location,
+          bio: updates.bio,
+          dark_mode: updates.darkMode,
+          use_system_theme: updates.useSystemTheme,
+          show_featured_content: updates.showFeaturedContent,
+          bottom_nav_preferences: updates.bottomNavPreferences,
+          notification_preferences: updates.notificationPreferences,
+          privacy_settings: updates.privacySettings,
+          relationship_status: updates.relationshipStatus,
+          cover_photo_url: updates.coverPhoto,
+          username: updates.username
+        })
+        .eq('id', user.id);
+      
+      if (error) throw error;
+      
+      // Update local user state
+      setUser(prev => prev ? { ...prev, ...updates } : null);
+      return true;
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      return false;
+    }
+  };
+
+  // Refresh user profile from database
+  const refreshUserProfile = async () => {
+    if (!session?.user?.id) return;
+    
+    try {
+      const { data: profileData, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', session.user.id)
+        .single();
+      
+      if (error) throw error;
+      
+      // Update user with refreshed data
+      setUser({
+        id: session.user.id,
+        email: session.user.email,
+        name: profileData?.full_name || session.user.email?.split('@')[0] || '',
+        profilePicture: profileData?.avatar_url || profileData?.profile_picture_url || null,
+        role: profileData?.role || 'user',
+        subscription: profileData?.subscription_tier || 'free',
+        location: profileData?.location || null,
+        username: profileData?.username,
+        bio: profileData?.bio,
+        gender: profileData?.gender,
+        darkMode: profileData?.dark_mode,
+        useSystemTheme: profileData?.use_system_theme,
+        showFeaturedContent: profileData?.show_featured_content,
+        coverPhoto: profileData?.cover_photo_url,
+        bottomNavPreferences: profileData?.bottom_nav_preferences,
+        ageRange: profileData?.age_range,
+        interestedIn: profileData?.interested_in,
+        meetSmokers: profileData?.meet_smokers,
+        canAccommodate: profileData?.can_accommodate,
+        canTravel: profileData?.can_travel,
+        privacySettings: profileData?.privacy_settings,
+        notificationPreferences: profileData?.notification_preferences,
+      });
+    } catch (error) {
+      console.error('Error refreshing user profile:', error);
+    }
+  };
+
+  // Update password
+  const updatePassword = async (newPassword: string): Promise<boolean> => {
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword
+      });
+      
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error('Error updating password:', error);
+      return false;
+    }
+  };
+
   useEffect(() => {
     // Set up the auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -52,6 +159,21 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
               role: profileData?.role || 'user',
               subscription: profileData?.subscription_tier || 'free',
               location: profileData?.location || null,
+              username: profileData?.username,
+              bio: profileData?.bio,
+              gender: profileData?.gender,
+              darkMode: profileData?.dark_mode,
+              useSystemTheme: profileData?.use_system_theme,
+              showFeaturedContent: profileData?.show_featured_content,
+              coverPhoto: profileData?.cover_photo_url,
+              bottomNavPreferences: profileData?.bottom_nav_preferences,
+              ageRange: profileData?.age_range,
+              interestedIn: profileData?.interested_in,
+              meetSmokers: profileData?.meet_smokers,
+              canAccommodate: profileData?.can_accommodate,
+              canTravel: profileData?.can_travel,
+              privacySettings: profileData?.privacy_settings,
+              notificationPreferences: profileData?.notification_preferences,
             });
 
             // Check if this is a SIGNED_IN event and profile is incomplete
@@ -110,6 +232,21 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
             role: profileData?.role || 'user',
             subscription: profileData?.subscription_tier || 'free',
             location: profileData?.location || null,
+            username: profileData?.username,
+            bio: profileData?.bio,
+            gender: profileData?.gender,
+            darkMode: profileData?.dark_mode,
+            useSystemTheme: profileData?.use_system_theme,
+            showFeaturedContent: profileData?.show_featured_content,
+            coverPhoto: profileData?.cover_photo_url,
+            bottomNavPreferences: profileData?.bottom_nav_preferences,
+            ageRange: profileData?.age_range,
+            interestedIn: profileData?.interested_in,
+            meetSmokers: profileData?.meet_smokers,
+            canAccommodate: profileData?.can_accommodate,
+            canTravel: profileData?.can_travel,
+            privacySettings: profileData?.privacy_settings,
+            notificationPreferences: profileData?.notification_preferences,
           });
 
           // Check if profile is incomplete and user isn't already on profile completion page
@@ -143,6 +280,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     isLoading,
     isAuthenticated: !!session,
     authChangeEvent,
+    logout,
+    updateUserProfile,
+    refreshUserProfile,
+    updatePassword,
+    loading: isLoading,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

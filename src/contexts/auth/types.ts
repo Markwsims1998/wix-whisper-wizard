@@ -9,6 +9,62 @@ export interface AuthUser {
   role: string;
   subscription: string;
   location: string | null;
+  
+  // Additional properties needed by components
+  username?: string;
+  bio?: string;
+  gender?: string;
+  darkMode?: boolean;
+  useSystemTheme?: boolean;
+  showFeaturedContent?: boolean;
+  bottomNavPreferences?: string[];
+  coverPhoto?: string | null;
+  ageRange?: [number, number];
+  interestedIn?: string[];
+  meetSmokers?: boolean;
+  canAccommodate?: boolean;
+  canTravel?: boolean;
+  privacySettings?: {
+    profileVisibility: 'public' | 'friends' | 'private';
+    postVisibility: 'public' | 'friends' | 'private';
+    searchEngineVisible: boolean;
+    allowMessagesFrom: 'all' | 'friends' | 'matched' | 'none';
+    allowWinksFrom: 'all' | 'friends' | 'matched' | 'none';
+    showProfileTo: 'all' | 'friends' | 'matched';
+  };
+  notificationPreferences?: {
+    email: boolean;
+    push: boolean;
+    friendRequests: boolean;
+    messages: boolean;
+  };
+}
+
+// Default privacy settings
+export const defaultPrivacySettings = {
+  profileVisibility: 'public' as const,
+  postVisibility: 'public' as const, 
+  searchEngineVisible: true,
+  allowMessagesFrom: 'all' as const,
+  allowWinksFrom: 'all' as const,
+  showProfileTo: 'all' as const
+};
+
+// Default notification preferences
+export const defaultNotificationPrefs = {
+  email: true,
+  push: true,
+  friendRequests: true,
+  messages: true
+};
+
+// Helper function to safely parse JSON with default values
+export function safeJsonParse<T>(json: string, defaultValue: T): T {
+  try {
+    return JSON.parse(json) as T;
+  } catch (e) {
+    return defaultValue;
+  }
 }
 
 export interface AuthContextType {
@@ -17,4 +73,11 @@ export interface AuthContextType {
   isLoading: boolean;
   isAuthenticated: boolean;
   authChangeEvent?: string | null;
+  
+  // Additional methods needed by components
+  logout?: () => Promise<void>;
+  updateUserProfile?: (updates: Partial<AuthUser>) => Promise<boolean>;
+  refreshUserProfile?: () => Promise<void>;
+  updatePassword?: (newPassword: string) => Promise<boolean>;
+  loading?: boolean;
 }

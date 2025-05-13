@@ -1,16 +1,14 @@
-
 import React, { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Image, Video, Smile, X, Loader2 } from "lucide-react";
+import { Image, Video, Smile, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth/AuthProvider";
 import data from '@emoji-mart/data';
 import Picker from '@emoji-mart/react';
 import { uploadMedia } from "@/services/mediaService";
 import { createPost } from "@/services/feedService";
-import { Progress } from "@/components/ui/progress";
 
 interface UnifiedContentCreatorProps {
   onSuccess?: () => void;
@@ -38,7 +36,6 @@ const UnifiedContentCreator: React.FC<UnifiedContentCreatorProps> = ({
     type: 'photo' | 'video';
     previewUrl: string;
   } | null>(null);
-  const [uploadProgress, setUploadProgress] = useState(0);
 
   // Handle text change in textarea
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -82,10 +79,7 @@ const UnifiedContentCreator: React.FC<UnifiedContentCreatorProps> = ({
 
   // Create post with or without media
   const handleCreatePost = async () => {
-    // Use a default user ID if there's no logged-in user
-    const userId = user?.id || 'anonymous-user';
-    
-    if ((!postText.trim() && !selectedMedia)) {
+    if ((!postText.trim() && !selectedMedia) || !user?.id) {
       toast({
         title: "Nothing to post",
         description: "Please add some text, photo, or video to your post.",
@@ -95,118 +89,67 @@ const UnifiedContentCreator: React.FC<UnifiedContentCreatorProps> = ({
     }
     
     setIsLoading(true);
-    setUploadProgress(10);
     
     try {
-      // Two different flows: with media and without media
+      let mediaData = null;
       
-      // With media: upload the media first, which will create a post
+      // Step 1: Handle media upload if there's selected media
       if (selectedMedia) {
-        setUploadProgress(20);
-        console.log(`Starting upload for ${selectedMedia.type} with text: "${postText.trim() || 'No text'}" for user ${userId}`);
+        const contentType = selectedMedia.type;
         
-        // Create a post first and get the post ID
-        let postId;
-        if (postText.trim()) {
-          const { success, post, error } = await createPost(postText.trim(), userId);
-          
-          if (!success || !post) {
-            throw new Error(error || "Failed to create post for media");
-          }
-          
-          postId = post.id;
-          console.log('Created post for media:', postId);
-        }
-        
-        setUploadProgress(40);
-        
-        // Then upload the media with the post ID
-        const mediaData = await uploadMedia(selectedMedia.file, {
-          title: postText.trim() || `New ${selectedMedia.type}`,
+        // Upload media file and get metadata
+        mediaData = await uploadMedia(selectedMedia.file, {
+          title: postText.trim() || 'New post',
           description: postText.trim(),
           category: 'user-post',
-          userId,
-          contentType: selectedMedia.type,
-          existingPostId: postId // Link to the post we just created
+          userId: user.id,
+          contentType
         });
         
-        setUploadProgress(80);
-        
         if (!mediaData) {
-          toast({
-            title: "Media Upload Failed",
-            description: `Your post was created, but we couldn't upload your ${selectedMedia.type}.`,
-            variant: "destructive",
-          });
-        } else {
-          console.log(`Successfully uploaded ${selectedMedia.type}:`, mediaData.id);
-          
-          setUploadProgress(100);
-          toast({
-            title: "Post Created",
-            description: `Your post with ${selectedMedia.type} has been published.`,
-          });
+          throw new Error(`Failed to upload ${contentType}.`);
         }
-      } else {
-        // Without media: just create a text post
-        setUploadProgress(50);
-        console.log(`Creating text-only post: "${postText.trim()}" for user ${userId}`);
-        
-        const { success, post, error } = await createPost(
-          postText,
-          userId
-        );
-        
-        if (!success || !post) {
-          throw new Error(error || "Failed to create post");
-        }
-        
-        console.log('Created text-only post:', post.id);
-        
-        setUploadProgress(100);
+      }
+      
+      // Step 2: Create the post
+      const { success, post, error } = await createPost(
+        postText,
+        user.id,
+        selectedMedia?.type,
+        mediaData?.id // Link to uploaded media if any
+      );
+      
+      if (success) {
         toast({
           title: "Post Created",
           description: "Your post has been published successfully.",
         });
+        
+        // Reset form
+        setPostText('');
+        setSelectedMedia(null);
+        
+        // Call onSuccess callback if provided
+        if (onSuccess) {
+          onSuccess();
+        }
+      } else {
+        toast({
+          title: "Error Creating Post",
+          description: error || "Failed to create post",
+          variant: "destructive",
+        });
       }
-      
-      // Reset form
-      setPostText('');
-      setSelectedMedia(null);
-      
-      // Call onSuccess callback if provided
-      if (onSuccess) {
-        onSuccess();
-      }
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error creating post:', err);
       toast({
         title: "Error",
-        description: err.message || "An unexpected error occurred while creating your post.",
+        description: "An unexpected error occurred while creating your post.",
         variant: "destructive",
       });
     } finally {
       setIsLoading(false);
-      setUploadProgress(0);
     }
-  };
-  
-  // Function to validate media before uploading
-  const isValidMedia = (file: File | null): boolean => {
-    if (!file) return false;
-    
-    // Check file size (10MB limit)
-    const maxSize = 10 * 1024 * 1024; // 10MB in bytes
-    if (file.size > maxSize) {
-      toast({
-        title: "File Too Large",
-        description: "Please select a file smaller than 10MB.",
-        variant: "destructive",
-      });
-      return false;
-    }
-    
-    return true;
   };
 
   return (
@@ -256,20 +199,6 @@ const UnifiedContentCreator: React.FC<UnifiedContentCreatorProps> = ({
               >
                 <X size={16} />
               </button>
-            </div>
-          )}
-          
-          {/* Show progress bar during upload */}
-          {isLoading && uploadProgress > 0 && (
-            <div className="mt-2">
-              <Progress 
-                value={uploadProgress} 
-                className="h-2"
-                aria-label="Upload progress"
-              />
-              <p className="text-xs text-gray-500 dark:text-gray-400 text-right mt-1">
-                {uploadProgress}% complete
-              </p>
             </div>
           )}
         </div>
@@ -335,12 +264,7 @@ const UnifiedContentCreator: React.FC<UnifiedContentCreatorProps> = ({
           onClick={handleCreatePost}
           disabled={(!postText.trim() && !selectedMedia) || isLoading}
         >
-          {isLoading ? (
-            <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              {uploadProgress > 0 ? `${uploadProgress}%` : "Posting..."}
-            </>
-          ) : selectedMedia ? "Share" : "Post"}
+          {isLoading ? "Posting..." : selectedMedia ? "Share" : "Post"}
         </Button>
       </div>
     </div>

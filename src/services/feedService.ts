@@ -1,4 +1,3 @@
-
 import { supabase } from '@/lib/supabaseClient';
 
 export interface LikeUser {
@@ -101,16 +100,17 @@ export const getPosts = async (userId?: string): Promise<Post[]> => {
     }
 
     const posts: Post[] = data.map((post) => {
-      // Handle the profiles field properly with strong null checking
+      // Handle the profiles field properly - it might be null or an empty object
       const authorProfile = post.profiles || {};
       
+      // Safely access properties with optional chaining or default values
       return {
         id: post.id,
         content: post.content,
         created_at: post.created_at,
         user_id: post.user_id,
         author: {
-          id: authorProfile?.id || post.user_id || null,
+          id: authorProfile?.id || null,
           username: authorProfile?.username || "Unknown",
           fullName: authorProfile?.full_name || "Unknown User",
           avatar: authorProfile?.avatar_url || authorProfile?.profile_picture_url || null,
@@ -197,16 +197,17 @@ export const fetchPosts = async (
     }
 
     const posts: Post[] = data.map((post) => {
-      // Handle the profiles field properly with strong null checking
+      // Handle the profiles field properly - it might be null or an empty object
       const authorProfile = post.profiles || {};
       
+      // Safely access properties with optional chaining or default values
       return {
         id: post.id,
         content: post.content,
         created_at: post.created_at,
         user_id: post.user_id,
         author: {
-          id: authorProfile?.id || post.user_id || null,
+          id: authorProfile?.id || null,
           username: authorProfile?.username || "Unknown",
           fullName: authorProfile?.full_name || "Unknown User",
           avatar: authorProfile?.avatar_url || authorProfile?.profile_picture_url || null,
@@ -324,8 +325,6 @@ export const createPost = async (
   mediaId?: string
 ): Promise<{ success: boolean; post?: Post; error?: string }> => {
   try {
-    console.log(`Creating post with content: "${content}" for user ID: ${userId}`);
-    
     // Insert the post
     const { data: postData, error: postError } = await supabase
       .from('posts')
@@ -338,11 +337,8 @@ export const createPost = async (
       return { success: false, error: postError.message };
     }
 
-    console.log(`Post created successfully with ID: ${postData.id}`);
-
     // If there's media to associate
     if (mediaId) {
-      console.log(`Associating media ID ${mediaId} with post ID ${postData.id}`);
       const { error: mediaError } = await supabase
         .from('media')
         .update({ post_id: postData.id })
@@ -351,9 +347,6 @@ export const createPost = async (
       if (mediaError) {
         console.error('Error associating media with post:', mediaError);
         // We continue because the post was created successfully
-        console.log('Continuing despite media association error');
-      } else {
-        console.log('Media associated successfully with post');
       }
     }
 

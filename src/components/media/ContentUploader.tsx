@@ -2,7 +2,6 @@
 import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -11,14 +10,14 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth/AuthProvider";
 import { uploadMedia } from "@/services/mediaService";
 import { useSubscription } from "@/contexts/SubscriptionContext";
-import { Progress } from "@/components/ui/progress";
+import { supabase } from "@/lib/supabaseClient";
 
 interface ContentUploaderProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  type: 'photo' | 'video' | 'post';
+  type: 'photo' | 'video' | 'post';  // Keep 'post' as a valid type
   onSuccess?: () => void;
-  onUploadComplete?: () => void;
+  onUploadComplete?: () => void; // Add this missing prop
 }
 
 const ContentUploader: React.FC<ContentUploaderProps> = ({ 
@@ -37,7 +36,6 @@ const ContentUploader: React.FC<ContentUploaderProps> = ({
   const [category, setCategory] = useState("lifestyle");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [uploadProgress, setUploadProgress] = useState<number>(0);
 
   // Define the content type for upload
   const contentType: 'photo' | 'video' = type === 'post' ? 'photo' : type as 'photo' | 'video';
@@ -54,17 +52,6 @@ const ContentUploader: React.FC<ContentUploaderProps> = ({
     const file = e.target.files?.[0];
     if (!file) return;
     
-    // Validate file size (10MB limit)
-    const maxSize = 10 * 1024 * 1024; // 10MB
-    if (file.size > maxSize) {
-      toast({
-        title: "File Too Large",
-        description: "Please select a file smaller than 10MB.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
     setSelectedFile(file);
     
     // Create preview URL for image/video
@@ -75,8 +62,14 @@ const ContentUploader: React.FC<ContentUploaderProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Use a default user ID if there's no logged-in user
-    const userId = user?.id || 'anonymous-user';
+    if (!user?.id) {
+      toast({
+        title: "Authentication Required",
+        description: "You must be logged in to upload content.",
+        variant: "destructive",
+      });
+      return;
+    }
     
     if (!selectedFile && type !== 'post') {
       toast({
@@ -88,30 +81,41 @@ const ContentUploader: React.FC<ContentUploaderProps> = ({
     }
     
     setUploading(true);
-    setUploadProgress(10);
     
     try {
-      setUploadProgress(25);
+      let postId = '';
+
+      // Create a post first to get the post ID
+      const { data: postData, error: postError } = await supabase
+        .from('posts')
+        .insert({
+          user_id: user.id,
+          content: title || `New ${contentType} upload`
+        })
+        .select('id')
+        .single();
+        
+      if (postError) {
+        console.error('Error creating post:', postError);
+        throw new Error('Failed to create post');
+      }
       
-      // Upload the file and create post in one operation
+      postId = postData.id;
+      console.log('Created post with ID:', postId);
+      
       if (selectedFile) {
-        setUploadProgress(40);
-        
-        console.log(`Uploading ${type} with title: ${title}`);
-        console.log(`File: ${selectedFile.name}, type: ${selectedFile.type}, size: ${selectedFile.size}`);
-        
         // Use the unified uploadMedia function for both photos and videos
         const mediaData = await uploadMedia(selectedFile, {
           title,
           description,
           category,
-          userId,
-          contentType
+          userId: user.id,
+          contentType, 
+          existingPostId: postId
         });
         
-        setUploadProgress(80);
-        
         if (!mediaData) {
+          // New error logging with more details
           console.error(`Upload failed for file:`, {
             filename: selectedFile.name,
             type: selectedFile.type,
@@ -119,14 +123,11 @@ const ContentUploader: React.FC<ContentUploaderProps> = ({
             contentType: contentType,
             category: category
           });
-          
-          throw new Error(`Failed to upload ${contentType}. There might be an issue with storage permissions.`);
+          throw new Error(`Failed to upload ${contentType}. Check console for details.`);
         }
         
         console.log(`${contentType} uploaded successfully:`, mediaData);
       }
-      
-      setUploadProgress(100);
       
       toast({
         title: "Upload Successful",
@@ -151,16 +152,15 @@ const ContentUploader: React.FC<ContentUploaderProps> = ({
       if (onUploadComplete) {
         onUploadComplete();
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error(`Error uploading ${type}:`, error);
       toast({
         title: "Upload Failed",
-        description: error.message || `There was a problem uploading your ${type}. Please try again.`,
+        description: `There was a problem uploading your ${type}. Please try again.`,
         variant: "destructive",
       });
     } finally {
       setUploading(false);
-      setUploadProgress(0);
     }
   };
 
@@ -175,7 +175,6 @@ const ContentUploader: React.FC<ContentUploaderProps> = ({
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Title field */}
           <div className="space-y-2">
             <Label htmlFor="title">Title</Label>
             <Input 
@@ -247,31 +246,15 @@ const ContentUploader: React.FC<ContentUploaderProps> = ({
             </Select>
           </div>
           
-          {/* Description field */}
           <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
-            <Textarea 
+            <Label htmlFor="description">Description (optional)</Label>
+            <Input 
               id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Add a detailed description"
-              className="min-h-[120px] resize-y"
+              placeholder="Add a brief description"
             />
           </div>
-          
-          {/* Show progress bar during upload */}
-          {uploading && uploadProgress > 0 && (
-            <div>
-              <Progress 
-                value={uploadProgress} 
-                className="h-2" 
-                aria-label="Upload progress"
-              />
-              <p className="text-xs text-gray-500 dark:text-gray-400 text-right mt-1">
-                {uploadProgress}% complete
-              </p>
-            </div>
-          )}
           
           <div className="flex justify-end gap-2">
             <Button 
@@ -289,7 +272,7 @@ const ContentUploader: React.FC<ContentUploaderProps> = ({
               {uploading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {uploadProgress > 0 ? `Uploading... ${uploadProgress}%` : 'Uploading...'}
+                  Uploading...
                 </>
               ) : (
                 'Share'

@@ -244,7 +244,7 @@ export const getLikesForPost = async (postId: string): Promise<LikeUser[]> => {
       return [];
     }
     
-    // Map the data to our LikeUser type
+    // Map the data to our LikeUser type - Fixed: Access individual items in the array
     const likeUsers: LikeUser[] = data
       .filter(item => item.user) // Filter out any null users
       .map(item => ({
@@ -265,7 +265,6 @@ export const getLikesForPost = async (postId: string): Promise<LikeUser[]> => {
 export const createPost = async (
   content: string,
   userId: string,
-  gifUrl?: string | null,
   mediaType?: string,
   mediaId?: string
 ): Promise<{ success: boolean; post?: Post; error?: string }> => {
@@ -275,8 +274,7 @@ export const createPost = async (
       .from('posts')
       .insert({
         content,
-        user_id: userId,
-        gif_url: gifUrl
+        user_id: userId
       })
       .select('*')
       .single();
@@ -294,25 +292,6 @@ export const createPost = async (
         
       if (mediaError) {
         console.error('Error linking media to post:', mediaError);
-        // We don't want to fail the post creation if this fails
-      }
-    } 
-    // If we have a gifUrl but no mediaId, we need to create a media entry for the GIF
-    else if (gifUrl && mediaType === 'gif') {
-      const { error: gifError } = await supabase
-        .from('media')
-        .insert({
-          title: content.substring(0, 50) || 'GIF',
-          file_url: gifUrl,
-          thumbnail_url: gifUrl,
-          content_type: 'gif',
-          media_type: 'gif',
-          user_id: userId,
-          post_id: data.id
-        });
-        
-      if (gifError) {
-        console.error('Error saving GIF media:', gifError);
         // We don't want to fail the post creation if this fails
       }
     }

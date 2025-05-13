@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -274,7 +275,7 @@ const ContentUploader: React.FC<ContentUploaderProps> = ({
                   Uploading...
                 </>
               ) : (
-                'Upload'
+                'Share'
               )}
             </Button>
           </div>

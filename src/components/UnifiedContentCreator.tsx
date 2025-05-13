@@ -3,12 +3,11 @@ import React, { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Image, Video, Gift, Smile, X, Tag, Upload } from "lucide-react";
+import { Image, Video, Smile, X, Upload } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth/AuthProvider";
 import data from '@emoji-mart/data';
 import Picker from '@emoji-mart/react';
-import GifPicker from "@/components/media/GifPicker";
 import { uploadMedia } from "@/services/mediaService";
 import { createPost } from "@/services/feedService";
 
@@ -33,43 +32,21 @@ const UnifiedContentCreator: React.FC<UnifiedContentCreatorProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [postText, setPostText] = useState('');
   const [showEmojis, setShowEmojis] = useState(false);
-  const [showGifs, setShowGifs] = useState(false);
-  const [selectedGif, setSelectedGif] = useState<string | null>(null);
   const [selectedMedia, setSelectedMedia] = useState<{
     file: File;
     type: 'photo' | 'video';
     previewUrl: string;
   } | null>(null);
-  const [tagSuggestions, setTagSuggestions] = useState<boolean>(false);
 
   // Handle text change in textarea
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setPostText(e.target.value);
-    // Check for @ symbol to trigger tag suggestions
-    if (e.target.value.includes('@') && e.target.value.lastIndexOf('@') === e.target.value.length - 1) {
-      setTagSuggestions(true);
-    } else {
-      setTagSuggestions(false);
-    }
   };
 
   // Add emoji to the text
   const addEmoji = (emoji: any) => {
     setPostText(prev => prev + emoji.native);
     setShowEmojis(false);
-  };
-
-  // Handle GIF selection
-  const handleGifSelect = (gifUrl: string) => {
-    // Clear any previously selected media
-    setSelectedMedia(null);
-    setSelectedGif(gifUrl);
-    setShowGifs(false);
-  };
-
-  // Remove selected GIF
-  const removeGif = () => {
-    setSelectedGif(null);
   };
 
   // Remove selected media
@@ -79,9 +56,6 @@ const UnifiedContentCreator: React.FC<UnifiedContentCreatorProps> = ({
 
   // Handle media selection (photo/video)
   const handleMediaSelect = (type: 'photo' | 'video') => {
-    // Clear any previously selected GIF
-    setSelectedGif(null);
-    
     // Update the file input's accept attribute based on the media type
     if (fileInputRef.current) {
       fileInputRef.current.accept = type === 'photo' ? 'image/*' : 'video/*';
@@ -106,10 +80,10 @@ const UnifiedContentCreator: React.FC<UnifiedContentCreatorProps> = ({
 
   // Create post with or without media
   const handleCreatePost = async () => {
-    if ((!postText.trim() && !selectedMedia && !selectedGif) || !user?.id) {
+    if ((!postText.trim() && !selectedMedia) || !user?.id) {
       toast({
         title: "Nothing to post",
-        description: "Please add some text, photo, video, or GIF to your post.",
+        description: "Please add some text, photo, or video to your post.",
         variant: "destructive",
       });
       return;
@@ -119,7 +93,6 @@ const UnifiedContentCreator: React.FC<UnifiedContentCreatorProps> = ({
     
     try {
       let mediaData = null;
-      let gifUrl = selectedGif;
       
       // Step 1: Handle media upload if there's selected media
       if (selectedMedia) {
@@ -127,7 +100,7 @@ const UnifiedContentCreator: React.FC<UnifiedContentCreatorProps> = ({
         
         // Upload media file and get metadata
         mediaData = await uploadMedia(selectedMedia.file, {
-          title: postText.trim() || 'New upload',
+          title: postText.trim() || 'New post',
           description: postText.trim(),
           category: 'user-post',
           userId: user.id,
@@ -143,8 +116,7 @@ const UnifiedContentCreator: React.FC<UnifiedContentCreatorProps> = ({
       const { success, post, error } = await createPost(
         postText,
         user.id,
-        gifUrl,
-        gifUrl ? 'gif' : undefined,
+        selectedMedia?.type,
         mediaData?.id // Link to uploaded media if any
       );
       
@@ -156,7 +128,6 @@ const UnifiedContentCreator: React.FC<UnifiedContentCreatorProps> = ({
         
         // Reset form
         setPostText('');
-        setSelectedGif(null);
         setSelectedMedia(null);
         
         // Call onSuccess callback if provided
@@ -204,27 +175,6 @@ const UnifiedContentCreator: React.FC<UnifiedContentCreatorProps> = ({
             onChange={handleTextChange}
             disabled={isLoading}
           />
-          
-          {tagSuggestions && (
-            <div className="bg-white dark:bg-gray-700 shadow-md rounded-md mt-1 p-2 border border-gray-200 dark:border-gray-600">
-              <div className="text-sm font-medium mb-1">Tag someone</div>
-              <div className="space-y-1">
-                {[1, 2, 3].map(id => (
-                  <div 
-                    key={id} 
-                    className="flex items-center gap-2 p-1 hover:bg-gray-100 dark:hover:bg-gray-600 rounded cursor-pointer"
-                    onClick={() => {
-                      setPostText(prev => prev + `Friend${id} `);
-                      setTagSuggestions(false);
-                    }}
-                  >
-                    <div className="w-6 h-6 rounded-full bg-gray-200 dark:bg-gray-600"></div>
-                    <span className="text-sm">Friend {id}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
 
           {/* Show media preview */}
           {selectedMedia && (
@@ -246,20 +196,6 @@ const UnifiedContentCreator: React.FC<UnifiedContentCreatorProps> = ({
               <button
                 className="absolute top-2 right-2 bg-black/50 rounded-full p-1 text-white hover:bg-black/70"
                 onClick={removeMedia}
-                disabled={isLoading}
-              >
-                <X size={16} />
-              </button>
-            </div>
-          )}
-
-          {/* Show selected GIF */}
-          {selectedGif && (
-            <div className="relative mt-3 rounded-lg overflow-hidden">
-              <img src={selectedGif} alt="Selected GIF" className="w-full rounded-lg max-h-60 object-contain" />
-              <button
-                className="absolute top-2 right-2 bg-black/50 rounded-full p-1 text-white hover:bg-black/70"
-                onClick={removeGif}
                 disabled={isLoading}
               >
                 <X size={16} />
@@ -302,16 +238,6 @@ const UnifiedContentCreator: React.FC<UnifiedContentCreatorProps> = ({
             Video
           </Button>
           
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
-            disabled={isLoading}
-          >
-            <Tag className="w-5 h-5 text-blue-500 mr-2" />
-            Tag
-          </Button>
-          
           <Popover open={showEmojis} onOpenChange={setShowEmojis}>
             <PopoverTrigger asChild>
               <Button 
@@ -332,31 +258,14 @@ const UnifiedContentCreator: React.FC<UnifiedContentCreatorProps> = ({
               />
             </PopoverContent>
           </Popover>
-          
-          <Popover open={showGifs} onOpenChange={setShowGifs}>
-            <PopoverTrigger asChild>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
-                disabled={isLoading}
-              >
-                <Gift className="w-5 h-5 text-purple-500 mr-2" />
-                GIF
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-[340px] p-0" side="top">
-              <GifPicker onGifSelect={handleGifSelect} />
-            </PopoverContent>
-          </Popover>
         </div>
         
         <Button 
           size="sm"
           onClick={handleCreatePost}
-          disabled={(!postText.trim() && !selectedMedia && !selectedGif) || isLoading}
+          disabled={(!postText.trim() && !selectedMedia) || isLoading}
         >
-          {isLoading ? "Posting..." : "Post"}
+          {isLoading ? "Posting..." : selectedMedia ? "Share" : "Post"}
         </Button>
       </div>
     </div>

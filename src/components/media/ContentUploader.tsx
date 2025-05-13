@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -10,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth/AuthProvider";
 import { uploadMedia } from "@/services/mediaService";
 import { useSubscription } from "@/contexts/SubscriptionContext";
+import { Progress } from "@/components/ui/progress";
 
 interface ContentUploaderProps {
   open: boolean;
@@ -52,6 +54,17 @@ const ContentUploader: React.FC<ContentUploaderProps> = ({
     const file = e.target.files?.[0];
     if (!file) return;
     
+    // Validate file size (10MB limit)
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (file.size > maxSize) {
+      toast({
+        title: "File Too Large",
+        description: "Please select a file smaller than 10MB.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setSelectedFile(file);
     
     // Create preview URL for image/video
@@ -78,12 +91,14 @@ const ContentUploader: React.FC<ContentUploaderProps> = ({
     setUploadProgress(10);
     
     try {
-      setUploadProgress(40);
+      setUploadProgress(25);
       
       // Upload the file and create post in one operation
       if (selectedFile) {
-        setUploadProgress(60);
+        setUploadProgress(40);
+        
         console.log(`Uploading ${type} with title: ${title}`);
+        console.log(`File: ${selectedFile.name}, type: ${selectedFile.type}, size: ${selectedFile.size}`);
         
         // Use the unified uploadMedia function for both photos and videos
         const mediaData = await uploadMedia(selectedFile, {
@@ -94,7 +109,7 @@ const ContentUploader: React.FC<ContentUploaderProps> = ({
           contentType
         });
         
-        setUploadProgress(90);
+        setUploadProgress(80);
         
         if (!mediaData) {
           console.error(`Upload failed for file:`, {
@@ -160,7 +175,7 @@ const ContentUploader: React.FC<ContentUploaderProps> = ({
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Title field (new position) */}
+          {/* Title field */}
           <div className="space-y-2">
             <Label htmlFor="title">Title</Label>
             <Input 
@@ -243,6 +258,20 @@ const ContentUploader: React.FC<ContentUploaderProps> = ({
               className="min-h-[120px] resize-y"
             />
           </div>
+          
+          {/* Show progress bar during upload */}
+          {uploading && uploadProgress > 0 && (
+            <div>
+              <Progress 
+                value={uploadProgress} 
+                className="h-2" 
+                aria-label="Upload progress"
+              />
+              <p className="text-xs text-gray-500 dark:text-gray-400 text-right mt-1">
+                {uploadProgress}% complete
+              </p>
+            </div>
+          )}
           
           <div className="flex justify-end gap-2">
             <Button 

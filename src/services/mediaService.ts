@@ -1,3 +1,4 @@
+
 import { supabase } from '@/lib/supabaseClient';
 import { Video } from './videoService';
 
@@ -110,7 +111,28 @@ export const convertToVideoFormat = (mediaItems: MediaItem[]): Video[] => {
 };
 
 /**
- * Upload a media file to Supabase storage
+ * Verify that storage buckets exist and are configured properly
+ */
+const verifyStorageBucket = async (bucketName: string): Promise<boolean> => {
+  try {
+    // Check if bucket exists
+    const { data: bucketData, error: bucketError } = await supabase.storage.getBucket(bucketName);
+    
+    if (bucketError) {
+      console.error(`Storage bucket verification failed: Bucket ${bucketName} not found`, bucketError);
+      return false;
+    }
+    
+    console.log(`Storage bucket ${bucketName} exists:`, bucketData);
+    return true;
+  } catch (error) {
+    console.error(`Error verifying storage bucket ${bucketName}:`, error);
+    return false;
+  }
+};
+
+/**
+ * Upload a media file to Supabase storage with improved error handling
  */
 export const uploadMediaFile = async (
   file: File,
@@ -119,49 +141,47 @@ export const uploadMediaFile = async (
 ): Promise<{ url: string; thumbnailUrl?: string } | null> => {
   try {
     if (!file || !userId) {
-      console.error('Missing required parameters for upload');
+      console.error('Missing required parameters for upload:', { file: !!file, userId: !!userId });
       return null;
     }
 
     // Verify buckets exist first
-    const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
-    
-    if (bucketsError) {
-      console.error('Error checking storage buckets:', bucketsError);
-      return null;
-    }
-
-    // Check if target bucket exists
     const bucketName = contentType === 'photo' ? 'photos' : 'videos';
-    const bucketExists = buckets.some(bucket => bucket.name === bucketName);
-
+    const bucketExists = await verifyStorageBucket(bucketName);
+    
     if (!bucketExists) {
-      console.error(`Bucket "${bucketName}" not found`);
+      console.error(`Target storage bucket "${bucketName}" doesn't exist or isn't properly configured`);
       return null;
     }
     
-    // Create a unique filename with folders for anonymous users
+    // Create a unique filename with folders for anonymous users and proper organization
     const fileExt = file.name.split('.').pop();
     const timestamp = Date.now();
-    const fileName = userId === 'anonymous-user' 
-      ? `anonymous/${timestamp}/${Math.random().toString(36).substring(2)}.${fileExt}`
-      : `${userId}/${timestamp}.${fileExt}`;
+    const randomId = Math.random().toString(36).substring(2, 10);
     
-    console.log(`Uploading ${contentType} to ${bucketName} bucket: ${fileName}`);
+    // Create a structured path for better organization
+    let filePath;
+    if (userId === 'anonymous-user') {
+      filePath = `anonymous/${timestamp}-${randomId}.${fileExt}`;
+    } else {
+      filePath = `${userId}/${timestamp}-${randomId}.${fileExt}`;
+    }
+    
+    console.log(`Uploading ${contentType} to ${bucketName} bucket with path: ${filePath}`);
     console.log(`File details: ${file.type}, ${file.size} bytes`);
     
     // Upload file to storage with improved error handling
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from(bucketName)
-      .upload(fileName, file, {
+      .upload(filePath, file, {
         cacheControl: '3600',
         upsert: false
       });
       
     if (uploadError) {
-      console.error(`Error uploading ${contentType}:`, uploadError);
+      console.error(`Error uploading ${contentType} to ${bucketName}:`, uploadError);
       console.error('Upload error details:', {
-        fileName,
+        filePath,
         bucketName,
         contentType,
         userId,
@@ -169,13 +189,21 @@ export const uploadMediaFile = async (
         fileType: file.type,
         errorMessage: uploadError.message
       });
+      
+      // Check for specific error types
+      if (uploadError.message.includes('permission')) {
+        console.error('This appears to be a permissions issue with the storage bucket');
+      } else if (uploadError.message.includes('already exists')) {
+        console.error('File with this name already exists in the bucket');
+      }
+      
       return null;
     }
     
     // Get public URL for the file
     const { data: urlData } = supabase.storage
       .from(bucketName)
-      .getPublicUrl(fileName);
+      .getPublicUrl(filePath);
       
     const fileUrl = urlData?.publicUrl;
     if (!fileUrl) {
@@ -217,24 +245,30 @@ export const saveMediaMetadata = async (
   }
 ): Promise<MediaItem | null> => {
   try {
-    // Create a post for this media - use description for the post content
-    console.log(`Creating post for media upload by user: ${mediaData.userId}`);
-    const { data: postData, error: postError } = await supabase
-      .from('posts')
-      .insert({
-        user_id: mediaData.userId,
-        content: mediaData.description || `${mediaData.title || (mediaData.contentType === 'video' ? 'Video' : 'Photo')} upload`
-      })
-      .select('id')
-      .single();
-      
-    if (postError) {
-      console.error('Error creating post for media:', postError);
-      return null;
-    }
+    let postId = mediaData.existingPostId;
     
-    const postId = postData.id;
-    console.log(`Created post for media: ${postId}`);
+    // Only create a post if no existing post ID was provided
+    if (!postId) {
+      console.log(`Creating post for media upload by user: ${mediaData.userId}`);
+      const { data: postData, error: postError } = await supabase
+        .from('posts')
+        .insert({
+          user_id: mediaData.userId,
+          content: mediaData.description || `${mediaData.title || (mediaData.contentType === 'video' ? 'Video' : 'Photo')} upload`
+        })
+        .select('id')
+        .single();
+        
+      if (postError) {
+        console.error('Error creating post for media:', postError);
+        return null;
+      }
+      
+      postId = postData.id;
+      console.log(`Created post for media: ${postId}`);
+    } else {
+      console.log(`Using existing post ID: ${postId}`);
+    }
     
     // Use correct media_type values for database compatibility
     const mediaType = mediaData.contentType === 'photo' ? 'image' : 'video';
@@ -267,20 +301,6 @@ export const saveMediaMetadata = async (
         contentType: mediaData.contentType,
         mediaType: mediaType,
       }));
-      
-      // If media creation fails, attempt to delete the orphaned post
-      console.log(`Attempting to delete orphaned post: ${postId}`);
-      const { error: deleteError } = await supabase
-        .from('posts')
-        .delete()
-        .eq('id', postId);
-        
-      if (deleteError) {
-        console.error('Error cleaning up orphaned post:', deleteError);
-      } else {
-        console.log('Cleaned up orphaned post:', postId);
-      }
-      
       return null;
     }
     
@@ -315,7 +335,8 @@ export const uploadMedia = async (
       description: metadata.description?.substring(0, 50) + '...',
       category: metadata.category,
       fileSize: file.size,
-      fileType: file.type
+      fileType: file.type,
+      existingPostId: metadata.existingPostId || 'none'
     });
     
     // Step 1: Upload the file to storage
@@ -328,7 +349,7 @@ export const uploadMedia = async (
     
     console.log('File uploaded successfully, saving metadata...');
     
-    // Step 2: Save metadata to database - only pass existingPostId if one was provided
+    // Step 2: Save metadata to database - pass existingPostId if one was provided
     const mediaData = await saveMediaMetadata({
       ...metadata,
       fileUrl: uploadResult.url,

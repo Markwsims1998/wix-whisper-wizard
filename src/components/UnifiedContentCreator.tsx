@@ -10,7 +10,7 @@ import data from '@emoji-mart/data';
 import Picker from '@emoji-mart/react';
 import { uploadMedia } from "@/services/mediaService";
 import { createPost } from "@/services/feedService";
-import { supabase } from "@/lib/supabaseClient";
+import { Progress } from "@/components/ui/progress";
 
 interface UnifiedContentCreatorProps {
   onSuccess?: () => void;
@@ -98,43 +98,60 @@ const UnifiedContentCreator: React.FC<UnifiedContentCreatorProps> = ({
     setUploadProgress(10);
     
     try {
-      // We'll create only ONE post, either directly or through the media upload process
+      // Two different flows: with media and without media
       
-      // If we have media, upload it first and it will create the post
+      // With media: upload the media first, which will create a post
       if (selectedMedia) {
-        console.log(`Uploading ${selectedMedia.type} for user ${userId}`);
-        const contentType = selectedMedia.type;
-        setUploadProgress(30);
+        setUploadProgress(20);
+        console.log(`Starting upload for ${selectedMedia.type} with text: "${postText.trim() || 'No text'}" for user ${userId}`);
         
-        // Create unique folder structure for anonymous uploads to prevent conflicts
-        const uniqueFolder = `${userId}/${Date.now()}`;
+        // Create a post first and get the post ID
+        let postId;
+        if (postText.trim()) {
+          const { success, post, error } = await createPost(postText.trim(), userId);
+          
+          if (!success || !post) {
+            throw new Error(error || "Failed to create post for media");
+          }
+          
+          postId = post.id;
+          console.log('Created post for media:', postId);
+        }
         
-        // Upload media file which will create a post
+        setUploadProgress(40);
+        
+        // Then upload the media with the post ID
         const mediaData = await uploadMedia(selectedMedia.file, {
-          title: postText.trim() || 'New post',
+          title: postText.trim() || `New ${selectedMedia.type}`,
           description: postText.trim(),
           category: 'user-post',
           userId,
-          contentType,
-          // Don't pass an existing post ID - let media service create the post
+          contentType: selectedMedia.type,
+          existingPostId: postId // Link to the post we just created
         });
         
         setUploadProgress(80);
         
         if (!mediaData) {
-          console.error(`Failed to upload ${contentType}:`, {
-            fileType: selectedMedia.file.type,
-            fileSize: selectedMedia.file.size,
-            fileName: selectedMedia.file.name
+          toast({
+            title: "Media Upload Failed",
+            description: `Your post was created, but we couldn't upload your ${selectedMedia.type}.`,
+            variant: "destructive",
           });
-          throw new Error(`Failed to upload ${contentType}. There might be an issue with storage permissions.`);
         } else {
-          console.log(`Successfully uploaded ${contentType}:`, mediaData.id);
-          console.log(`Post ID for this media: ${mediaData.post_id}`);
+          console.log(`Successfully uploaded ${selectedMedia.type}:`, mediaData.id);
+          
+          setUploadProgress(100);
+          toast({
+            title: "Post Created",
+            description: `Your post with ${selectedMedia.type} has been published.`,
+          });
         }
       } else {
-        // If no media, create a simple text post
-        console.log(`Creating text-only post for user ${userId}`);
+        // Without media: just create a text post
+        setUploadProgress(50);
+        console.log(`Creating text-only post: "${postText.trim()}" for user ${userId}`);
+        
         const { success, post, error } = await createPost(
           postText,
           userId
@@ -145,14 +162,13 @@ const UnifiedContentCreator: React.FC<UnifiedContentCreatorProps> = ({
         }
         
         console.log('Created text-only post:', post.id);
+        
+        setUploadProgress(100);
+        toast({
+          title: "Post Created",
+          description: "Your post has been published successfully.",
+        });
       }
-      
-      setUploadProgress(100);
-      
-      toast({
-        title: "Post Created",
-        description: "Your post has been published successfully.",
-      });
       
       // Reset form
       setPostText('');
@@ -173,6 +189,24 @@ const UnifiedContentCreator: React.FC<UnifiedContentCreatorProps> = ({
       setIsLoading(false);
       setUploadProgress(0);
     }
+  };
+  
+  // Function to validate media before uploading
+  const isValidMedia = (file: File | null): boolean => {
+    if (!file) return false;
+    
+    // Check file size (10MB limit)
+    const maxSize = 10 * 1024 * 1024; // 10MB in bytes
+    if (file.size > maxSize) {
+      toast({
+        title: "File Too Large",
+        description: "Please select a file smaller than 10MB.",
+        variant: "destructive",
+      });
+      return false;
+    }
+    
+    return true;
   };
 
   return (
@@ -222,6 +256,20 @@ const UnifiedContentCreator: React.FC<UnifiedContentCreatorProps> = ({
               >
                 <X size={16} />
               </button>
+            </div>
+          )}
+          
+          {/* Show progress bar during upload */}
+          {isLoading && uploadProgress > 0 && (
+            <div className="mt-2">
+              <Progress 
+                value={uploadProgress} 
+                className="h-2"
+                aria-label="Upload progress"
+              />
+              <p className="text-xs text-gray-500 dark:text-gray-400 text-right mt-1">
+                {uploadProgress}% complete
+              </p>
             </div>
           )}
         </div>

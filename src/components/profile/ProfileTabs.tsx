@@ -15,7 +15,6 @@ import VideoSubscriptionLock from "@/components/media/VideoSubscriptionLock";
 import { useToast } from "@/hooks/use-toast";
 import PostItem from "@/components/profile/PostItem";
 import { Button } from "@/components/ui/button";
-import { Pagination, PaginationContent, PaginationItem, PaginationLink } from "@/components/ui/pagination";
 
 interface ProfileTabsProps {
   userId: string;
@@ -369,13 +368,11 @@ const ProfileTabs: React.FC<ProfileTabsProps> = ({ userId }) => {
       <TabsContent value="posts" className="mt-4">
         <Card>
           <div className="p-4">
-            {/* Use the PostFeed component with userId filter and limit */}
+            {/* Use the PostFeed component with userId filter */}
             <PostFeed 
               userId={userId} 
               showTabs={false} 
               title={isMyProfile ? "Your Posts" : "User Posts"}
-              limit={postsLimit}
-              showMore={() => setPostsLimit(prev => prev + 10)}
             />
           </div>
         </Card>

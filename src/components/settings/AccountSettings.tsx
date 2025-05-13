@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -9,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth/AuthProvider";
 import ProfileImageUpload from "./ProfileImageUpload";
 import GenderSelection from "./GenderSelection";
+import LocationSelector from "./LocationSelector";
 
 const AccountSettings = () => {
   const { toast } = useToast();
@@ -221,6 +221,14 @@ const ProfileSettingsForm = () => {
     });
   };
 
+  // Handle location change from LocationSelector
+  const handleLocationChange = (location: string) => {
+    setProfileForm({
+      ...profileForm,
+      location
+    });
+  };
+
   // Save profile settings
   const saveProfileSettings = async () => {
     setLoading(true);
@@ -267,12 +275,10 @@ const ProfileSettingsForm = () => {
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="location">Location</Label>
-        <Input 
-          id="location" 
+        <Label>Location</Label>
+        <LocationSelector 
           value={profileForm.location} 
-          onChange={handleProfileChange}
-          placeholder="Your location"
+          onChange={handleLocationChange}
         />
       </div>
       <div className="pt-4">

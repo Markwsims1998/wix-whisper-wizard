@@ -76,6 +76,7 @@ function App() {
             
             {/* Post page */}
             <Route path="/post" element={isAuthenticated ? <Post /> : <Navigate to="/login" replace />} />
+            <Route path="/create" element={isAuthenticated ? <Post /> : <Navigate to="/login" replace />} />
             
             {/* Redirect /media to /post */}
             <Route path="/media/:mediaId" element={<Navigate to="/post" replace />} />

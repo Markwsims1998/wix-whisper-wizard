@@ -3,38 +3,21 @@ import Header from "@/components/Header";
 import PostFeed from "@/components/PostFeed";
 import Sidebar from "@/components/Sidebar";
 import AdDisplay from "@/components/AdDisplay";
-import { Image, MessageSquare, Video, X, Tag, Smile, Gift } from "lucide-react";
 import { useAuth } from "@/contexts/auth/AuthProvider"; 
 import { useNavigate, Link } from "react-router-dom";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Textarea } from "@/components/ui/textarea";
 import { useSubscription } from "@/contexts/SubscriptionContext";
-import { useToast } from "@/hooks/use-toast";
-import ContentUploader from "@/components/media/ContentUploader";
-import data from '@emoji-mart/data';
-import Picker from '@emoji-mart/react';
-import GifPicker from "@/components/media/GifPicker";
-import { createPost } from "@/services/feedService";
 import { getActiveFriends } from "@/services/userService";
 import { FriendProfile } from "@/services/userService";
+import UnifiedContentCreator from "@/components/UnifiedContentCreator";
 
 const Index = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { subscriptionDetails } = useSubscription();
-  const { toast } = useToast();
-  const [postText, setPostText] = useState("");
-  const [showEmojis, setShowEmojis] = useState(false);
-  const [showGifs, setShowGifs] = useState(false);
-  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
-  const [uploadType, setUploadType] = useState<'photo' | 'video'>('photo');
-  const [tagSuggestions, setTagSuggestions] = useState<boolean>(false);
-  const [selectedGif, setSelectedGif] = useState<string | null>(null);
   const [activeFriends, setActiveFriends] = useState<FriendProfile[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [isPostLoading, setIsPostLoading] = useState(false);
   
   // Use refs to track initialization state
   const initializedRef = useRef(false);
@@ -128,78 +111,9 @@ const Index = () => {
     }
   }, [user, isLoading, loadActiveFriends]);
 
-  
-
-  const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setPostText(e.target.value);
-    // Check for @ symbol to trigger tag suggestions
-    if (e.target.value.includes("@") && e.target.value.lastIndexOf("@") === e.target.value.length - 1) {
-      setTagSuggestions(true);
-    } else {
-      setTagSuggestions(false);
-    }
-  };
-
-  const addEmoji = (emoji: any) => {
-    setPostText(prev => prev + emoji.native);
-    setShowEmojis(false);
-  };
-
-  const handleGifSelect = (gifUrl: string) => {
-    setSelectedGif(gifUrl);
-    setShowGifs(false);
-  };
-
-  const removeGif = () => {
-    setSelectedGif(null);
-  };
-
-  const handleUploadClick = (type: 'photo' | 'video') => {
-    setUploadType(type);
-    setUploadDialogOpen(true);
-  };
-
-  const handleCreatePost = async () => {
-    if ((postText.trim() === "" && !selectedGif) || !user) return;
-    
-    setIsPostLoading(true);
-    
-    try {
-      const { success, post, error } = await createPost(
-        postText,
-        user.id,
-        selectedGif,
-        selectedGif ? 'gif' : undefined
-      );
-      
-      if (success) {
-        toast({
-          title: "Post Created",
-          description: "Your post has been published successfully.",
-        });
-        
-        // Reset post text and gif
-        setPostText("");
-        setSelectedGif(null);
-        
-        // Refresh the feed (handled by the PostFeed component)
-      } else {
-        toast({
-          title: "Error Creating Post",
-          description: error || "Failed to create post",
-          variant: "destructive",
-        });
-      }
-    } catch (err) {
-      console.error('Error creating post:', err);
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred while creating your post.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsPostLoading(false);
-    }
+  const handleRefreshFeed = () => {
+    // This function will be called after successful post creation
+    // The PostFeed component handles its own refresh
   };
 
   const handleRemoveAds = () => {
@@ -220,7 +134,6 @@ const Index = () => {
     );
   }
 
-  
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex flex-col">
       <Sidebar />
@@ -235,141 +148,13 @@ const Index = () => {
         {/* Rest of the content */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 max-w-screen-xl mx-auto w-full">
           <div className="lg:col-span-8 w-full">
-            {/* Create Post Area */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 mb-4 shadow-sm w-full">
-              
-              <div className="flex items-center gap-3 mb-3">
-                <div className="h-10 w-10 rounded-full bg-purple-100 dark:bg-purple-900 flex items-center justify-center overflow-hidden cursor-pointer" onClick={() => navigate("/profile")}>
-                  {user?.profilePicture ? (
-                    <img src={user.profilePicture} alt="Profile" className="w-full h-full object-cover" />
-                  ) : (
-                    <span className="font-medium text-purple-600 dark:text-purple-300">{user?.name?.charAt(0) || 'A'}</span>
-                  )}
-                </div>
-                <div className="flex-1">
-                  <Textarea
-                    placeholder={`What's on your mind, ${user?.name?.split(' ')[0] || 'Alex'}?`}
-                    className="w-full min-h-[80px] bg-gray-100 dark:bg-gray-700 rounded-lg text-sm focus:outline-none p-3 resize-none"
-                    value={postText}
-                    onChange={handleTextChange}
-                    disabled={isPostLoading}
-                  />
-                  
-                  {tagSuggestions && (
-                    <div className="bg-white dark:bg-gray-700 shadow-md rounded-md mt-1 p-2 border border-gray-200 dark:border-gray-600">
-                      <div className="text-sm font-medium mb-1">Tag someone</div>
-                      <div className="space-y-1">
-                        {[1, 2, 3].map(id => (
-                          <div 
-                            key={id} 
-                            className="flex items-center gap-2 p-1 hover:bg-gray-100 dark:hover:bg-gray-600 rounded cursor-pointer"
-                            onClick={() => {
-                              setPostText(prev => prev + `Friend${id} `);
-                              setTagSuggestions(false);
-                            }}
-                          >
-                            <div className="w-6 h-6 rounded-full bg-gray-200 dark:bg-gray-600"></div>
-                            <span className="text-sm">Friend {id}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Display selected GIF if any */}
-                  {selectedGif && (
-                    <div className="relative mt-3 rounded-lg overflow-hidden">
-                      <img src={selectedGif} alt="Selected GIF" className="w-full rounded-lg max-h-60 object-contain" />
-                      <button
-                        className="absolute top-2 right-2 bg-black/50 rounded-full p-1 text-white hover:bg-black/70"
-                        onClick={removeGif}
-                        disabled={isPostLoading}
-                      >
-                        <X size={16} />
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-              
-              <div className="flex justify-between items-center">
-                <div className="flex gap-2 overflow-x-auto no-scrollbar">
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
-                    onClick={() => handleUploadClick('photo')}
-                    disabled={isPostLoading}
-                  >
-                    <Image className="w-5 h-5 text-green-500 mr-2" />
-                    Photo
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
-                    onClick={() => handleUploadClick('video')}
-                    disabled={isPostLoading}
-                  >
-                    <Video className="w-5 h-5 text-red-500 mr-2" />
-                    Video
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
-                    disabled={isPostLoading}
-                  >
-                    <Tag className="w-5 h-5 text-blue-500 mr-2" />
-                    Tag
-                  </Button>
-                  <Popover open={showEmojis} onOpenChange={setShowEmojis}>
-                    <PopoverTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
-                        disabled={isPostLoading}
-                      >
-                        <Smile className="w-5 h-5 text-amber-500 mr-2" />
-                        Emoji
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-full p-0">
-                      <Picker 
-                        data={data} 
-                        onEmojiSelect={addEmoji} 
-                        theme={document.documentElement.classList.contains('dark') ? "dark" : "light"} 
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  <Popover open={showGifs} onOpenChange={setShowGifs}>
-                    <PopoverTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
-                        disabled={isPostLoading}
-                      >
-                        <Gift className="w-5 h-5 text-purple-500 mr-2" />
-                        GIF
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[340px] p-0" side="top">
-                      <GifPicker onGifSelect={handleGifSelect} />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-                
-                <Button 
-                  size="sm"
-                  onClick={handleCreatePost}
-                  disabled={postText.trim() === "" && !selectedGif || isPostLoading}
-                >
-                  {isPostLoading ? "Posting..." : "Post"}
-                </Button>
-              </div>
-            </div>
+            {/* Unified Content Creator */}
+            <UnifiedContentCreator 
+              onSuccess={handleRefreshFeed}
+              placeholder={`What's on your mind, ${user?.name?.split(' ')[0] || 'User'}?`}
+              className="mb-4"
+            />
+            
             <PostFeed />
           </div>
           <div className="lg:col-span-4 w-full">
@@ -445,13 +230,6 @@ const Index = () => {
           </div>
         </div>
       </div>
-      
-      {/* Content uploader dialog */}
-      <ContentUploader 
-        open={uploadDialogOpen} 
-        onOpenChange={setUploadDialogOpen}
-        type={uploadType}
-      />
     </div>
   );
 };

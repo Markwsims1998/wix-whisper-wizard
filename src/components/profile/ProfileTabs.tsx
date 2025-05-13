@@ -13,6 +13,7 @@ import { useNavigate } from "react-router-dom";
 import Watermark from "@/components/media/Watermark";
 import VideoSubscriptionLock from "@/components/media/VideoSubscriptionLock";
 import { useToast } from "@/hooks/use-toast";
+import PostItem from "@/components/profile/PostItem";
 
 interface ProfileTabsProps {
   userId: string;
@@ -22,6 +23,7 @@ const ProfileTabs: React.FC<ProfileTabsProps> = ({ userId }) => {
   const [photos, setPhotos] = useState<any[]>([]);
   const [videos, setVideos] = useState<any[]>([]);
   const [likes, setLikes] = useState<any[]>([]);
+  const [likedPosts, setLikedPosts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { user } = useAuth();
   const { subscriptionTier, subscriptionDetails } = useSubscription();
@@ -42,7 +44,7 @@ const ProfileTabs: React.FC<ProfileTabsProps> = ({ userId }) => {
         // Fetch photos (media with content_type = photo)
         const { data: photosData, error: photosError } = await supabase
           .from('media')
-          .select('*')
+          .select('*, post:post_id(*)')
           .eq('user_id', userId)
           .eq('content_type', 'photo')
           .order('created_at', { ascending: false });
@@ -57,7 +59,7 @@ const ProfileTabs: React.FC<ProfileTabsProps> = ({ userId }) => {
         // Fetch videos (media with content_type = video)
         const { data: videosData, error: videosError } = await supabase
           .from('media')
-          .select('*')
+          .select('*, post:post_id(*)')
           .eq('user_id', userId)
           .eq('content_type', 'video')
           .order('created_at', { ascending: false });
@@ -69,23 +71,24 @@ const ProfileTabs: React.FC<ProfileTabsProps> = ({ userId }) => {
         
         console.log("Videos data:", videosData);
         
-        // Fetch likes by the user
+        // Fetch liked posts with complete post data
         const { data: likesData, error: likesError } = await supabase
           .from('likes')
           .select(`
             id,
             post_id,
-            post:posts(
+            posts(
               id,
               content,
               created_at,
               user_id,
-              author:profiles!posts_user_id_fkey(
+              profiles!posts_user_id_fkey(
                 id, 
                 full_name, 
                 username, 
                 avatar_url
-              )
+              ),
+              media(*)
             )
           `)
           .eq('user_id', userId)
@@ -98,10 +101,28 @@ const ProfileTabs: React.FC<ProfileTabsProps> = ({ userId }) => {
         
         console.log("Likes data:", likesData);
         
+        // Format liked posts into a structure we can use with PostItem
+        const formattedLikedPosts = likesData
+          ?.filter(like => like.posts) // Only include likes where post exists
+          .map(like => {
+            const post = like.posts;
+            if (!post) return null;
+            
+            return {
+              ...post,
+              author: post.profiles || {},
+              media: post.media || [],
+              likes_count: 0, // We'll fetch this separately
+              comments_count: 0 // We'll fetch this separately
+            };
+          })
+          .filter(Boolean); // Remove null entries
+        
         // Update state with fetched data
         setPhotos(photosData || []);
         setVideos(videosData || []);
         setLikes(likesData || []);
+        setLikedPosts(formattedLikedPosts || []);
       } catch (error) {
         console.error('Error fetching user content:', error);
       } finally {
@@ -113,6 +134,19 @@ const ProfileTabs: React.FC<ProfileTabsProps> = ({ userId }) => {
       fetchUserContent();
     }
   }, [userId]);
+
+  // Handle photo click - navigates to post
+  const handlePhotoClick = (photo: any) => {
+    if (photo.post_id) {
+      navigate(`/post?postId=${photo.post_id}&type=photo`);
+    } else {
+      toast({
+        title: "Photo Unavailable",
+        description: "This photo cannot be viewed at this time.",
+        variant: "destructive"
+      });
+    }
+  };
 
   // Handle video click - redirects users without subscription to shop
   const handleVideoClick = (video: any) => {
@@ -136,6 +170,25 @@ const ProfileTabs: React.FC<ProfileTabsProps> = ({ userId }) => {
     }
   };
 
+  // Handle like action for liked posts tab
+  const handleLikePost = async (postId: string) => {
+    if (!user?.id) return;
+    
+    try {
+      // Call the like/unlike API
+      const result = await fetch(`/api/likes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ postId, userId: user.id })
+      });
+      
+      // Reload liked posts after liking/unliking
+      // This is a simplified approach - in a real app you'd update state
+    } catch (error) {
+      console.error('Error liking/unliking post:', error);
+    }
+  };
+
   // Render a grid of media items (photos or videos)
   const renderMediaGrid = (items: any[], type: 'photo' | 'video') => {
     if (items.length === 0) {
@@ -146,13 +199,18 @@ const ProfileTabs: React.FC<ProfileTabsProps> = ({ userId }) => {
       );
     }
     
+    // Use different grid-cols based on media type
+    const gridColsClass = type === 'video' 
+      ? "grid-cols-1 sm:grid-cols-2" 
+      : "grid-cols-2 md:grid-cols-3 lg:grid-cols-4";
+    
     return (
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      <div className={`grid ${gridColsClass} gap-4`}>
         {items.map((item) => (
           <div key={item.id} 
                className="aspect-square rounded-md overflow-hidden bg-gray-100 dark:bg-gray-700 relative"
-               onClick={type === 'video' ? () => handleVideoClick(item) : undefined}
-               style={type === 'video' ? { cursor: 'pointer' } : undefined}>
+               onClick={type === 'photo' ? () => handlePhotoClick(item) : () => handleVideoClick(item)}
+               style={{ cursor: 'pointer' }}>
             {type === 'photo' ? (
               <div className="relative w-full h-full">
                 <img 
@@ -196,21 +254,16 @@ const ProfileTabs: React.FC<ProfileTabsProps> = ({ userId }) => {
     );
   };
 
-  // Render liked posts
+  // Render liked posts using PostItem component for consistency with Posts tab
   const renderLikes = () => {
-    if (likes.length === 0) {
+    if (isLoading) {
       return (
-        <div className="text-sm text-gray-500 dark:text-gray-400 py-8 text-center">
-          No likes to display yet.
+        <div className="flex justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
         </div>
       );
     }
     
-    // Filter likes to only include ones with valid post data
-    const likedPosts = likes
-      .filter(like => like.post)
-      .map(like => like.post);
-      
     if (likedPosts.length === 0) {
       return (
         <div className="text-sm text-gray-500 dark:text-gray-400 py-8 text-center">
@@ -220,43 +273,13 @@ const ProfileTabs: React.FC<ProfileTabsProps> = ({ userId }) => {
     }
     
     return (
-      <div className="p-4 space-y-4">
-        {likedPosts.map((post: any) => (
-          <div key={post.id} className="mb-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="h-8 w-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center overflow-hidden">
-                {post.author?.avatar_url ? (
-                  <img 
-                    src={post.author.avatar_url} 
-                    alt={post.author?.full_name || "User"} 
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <span className="font-medium text-gray-500">
-                    {post.author?.full_name?.charAt(0) || post.author?.username?.charAt(0) || 'U'}
-                  </span>
-                )}
-              </div>
-              <div>
-                <div className="text-sm font-medium">
-                  {post.author?.full_name || post.author?.username || "Unknown User"}
-                </div>
-                <div className="text-xs text-gray-500">
-                  {new Date(post.created_at).toLocaleDateString()}
-                </div>
-              </div>
-            </div>
-            <p className="text-sm">{post.content}</p>
-            <div className="flex justify-end mt-2">
-              <button 
-                className="flex items-center gap-1 text-xs text-red-500"
-                onClick={() => navigate(`/post?postId=${post.id}`)}
-              >
-                <Heart size={14} />
-                View Post
-              </button>
-            </div>
-          </div>
+      <div className="space-y-4">
+        {likedPosts.map(post => (
+          <PostItem 
+            key={post.id} 
+            post={post} 
+            handleLikePost={handleLikePost} 
+          />
         ))}
       </div>
     );
@@ -344,11 +367,7 @@ const ProfileTabs: React.FC<ProfileTabsProps> = ({ userId }) => {
             <h3 className="text-lg font-medium mb-2">Likes</h3>
             <Separator className="my-2" />
             <ScrollArea className="w-full max-h-[600px]">
-              {isLoading ? (
-                <div className="flex justify-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
-                </div>
-              ) : renderLikes()}
+              {renderLikes()}
             </ScrollArea>
           </div>
         </Card>

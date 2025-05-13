@@ -1,5 +1,4 @@
 
-// If the file doesn't exist, we'll create it with the necessary functionality
 import { supabase } from '@/lib/supabaseClient';
 
 export interface Post {
@@ -247,6 +246,7 @@ export const getLikesForPost = async (postId: string): Promise<LikeUser[]> => {
     }
     
     // Map the data to our LikeUser type
+    // Fix: Properly access the user property on each item in the array
     const likeUsers: LikeUser[] = data
       .filter(item => item.user) // Filter out any null users
       .map(item => ({

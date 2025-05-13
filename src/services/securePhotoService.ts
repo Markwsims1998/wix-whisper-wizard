@@ -122,3 +122,47 @@ export const deletePhoto = async (photoId: string): Promise<boolean> => {
     return false;
   }
 };
+
+// Add missing functions referenced in imports
+
+// Checks if watermark should be shown based on URL
+export const shouldShowWatermark = (url?: string): boolean => {
+  if (!url) return false;
+  
+  // Check if URL has watermark parameter or is from watermarked bucket
+  return url.includes('watermark=true') || 
+         url.includes('photos-watermarked') ||
+         url.includes('watermark');
+};
+
+// Secure URLs for displaying photos based on subscription tier
+export const getSecurePhotoUrl = (url: string, subscriptionTier: string = 'free'): string => {
+  // If user has premium subscription, return original URL
+  if (['bronze', 'silver', 'gold'].includes(subscriptionTier)) {
+    return url;
+  }
+  
+  // Otherwise, add watermark parameter
+  return url.includes('?') ? `${url}&watermark=true` : `${url}?watermark=true`;
+};
+
+// Check if a user can view a video based on subscription
+export const canViewVideo = (subscriptionTier: string = 'free'): boolean => {
+  // Allow video viewing for paid tiers
+  return ['bronze', 'silver', 'gold'].includes(subscriptionTier);
+};
+
+// Function to secure photos based on subscription tier
+export const securePhotos = async (photos: Photo[], subscriptionTier: string = 'free'): Promise<Photo[]> => {
+  // For free tier, we may need to add watermark parameters to URLs
+  if (subscriptionTier === 'free') {
+    return photos.map(photo => ({
+      ...photo,
+      image: photo.image ? getSecurePhotoUrl(photo.image, subscriptionTier) : photo.image,
+      url: photo.url ? getSecurePhotoUrl(photo.url, subscriptionTier) : photo.url
+    }));
+  }
+  
+  // For paid tiers, return original photos
+  return photos;
+};

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
@@ -115,21 +114,17 @@ const ProfileTabs: React.FC<ProfileTabsProps> = ({ userId }) => {
             const post = like.posts;
             if (!post) return null;
             
-            // Access the profiles array safely
-            const profile = post.profiles && post.profiles.length > 0 ? post.profiles[0] : null;
+            // Access the profiles object safely - in Supabase join results, 
+            // profiles is an object, not an array
+            const profileObj = post.profiles || {};
             
             return {
               ...post,
-              author: profile ? {
-                id: profile.id || null,
-                username: profile.username || "Unknown",
-                fullName: profile.full_name || "Unknown User",
-                avatar: profile.avatar_url || null
-              } : {
-                id: null,
-                username: "Unknown",
-                fullName: "Unknown User",
-                avatar: null
+              author: {
+                id: profileObj.id || null,
+                username: profileObj.username || "Unknown",
+                fullName: profileObj.full_name || "Unknown User",
+                avatar: profileObj.avatar_url || null
               },
               // Get the media array directly
               media: post.media || []

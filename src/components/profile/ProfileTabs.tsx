@@ -8,6 +8,11 @@ import { supabase } from "@/lib/supabaseClient";
 import { Image, Film, Heart } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import PostFeed from "@/components/PostFeed";
+import { useSubscription } from "@/contexts/SubscriptionContext";
+import { useNavigate } from "react-router-dom";
+import Watermark from "@/components/media/Watermark";
+import VideoSubscriptionLock from "@/components/media/VideoSubscriptionLock";
+import { useToast } from "@/hooks/use-toast";
 
 interface ProfileTabsProps {
   userId: string;
@@ -19,6 +24,9 @@ const ProfileTabs: React.FC<ProfileTabsProps> = ({ userId }) => {
   const [likes, setLikes] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { user } = useAuth();
+  const { subscriptionTier, subscriptionDetails } = useSubscription();
+  const navigate = useNavigate();
+  const { toast } = useToast();
   
   // Determine if this is the current user's profile
   const isMyProfile = user?.id === userId;
@@ -65,10 +73,19 @@ const ProfileTabs: React.FC<ProfileTabsProps> = ({ userId }) => {
         const { data: likesData, error: likesError } = await supabase
           .from('likes')
           .select(`
-            *,
-            post:post_id (
-              *,
-              author:profiles!posts_user_id_fkey (id, full_name, username, avatar_url)
+            id,
+            post_id,
+            post:posts(
+              id,
+              content,
+              created_at,
+              user_id,
+              author:profiles!posts_user_id_fkey(
+                id, 
+                full_name, 
+                username, 
+                avatar_url
+              )
             )
           `)
           .eq('user_id', userId)
@@ -97,6 +114,28 @@ const ProfileTabs: React.FC<ProfileTabsProps> = ({ userId }) => {
     }
   }, [userId]);
 
+  // Handle video click - redirects users without subscription to shop
+  const handleVideoClick = (video: any) => {
+    if (!subscriptionDetails.canViewVideos) {
+      toast({
+        title: "Subscription Required",
+        description: "You need a higher tier subscription to view videos.",
+      });
+      navigate('/shop');
+      return;
+    }
+    
+    if (video.post_id) {
+      navigate(`/post?postId=${video.post_id}&type=video`);
+    } else {
+      toast({
+        title: "Video Unavailable",
+        description: "This video cannot be viewed at this time.",
+        variant: "destructive"
+      });
+    }
+  };
+
   // Render a grid of media items (photos or videos)
   const renderMediaGrid = (items: any[], type: 'photo' | 'video') => {
     if (items.length === 0) {
@@ -110,13 +149,22 @@ const ProfileTabs: React.FC<ProfileTabsProps> = ({ userId }) => {
     return (
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {items.map((item) => (
-          <div key={item.id} className="aspect-square rounded-md overflow-hidden bg-gray-100 dark:bg-gray-700">
+          <div key={item.id} 
+               className="aspect-square rounded-md overflow-hidden bg-gray-100 dark:bg-gray-700 relative"
+               onClick={type === 'video' ? () => handleVideoClick(item) : undefined}
+               style={type === 'video' ? { cursor: 'pointer' } : undefined}>
             {type === 'photo' ? (
-              <img 
-                src={item.file_url} 
-                alt={item.title || 'Photo'} 
-                className="w-full h-full object-cover"
-              />
+              <div className="relative w-full h-full">
+                <img 
+                  src={item.file_url} 
+                  alt={item.title || 'Photo'} 
+                  className="w-full h-full object-cover"
+                />
+                {/* Add watermark for free tier users */}
+                {subscriptionTier === 'free' && (
+                  <Watermark opacity={0.5} />
+                )}
+              </div>
             ) : (
               <div className="relative w-full h-full">
                 {item.thumbnail_url ? (
@@ -135,6 +183,11 @@ const ProfileTabs: React.FC<ProfileTabsProps> = ({ userId }) => {
                     <Film className="h-8 w-8 text-white" />
                   </div>
                 </div>
+                
+                {/* Add subscription lock for free tier users */}
+                {!subscriptionDetails.canViewVideos && (
+                  <VideoSubscriptionLock />
+                )}
               </div>
             )}
           </div>
@@ -153,12 +206,10 @@ const ProfileTabs: React.FC<ProfileTabsProps> = ({ userId }) => {
       );
     }
     
+    // Filter likes to only include ones with valid post data
     const likedPosts = likes
       .filter(like => like.post)
-      .map(like => ({
-        ...like.post,
-        author: like.post.author
-      }));
+      .map(like => like.post);
       
     if (likedPosts.length === 0) {
       return (
@@ -169,7 +220,7 @@ const ProfileTabs: React.FC<ProfileTabsProps> = ({ userId }) => {
     }
     
     return (
-      <div className="p-4">
+      <div className="p-4 space-y-4">
         {likedPosts.map((post: any) => (
           <div key={post.id} className="mb-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
             <div className="flex items-center gap-2 mb-2">
@@ -182,17 +233,29 @@ const ProfileTabs: React.FC<ProfileTabsProps> = ({ userId }) => {
                   />
                 ) : (
                   <span className="font-medium text-gray-500">
-                    {post.author?.full_name?.charAt(0) || 'U'}
+                    {post.author?.full_name?.charAt(0) || post.author?.username?.charAt(0) || 'U'}
                   </span>
                 )}
               </div>
               <div>
                 <div className="text-sm font-medium">
-                  {post.author?.full_name || "Unknown User"}
+                  {post.author?.full_name || post.author?.username || "Unknown User"}
+                </div>
+                <div className="text-xs text-gray-500">
+                  {new Date(post.created_at).toLocaleDateString()}
                 </div>
               </div>
             </div>
             <p className="text-sm">{post.content}</p>
+            <div className="flex justify-end mt-2">
+              <button 
+                className="flex items-center gap-1 text-xs text-red-500"
+                onClick={() => navigate(`/post?postId=${post.id}`)}
+              >
+                <Heart size={14} />
+                View Post
+              </button>
+            </div>
           </div>
         ))}
       </div>

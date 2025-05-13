@@ -1,3 +1,4 @@
+
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { 
   Activity, Image, Play, User, Users, ShoppingBag, Bell, Home, 
@@ -11,7 +12,7 @@ import { Separator } from "@/components/ui/separator";
 import { countPendingWinks } from "@/services/winksService";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
-import MobileSidebar from "@/components/MobileSidebar";
+import MobileDrawerSidebar from "@/components/MobileDrawerSidebar";
 import MobileBottomNav from "@/components/MobileBottomNav";
 
 // Define a type for the navigation items
@@ -237,8 +238,8 @@ const Sidebar = () => {
         </div>
       </div>
 
-      {/* Mobile Sidebar */}
-      <MobileSidebar 
+      {/* Mobile Drawer Sidebar - new component */}
+      <MobileDrawerSidebar 
         isOpen={isDrawerOpen}
         onClose={() => setIsDrawerOpen(false)}
         bottomNavItems={bottomNavItems}

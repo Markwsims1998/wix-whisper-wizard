@@ -123,9 +123,6 @@ export const uploadMediaFile = async (
       return null;
     }
 
-    // REMOVED: Authentication check is no longer needed since we updated the storage policies
-    // Previously had session validation here
-
     // Verify buckets exist first
     const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
     
@@ -143,11 +140,15 @@ export const uploadMediaFile = async (
       return null;
     }
     
-    // Create a unique filename
+    // Create a unique filename with folders for anonymous users
     const fileExt = file.name.split('.').pop();
-    const fileName = `${userId}/${Date.now()}.${fileExt}`;
+    const timestamp = Date.now();
+    const fileName = userId === 'anonymous-user' 
+      ? `anonymous/${timestamp}/${Math.random().toString(36).substring(2)}.${fileExt}`
+      : `${userId}/${timestamp}.${fileExt}`;
     
     console.log(`Uploading ${contentType} to ${bucketName} bucket: ${fileName}`);
+    console.log(`File details: ${file.type}, ${file.size} bytes`);
     
     // Upload file to storage with improved error handling
     const { data: uploadData, error: uploadError } = await supabase.storage
@@ -216,30 +217,24 @@ export const saveMediaMetadata = async (
   }
 ): Promise<MediaItem | null> => {
   try {
-    let postId = mediaData.existingPostId;
-    
-    // Only create a post if we don't have an existing post ID
-    if (!postId) {
-      // Create a post for this media - use description for the post content
-      const { data: postData, error: postError } = await supabase
-        .from('posts')
-        .insert({
-          user_id: mediaData.userId,
-          content: mediaData.description || `${mediaData.title || (mediaData.contentType === 'video' ? 'Video' : 'Photo')} upload`
-        })
-        .select('id')
-        .single();
-        
-      if (postError) {
-        console.error('Error creating post for media:', postError);
-        return null;
-      }
+    // Create a post for this media - use description for the post content
+    console.log(`Creating post for media upload by user: ${mediaData.userId}`);
+    const { data: postData, error: postError } = await supabase
+      .from('posts')
+      .insert({
+        user_id: mediaData.userId,
+        content: mediaData.description || `${mediaData.title || (mediaData.contentType === 'video' ? 'Video' : 'Photo')} upload`
+      })
+      .select('id')
+      .single();
       
-      console.log('Created post for media:', postData.id);
-      postId = postData.id;
-    } else {
-      console.log('Using existing post ID for media:', postId);
+    if (postError) {
+      console.error('Error creating post for media:', postError);
+      return null;
     }
+    
+    const postId = postData.id;
+    console.log(`Created post for media: ${postId}`);
     
     // Use correct media_type values for database compatibility
     const mediaType = mediaData.contentType === 'photo' ? 'image' : 'video';
@@ -274,23 +269,22 @@ export const saveMediaMetadata = async (
       }));
       
       // If media creation fails, attempt to delete the orphaned post
-      if (postId && !mediaData.existingPostId) {
-        const { error: deleteError } = await supabase
-          .from('posts')
-          .delete()
-          .eq('id', postId);
-          
-        if (deleteError) {
-          console.error('Error cleaning up orphaned post:', deleteError);
-        } else {
-          console.log('Cleaned up orphaned post:', postId);
-        }
+      console.log(`Attempting to delete orphaned post: ${postId}`);
+      const { error: deleteError } = await supabase
+        .from('posts')
+        .delete()
+        .eq('id', postId);
+        
+      if (deleteError) {
+        console.error('Error cleaning up orphaned post:', deleteError);
+      } else {
+        console.log('Cleaned up orphaned post:', postId);
       }
       
       return null;
     }
     
-    console.log('Media saved successfully:', data);
+    console.log('Media saved successfully with post reference:', data);
     return data;
   } catch (error) {
     console.error('Error in saveMediaMetadata:', error);
@@ -334,12 +328,11 @@ export const uploadMedia = async (
     
     console.log('File uploaded successfully, saving metadata...');
     
-    // Step 2: Save metadata to database
+    // Step 2: Save metadata to database - only pass existingPostId if one was provided
     const mediaData = await saveMediaMetadata({
       ...metadata,
       fileUrl: uploadResult.url,
       thumbnailUrl: uploadResult.thumbnailUrl,
-      existingPostId: metadata.existingPostId
     });
     
     if (!mediaData) {

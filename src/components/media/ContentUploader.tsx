@@ -10,7 +10,6 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth/AuthProvider";
 import { uploadMedia } from "@/services/mediaService";
 import { useSubscription } from "@/contexts/SubscriptionContext";
-import { supabase } from "@/lib/supabaseClient";
 
 interface ContentUploaderProps {
   open: boolean;
@@ -75,66 +74,24 @@ const ContentUploader: React.FC<ContentUploaderProps> = ({
       return;
     }
     
-    // REMOVED: Session validation check is no longer needed
-    // Previously had session validation here
-    
     setUploading(true);
     setUploadProgress(10);
     
     try {
-      let postId = '';
-      setUploadProgress(20);
-
-      // Create a post first to get the post ID
-      const { data: postData, error: postError } = await supabase
-        .from('posts')
-        .insert({
-          user_id: userId,
-          content: description || `New ${contentType} upload`
-        })
-        .select('id')
-        .single();
-        
-      if (postError) {
-        console.error('Error creating post:', postError);
-        throw new Error(`Failed to create post: ${postError.message}`);
-      }
-      
-      postId = postData.id;
-      console.log('Created post with ID:', postId);
       setUploadProgress(40);
       
-      // If this is just a text post without media, we're done
-      if (type === 'post' && !selectedFile) {
-        toast({
-          title: "Post Created",
-          description: "Your post has been published successfully.",
-        });
-        
-        // Reset form
-        setTitle("");
-        setDescription("");
-        setSelectedFile(null);
-        setPreviewUrl(null);
-        setUploadProgress(100);
-        
-        // Close dialog and call callbacks
-        onOpenChange(false);
-        if (onSuccess) onSuccess();
-        if (onUploadComplete) onUploadComplete();
-        return;
-      }
-      
+      // Upload the file and create post in one operation
       if (selectedFile) {
         setUploadProgress(60);
+        console.log(`Uploading ${type} with title: ${title}`);
+        
         // Use the unified uploadMedia function for both photos and videos
         const mediaData = await uploadMedia(selectedFile, {
           title,
           description,
           category,
           userId,
-          contentType, 
-          existingPostId: postId
+          contentType
         });
         
         setUploadProgress(90);
@@ -147,16 +104,6 @@ const ContentUploader: React.FC<ContentUploaderProps> = ({
             contentType: contentType,
             category: category
           });
-          
-          // Try to delete the orphaned post
-          const { error: deleteError } = await supabase
-            .from('posts')
-            .delete()
-            .eq('id', postId);
-            
-          if (deleteError) {
-            console.error('Failed to delete orphaned post:', deleteError);
-          }
           
           throw new Error(`Failed to upload ${contentType}. There might be an issue with storage permissions.`);
         }

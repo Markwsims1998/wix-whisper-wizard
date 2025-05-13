@@ -94,55 +94,57 @@ const UnifiedContentCreator: React.FC<UnifiedContentCreatorProps> = ({
       return;
     }
     
-    // REMOVED: Session validation check is no longer needed
-    // Previously had session validation here
-    
     setIsLoading(true);
     setUploadProgress(10);
     
     try {
-      let mediaData = null;
+      // We'll create only ONE post, either directly or through the media upload process
       
-      // Step 1: Create the post first
-      const { success, post, error } = await createPost(
-        postText,
-        userId
-      );
-      
-      if (!success || !post) {
-        throw new Error(error || "Failed to create post");
-      }
-      
-      setUploadProgress(30);
-      console.log('Created post:', post.id);
-      
-      // Step 2: Handle media upload if there's selected media
+      // If we have media, upload it first and it will create the post
       if (selectedMedia) {
-        console.log(`Uploading ${selectedMedia.type} for post ${post.id}`);
+        console.log(`Uploading ${selectedMedia.type} for user ${userId}`);
         const contentType = selectedMedia.type;
-        setUploadProgress(50);
+        setUploadProgress(30);
         
-        // Upload media file using the existingPostId
-        mediaData = await uploadMedia(selectedMedia.file, {
+        // Create unique folder structure for anonymous uploads to prevent conflicts
+        const uniqueFolder = `${userId}/${Date.now()}`;
+        
+        // Upload media file which will create a post
+        const mediaData = await uploadMedia(selectedMedia.file, {
           title: postText.trim() || 'New post',
           description: postText.trim(),
           category: 'user-post',
           userId,
           contentType,
-          existingPostId: post.id
+          // Don't pass an existing post ID - let media service create the post
         });
         
         setUploadProgress(80);
         
         if (!mediaData) {
-          console.error(`Failed to upload ${contentType} for post ${post.id}:`, {
+          console.error(`Failed to upload ${contentType}:`, {
             fileType: selectedMedia.file.type,
             fileSize: selectedMedia.file.size,
             fileName: selectedMedia.file.name
           });
+          throw new Error(`Failed to upload ${contentType}. There might be an issue with storage permissions.`);
         } else {
-          console.log(`Successfully uploaded ${contentType} for post ${post.id}:`, mediaData.id);
+          console.log(`Successfully uploaded ${contentType}:`, mediaData.id);
+          console.log(`Post ID for this media: ${mediaData.post_id}`);
         }
+      } else {
+        // If no media, create a simple text post
+        console.log(`Creating text-only post for user ${userId}`);
+        const { success, post, error } = await createPost(
+          postText,
+          userId
+        );
+        
+        if (!success || !post) {
+          throw new Error(error || "Failed to create post");
+        }
+        
+        console.log('Created text-only post:', post.id);
       }
       
       setUploadProgress(100);

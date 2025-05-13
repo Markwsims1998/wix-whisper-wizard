@@ -1,20 +1,18 @@
-
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Activity, Image, Play, User, Users, ShoppingBag, Bell, Home, Settings, ChevronLeft, LogOut, MessageSquare, Shield, Heart } from "lucide-react";
+import { 
+  Activity, Image, Play, User, Users, ShoppingBag, Bell, Home, 
+  Settings, ChevronLeft, LogOut, MessageSquare, Shield, Heart 
+} from "lucide-react";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/auth/AuthProvider";
 import { useToast } from "@/components/ui/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { 
-  Drawer,
-  DrawerContent,
-  DrawerTrigger,
-  DrawerClose
-} from "@/components/ui/drawer";
 import { countPendingWinks } from "@/services/winksService";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
+import MobileSidebar from "@/components/MobileSidebar";
+import MobileBottomNav from "@/components/MobileBottomNav";
 
 // Define a type for the navigation items
 interface NavItem {
@@ -128,15 +126,6 @@ const Sidebar = () => {
     }
   }, [user]);
 
-  // Handle item navigation
-  const handleNavItemClick = (path: string) => {
-    navigate(path);
-    // If mobile drawer is open, close it
-    if (isDrawerOpen) {
-      setIsDrawerOpen(false);
-    }
-  };
-
   // Check if user is admin
   const isAdmin = user?.role === 'admin';
 
@@ -144,6 +133,7 @@ const Sidebar = () => {
     <>
       {/* Desktop Sidebar */}
       <div className={`bg-[#2B2A33] min-h-screen ${collapsed ? 'w-[70px]' : 'w-[280px]'} flex flex-col fixed left-0 top-0 transition-all duration-300 ease-in-out dark:bg-gray-900 z-50 hidden md:flex sidebar`}>
+        
         <button 
           onClick={() => setCollapsed(!collapsed)}
           className="absolute -right-4 top-24 bg-[#2B2A33] text-gray-400 p-1 rounded-full z-20 dark:bg-gray-900"
@@ -247,148 +237,41 @@ const Sidebar = () => {
         </div>
       </div>
 
-      {/* Mobile Bottom Drawer Menu Button */}
-      <div className="md:hidden fixed bottom-4 left-0 right-0 z-50 flex justify-center">
-        <Drawer direction="bottom" open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
-          <DrawerTrigger className="bg-purple-600 text-white w-12 h-12 rounded-full shadow-lg flex items-center justify-center">
-            <div className="w-8 h-8 rounded-full bg-[#8B5CF6] flex items-center justify-center">
-              <div className="w-7 h-7 rounded-full bg-[#2B2A33] flex items-center justify-center">
-                <div className="w-5 h-5 rounded-full bg-[#8B5CF6] relative">
-                  <div className="absolute top-0 right-0 w-1 h-1 rounded-full bg-green-400"></div>
-                </div>
+      {/* Mobile Sidebar */}
+      <MobileSidebar 
+        isOpen={isDrawerOpen}
+        onClose={() => setIsDrawerOpen(false)}
+        bottomNavItems={bottomNavItems}
+        pendingWinksCount={pendingWinksCount}
+      />
+
+      {/* Mobile Bottom Navigation */}
+      <MobileBottomNav 
+        items={bottomNavItems}
+        onOpenDrawer={() => setIsDrawerOpen(true)}
+      />
+
+      {/* Mobile Menu Button (Circular) */}
+      <div className="md:hidden fixed bottom-20 left-1/2 -translate-x-1/2 z-50 flex justify-center">
+        <button
+          onClick={() => setIsDrawerOpen(true)}
+          className="w-14 h-14 rounded-full bg-gradient-to-br from-purple-600 to-purple-700 shadow-lg shadow-purple-600/30 flex items-center justify-center transform hover:scale-105 active:scale-95 transition-all"
+          aria-label="Open menu"
+        >
+          <div className="w-10 h-10 rounded-full bg-purple-800/80 flex items-center justify-center backdrop-blur-sm">
+            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center">
+              <div className="w-6 h-6 rounded-full bg-purple-900/80 flex items-center justify-center">
+                <div className="w-3 h-3 rounded-full bg-purple-400"></div>
               </div>
             </div>
-          </DrawerTrigger>
-          <DrawerContent className="bg-[#2B2A33] text-white rounded-t-xl max-h-[85vh] overflow-y-auto">
-            <div className="p-4 pb-28"> {/* Extra padding for mobile menu buttons */}
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg font-semibold text-white">Menu</h2>
-                <DrawerClose className="rounded-full p-2 hover:bg-gray-700">
-                  <ChevronLeft className="w-5 h-5 text-gray-400 rotate-90" />
-                </DrawerClose>
-              </div>
-
-              <div className="grid grid-cols-4 gap-4 mb-6">
-                {[
-                  { icon: <Home className="w-6 h-6" />, label: "Home", path: "/home" },
-                  { icon: <Activity className="w-6 h-6" />, label: "Activity", path: "/activity" },
-                  { icon: <Image className="w-6 h-6" />, label: "Photos", path: "/photos" },
-                  { icon: <Play className="w-6 h-6" />, label: "Videos", path: "/videos" },
-                  { icon: <Users className="w-6 h-6" />, label: "People", path: "/people" },
-                  { icon: <Users className="w-6 h-6" />, label: "Friends", path: "/friends" },
-                  { 
-                    icon: <Heart className="w-6 h-6" />, 
-                    label: "Winks", 
-                    path: "/winks",
-                    badge: pendingWinksCount > 0 ? pendingWinksCount : undefined
-                  },
-                  { icon: <Bell className="w-6 h-6" />, label: "Notifications", path: "/notifications" },
-                  { icon: <ShoppingBag className="w-6 h-6" />, label: "Shop", path: "/shop" },
-                  { icon: <Settings className="w-6 h-6" />, label: "Settings", path: "/settings" },
-                  ...(isAdmin ? [{ icon: <Shield className="w-6 h-6" />, label: "Admin", path: "/admin" }] : [])
-                ].map((item, index) => (
-                  <button
-                    key={index}
-                    className="flex flex-col items-center gap-1 p-2"
-                    onClick={() => handleNavItemClick(item.path)}
-                  >
-                    <div className={`w-12 h-12 rounded-lg ${location.pathname === item.path ? 'bg-purple-900/50' : 'bg-gray-800/50'} flex items-center justify-center relative`}>
-                      <div className={`${location.pathname === item.path ? 'text-purple-400' : 'text-gray-400'}`}>
-                        {item.icon}
-                      </div>
-                      {item.badge && (
-                        <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                          {item.badge > 9 ? '9+' : item.badge}
-                        </span>
-                      )}
-                    </div>
-                    <span className={`text-xs ${location.pathname === item.path ? 'text-purple-400' : 'text-gray-400'}`}>
-                      {item.label}
-                    </span>
-                  </button>
-                ))}
-              </div>
-
-              <Separator className="my-4 bg-gray-700" />
-              
-              <h3 className="text-sm font-medium mb-4 text-gray-300">Bottom Navigation</h3>
-              <p className="text-xs text-gray-400 mb-4">You can customize this in Settings</p>
-              
-              <button
-                onClick={() => handleNavItemClick("/settings?tab=appearance")}
-                className="flex items-center justify-center gap-2 bg-purple-900/30 border border-purple-800/30 p-3 rounded-lg mb-4 hover:bg-purple-900/50 transition-colors w-full"
-              >
-                <Settings className="h-4 w-4" />
-                <span className="text-sm">Customize Navigation</span>
-              </button>
-
-              <Separator className="my-4 bg-gray-700" />
-
-              <div className="flex justify-between">
-                <button 
-                  onClick={() => handleNavItemClick("/profile")} 
-                  className="flex-1 flex flex-col items-center gap-1 text-gray-400 hover:text-white p-2"
-                >
-                  <div className="w-10 h-10 rounded-full bg-purple-900/30 flex items-center justify-center overflow-hidden">
-                    {user?.profilePicture ? (
-                      <img src={user.profilePicture} alt="Profile" className="w-full h-full object-cover" />
-                    ) : (
-                      <User className="w-6 h-6 text-purple-300" />
-                    )}
-                  </div>
-                  <span className="text-xs">Profile</span>
-                </button>
-                <button 
-                  onClick={() => handleNavItemClick("/messages")}
-                  className="flex-1 flex flex-col items-center gap-1 text-gray-400 hover:text-white p-2"
-                >
-                  <div className="w-10 h-10 rounded-full bg-purple-900/30 flex items-center justify-center">
-                    <MessageSquare className="w-6 h-6 text-purple-300" />
-                  </div>
-                  <span className="text-xs">Messages</span>
-                </button>
-                <button 
-                  onClick={() => {
-                    logout();
-                    setIsDrawerOpen(false);
-                  }} 
-                  className="flex-1 flex flex-col items-center gap-1 text-gray-400 hover:text-white p-2"
-                >
-                  <div className="w-10 h-10 rounded-full bg-purple-900/30 flex items-center justify-center">
-                    <LogOut className="w-6 h-6 text-purple-300" />
-                  </div>
-                  <span className="text-xs">Logout</span>
-                </button>
-              </div>
-            </div>
-          </DrawerContent>
-        </Drawer>
-      </div>
-
-      {/* Mobile Bottom Navigation Bar */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-[#2B2A33] border-t border-gray-800 flex justify-around items-center py-2 px-4 z-40 pb-safe shadow-lg">
-        {bottomNavItems.map((item, index) => {
-          const isActive = currentPath === item.path;
-          return (
-            <button 
-              key={index} 
-              className="flex-1"
-              onClick={() => handleNavItemClick(item.path)}
-            >
-              <div className={`flex flex-col items-center py-1 ${isActive ? 'text-purple-400' : 'text-gray-400'}`}>
-                <div className={`p-1 rounded-full ${isActive ? 'bg-purple-900/30' : ''}`}>
-                  <item.icon className="w-5 h-5" />
-                </div>
-                <span className="text-xs mt-1">{item.label}</span>
-              </div>
-            </button>
-          );
-        })}
+          </div>
+        </button>
       </div>
     </>
   );
 };
 
+// Keep the NavItem component the same
 const NavItem = ({ 
   icon, 
   label, 

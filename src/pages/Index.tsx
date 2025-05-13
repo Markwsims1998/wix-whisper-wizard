@@ -143,13 +143,13 @@ const Index = () => {
       <Header />
       
       <div 
-        className="pl-[280px] pt-16 pr-4 pb-36 md:pb-10 transition-all duration-300 flex-grow" 
+        className="pl-0 md:pl-[280px] pt-16 pr-0 md:pr-4 pb-36 md:pb-10 transition-all duration-300 flex-grow" 
         style={{ 
-          paddingLeft: 'var(--sidebar-width, 280px)'
+          paddingLeft: 'var(--sidebar-width, 0px)'
         }}
       >
-        {/* Rest of the content */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 max-w-screen-xl mx-auto w-full">
+        {/* Main content with responsive padding */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 max-w-screen-xl mx-auto w-full px-4 md:px-0">
           <div className="lg:col-span-8 w-full">
             {/* Unified Content Creator */}
             <UnifiedContentCreator 

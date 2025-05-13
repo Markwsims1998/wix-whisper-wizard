@@ -1,3 +1,4 @@
+
 import { supabase } from '@/lib/supabaseClient';
 import { Video } from './videoService';
 
@@ -13,6 +14,7 @@ export interface MediaItem {
   created_at: string;
   user_id: string;
   post_id: string | null;
+  description?: string | null;  // Add description field to interface
   user?: {
     id: string;
     username: string;
@@ -98,6 +100,7 @@ export const convertToVideoFormat = (mediaItems: MediaItem[]): Video[] => {
     likes_count: 0, // We don't have likes in the media table yet
     created_at: item.created_at,
     postId: item.post_id || '', // Ensure postId is always a string
+    description: item.description || '',  // Add description field
     user: item.user || {
       id: item.user_id,
       username: 'unknown',
@@ -195,12 +198,12 @@ export const saveMediaMetadata = async (
     
     // Only create a post if we don't have an existing post ID
     if (!postId) {
-      // Create a post for this media
+      // Create a post for this media - use description for the post content
       const { data: postData, error: postError } = await supabase
         .from('posts')
         .insert({
           user_id: mediaData.userId,
-          content: `${mediaData.title || (mediaData.contentType === 'video' ? 'Video' : 'Photo')} upload`
+          content: mediaData.description || `${mediaData.title || (mediaData.contentType === 'video' ? 'Video' : 'Photo')} upload`
         })
         .select('id')
         .single();
@@ -227,6 +230,7 @@ export const saveMediaMetadata = async (
       .from('media')
       .insert({
         title: mediaData.title,
+        description: mediaData.description,  // Add description to database record
         category: mediaData.category.toLowerCase(),
         user_id: mediaData.userId,
         file_url: mediaData.fileUrl,
@@ -242,6 +246,7 @@ export const saveMediaMetadata = async (
       console.error('Error saving media metadata:', error);
       console.error('Failed data:', JSON.stringify({
         title: mediaData.title,
+        description: mediaData.description,
         category: mediaData.category,
         contentType: mediaData.contentType,
         mediaType: mediaType,

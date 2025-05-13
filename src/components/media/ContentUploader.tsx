@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -86,11 +87,12 @@ const ContentUploader: React.FC<ContentUploaderProps> = ({
       let postId = '';
 
       // Create a post first to get the post ID
+      // Now use description for the post content instead of title
       const { data: postData, error: postError } = await supabase
         .from('posts')
         .insert({
           user_id: user.id,
-          content: title || `New ${contentType} upload`
+          content: description || `New ${contentType} upload` // Use description as post content
         })
         .select('id')
         .single();
@@ -107,7 +109,7 @@ const ContentUploader: React.FC<ContentUploaderProps> = ({
         // Use the unified uploadMedia function for both photos and videos
         const mediaData = await uploadMedia(selectedFile, {
           title,
-          description,
+          description, // Pass description as separate field
           category,
           userId: user.id,
           contentType, 
@@ -175,6 +177,7 @@ const ContentUploader: React.FC<ContentUploaderProps> = ({
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Title field (new position) */}
           <div className="space-y-2">
             <Label htmlFor="title">Title</Label>
             <Input 
@@ -246,13 +249,15 @@ const ContentUploader: React.FC<ContentUploaderProps> = ({
             </Select>
           </div>
           
+          {/* Description field (renamed from Title) */}
           <div className="space-y-2">
-            <Label htmlFor="description">Description (optional)</Label>
-            <Input 
+            <Label htmlFor="description">Description</Label>
+            <Textarea 
               id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Add a brief description"
+              placeholder="Add a detailed description"
+              className="min-h-[120px] resize-y"
             />
           </div>
           

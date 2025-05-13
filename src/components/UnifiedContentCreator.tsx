@@ -98,9 +98,10 @@ const UnifiedContentCreator: React.FC<UnifiedContentCreatorProps> = ({
         const contentType = selectedMedia.type;
         
         // Upload media file and get metadata
+        // Use the post text as the description instead of title now
         mediaData = await uploadMedia(selectedMedia.file, {
-          title: postText.trim() || 'New post',
-          description: postText.trim(),
+          title: postText.trim() || 'New post',  // Use post text as title
+          description: postText.trim(),          // Add description as well
           category: 'user-post',
           userId: user.id,
           contentType

@@ -19,33 +19,33 @@ const Notifications = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  useEffect(() => {
-    const loadActivities = async () => {
-      if (!user?.id) return;
-      
-      try {
-        setIsLoading(true);
-        
-        const activitiesWithActions = await getActivitiesWithActions(
-          user.id,
-          handleAcceptFriend,
-          handleRejectFriend,
-          handleViewItem
-        );
-        
-        setActivities(activitiesWithActions);
-      } catch (error) {
-        console.error("Error loading activities:", error);
-        toast({
-          title: "Failed to load notifications",
-          description: "There was a problem retrieving your notifications. Please try again.",
-          variant: "destructive",
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  const loadActivities = async () => {
+    if (!user?.id) return;
     
+    try {
+      setIsLoading(true);
+      
+      const activitiesWithActions = await getActivitiesWithActions(
+        user.id,
+        handleAcceptFriend,
+        handleRejectFriend,
+        handleViewItem
+      );
+      
+      setActivities(activitiesWithActions);
+    } catch (error) {
+      console.error("Error loading activities:", error);
+      toast({
+        title: "Failed to load notifications",
+        description: "There was a problem retrieving your notifications. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
     loadActivities();
     
     // Set up realtime subscription for new activities
@@ -66,7 +66,7 @@ const Notifications = () => {
         supabase.removeChannel(channel);
       };
     }
-  }, [user?.id, toast]);
+  }, [user?.id]);
 
   const handleMarkAllAsRead = async () => {
     if (!user?.id) return;
@@ -104,19 +104,16 @@ const Notifications = () => {
       const success = await acceptFriendRequest(user?.id || '', actorId);
       
       if (success) {
+        // Optimistic UI update
+        setActivities(prev => prev.filter(a => !(a.activity_type === 'friend_request' && a.actor_id === actorId)));
+        
         toast({
           title: "Friend request accepted",
           description: "You are now friends with this user.",
         });
         
-        // Refresh activities list
-        const updatedActivities = await getActivitiesWithActions(
-          user?.id || '',
-          handleAcceptFriend,
-          handleRejectFriend,
-          handleViewItem
-        );
-        setActivities(updatedActivities);
+        // Refresh activities to get updated state
+        loadActivities();
       } else {
         toast({
           title: "Failed to accept friend request",
@@ -139,19 +136,13 @@ const Notifications = () => {
       const success = await rejectFriendRequest(user?.id || '', actorId);
       
       if (success) {
+        // Optimistic UI update
+        setActivities(prev => prev.filter(a => !(a.activity_type === 'friend_request' && a.actor_id === actorId)));
+        
         toast({
           title: "Friend request rejected",
           description: "The friend request has been rejected.",
         });
-        
-        // Refresh activities list
-        const updatedActivities = await getActivitiesWithActions(
-          user?.id || '',
-          handleAcceptFriend,
-          handleRejectFriend,
-          handleViewItem
-        );
-        setActivities(updatedActivities);
       } else {
         toast({
           title: "Failed to reject friend request",
@@ -170,6 +161,16 @@ const Notifications = () => {
   };
 
   const handleViewItem = (activityType: string, itemId?: string) => {
+    // Mark notification as read optimistically in the UI
+    setActivities(prev => 
+      prev.map(activity => 
+        activityType === activity.activity_type && 
+        ((itemId && (activity.post_id === itemId || activity.comment_id === itemId || activity.message_id === itemId)) || !itemId)
+          ? { ...activity, read: true }
+          : activity
+      )
+    );
+    
     switch (activityType) {
       case 'new_message':
         // Navigate to messages with the specific conversation open
@@ -238,7 +239,12 @@ const Notifications = () => {
         <div className="max-w-4xl mx-auto">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
             <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
-              <h1 className="text-xl font-semibold dark:text-white">Notifications</h1>
+              <div>
+                <h1 className="text-xl font-semibold dark:text-white">Notifications</h1>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Activity from others that involves you
+                </p>
+              </div>
               <Button 
                 variant="outline" 
                 size="sm" 
@@ -271,15 +277,15 @@ const Notifications = () => {
                             <Avatar className="w-6 h-6">
                               <AvatarImage 
                                 src={activity.actor.avatar_url || undefined} 
-                                alt={activity.actor.username}
+                                alt={activity.actor.username || 'User'}
                               />
                               <AvatarFallback>
-                                {activity.actor.username.charAt(0).toUpperCase()}
+                                {(activity.actor.username?.charAt(0) || 'U').toUpperCase()}
                               </AvatarFallback>
                             </Avatar>
                           )}
                           <span className="font-medium text-sm dark:text-white">
-                            {activity.actor ? activity.actor.username : 'System'}
+                            {activity.actor ? activity.actor.username || activity.actor.full_name : 'System'}
                           </span>
                         </div>
                         <span className="text-xs text-gray-500 dark:text-gray-400">

@@ -1,5 +1,5 @@
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Badge } from "@/components/ui/badge";
 import { Link, useNavigate } from "react-router-dom";
@@ -7,11 +7,13 @@ import { Bell, Search, MessageSquare, ShoppingCart, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/auth/AuthProvider";
 import { countPendingWinks } from "@/services/winksService";
+import { getUnreadActivityCount } from "@/services/activityService";
 
 const Header = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const [pendingWinks, setPendingWinks] = React.useState(0);
+  const [pendingWinks, setPendingWinks] = useState(0);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
 
   // Update header position based on sidebar width
   useEffect(() => {
@@ -58,6 +60,26 @@ const Header = () => {
     }
   }, [user]);
 
+  // Fetch unread notifications count
+  useEffect(() => {
+    if (user?.id) {
+      const fetchNotificationsCount = async () => {
+        try {
+          const count = await getUnreadActivityCount(user.id);
+          setUnreadNotifications(count);
+        } catch (error) {
+          console.error("Error fetching notifications count:", error);
+        }
+      };
+      
+      fetchNotificationsCount();
+      
+      // Set up interval to refresh count
+      const interval = setInterval(fetchNotificationsCount, 30000); // every 30 seconds
+      return () => clearInterval(interval);
+    }
+  }, [user]);
+
   const handleSignOut = async () => {
     await logout();
     navigate('/login');
@@ -80,15 +102,18 @@ const Header = () => {
       </div>
 
       <div className="flex items-center gap-4">
-        <button
+        <Link
+          to="/notifications"
           className="relative text-gray-600 hover:text-purple-600 transition-colors dark:text-gray-300 dark:hover:text-purple-400 bg-gray-100 dark:bg-gray-700 rounded-full p-2"
           aria-label="Notifications"
         >
           <Bell className="w-5 h-5" />
-          <Badge className="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 px-1.5 min-w-[20px] h-5 text-xs">
-            3
-          </Badge>
-        </button>
+          {unreadNotifications > 0 && (
+            <Badge className="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 px-1.5 min-w-[20px] h-5 text-xs">
+              {unreadNotifications > 99 ? '99+' : unreadNotifications}
+            </Badge>
+          )}
+        </Link>
 
         <button
           className="relative text-gray-600 hover:text-purple-600 transition-colors dark:text-gray-300 dark:hover:text-purple-400 bg-gray-100 dark:bg-gray-700 rounded-full p-2"

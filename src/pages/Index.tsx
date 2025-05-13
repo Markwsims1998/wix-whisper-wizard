@@ -158,13 +158,32 @@ const Index = () => {
               className="mb-4"
             />
             
+            {/* Activity link section */}
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-medium dark:text-white">Recent Posts</h2>
+              <Link 
+                to="/activity" 
+                className="text-sm text-purple-600 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300"
+              >
+                View your activity
+              </Link>
+            </div>
+            
             {/* Pass key to force re-render when refreshFeed changes */}
             <PostFeed key={`feed-${refreshFeed}`} />
           </div>
           <div className="lg:col-span-4 w-full">
             <div className="sticky top-20 space-y-6">
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4">
-                <h3 className="font-medium text-gray-800 dark:text-gray-200 mb-4">Active Friends</h3>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-medium text-gray-800 dark:text-gray-200">Active Friends</h3>
+                  <Link 
+                    to="/notifications" 
+                    className="text-sm text-purple-600 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300"
+                  >
+                    View notifications
+                  </Link>
+                </div>
                 <ScrollArea className="h-[300px] pr-4">
                   {isLoading ? (
                     <div className="space-y-3">

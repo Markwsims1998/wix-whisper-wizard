@@ -1,3 +1,4 @@
+
 import { supabase } from '@/lib/supabaseClient';
 
 export interface Post {
@@ -38,9 +39,10 @@ export interface LikeUser {
   profile_picture_url?: string | null;
 }
 
-export const getPosts = async (): Promise<PostWithUser[]> => {
+export const getPosts = async (userId?: string): Promise<PostWithUser[]> => {
   try {
-    const { data, error } = await supabase
+    // Create a base query that can be modified based on parameters
+    let query = supabase
       .from('posts')
       .select(`
         *,
@@ -59,8 +61,15 @@ export const getPosts = async (): Promise<PostWithUser[]> => {
           media_type
         )
       `)
-      .order('created_at', { ascending: false })
-      .limit(20);
+      .order('created_at', { ascending: false });
+    
+    // Add user filter if provided
+    if (userId) {
+      query = query.eq('user_id', userId);
+    }
+    
+    // Execute the query with a limit
+    const { data, error } = await query.limit(20);
 
     if (error) {
       console.error('Error fetching posts:', error);

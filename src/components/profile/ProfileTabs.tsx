@@ -1,20 +1,19 @@
+
 import React, { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import PostsList from "./PostsList";
-import { Post } from "./types";
 import { useAuth } from "@/contexts/auth/AuthProvider";
 import { supabase } from "@/lib/supabaseClient";
 import { Image, Film, Heart } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import PostFeed from "@/components/PostFeed";
 
 interface ProfileTabsProps {
   userId: string;
 }
 
 const ProfileTabs: React.FC<ProfileTabsProps> = ({ userId }) => {
-  const [posts, setPosts] = useState<Post[]>([]);
   const [photos, setPhotos] = useState<any[]>([]);
   const [videos, setVideos] = useState<any[]>([]);
   const [likes, setLikes] = useState<any[]>([]);
@@ -24,29 +23,13 @@ const ProfileTabs: React.FC<ProfileTabsProps> = ({ userId }) => {
   // Determine if this is the current user's profile
   const isMyProfile = user?.id === userId;
   
-  // Fetch posts for the user
+  // Fetch media and likes for the user
   useEffect(() => {
     const fetchUserContent = async () => {
       setIsLoading(true);
       
       try {
         console.log("Fetching content for user ID:", userId);
-        // Fetch posts
-        const { data: postsData, error: postsError } = await supabase
-          .from('posts')
-          .select(`
-            *,
-            author:profiles!posts_user_id_fkey (id, full_name, username, avatar_url, profile_picture_url, subscription_tier)
-          `)
-          .eq('user_id', userId)
-          .order('created_at', { ascending: false });
-          
-        if (postsError) {
-          console.error("Error fetching posts:", postsError);
-          throw postsError;
-        }
-        
-        console.log("Posts data:", postsData);
         
         // Fetch photos (media with content_type = photo)
         const { data: photosData, error: photosError } = await supabase
@@ -99,7 +82,6 @@ const ProfileTabs: React.FC<ProfileTabsProps> = ({ userId }) => {
         console.log("Likes data:", likesData);
         
         // Update state with fetched data
-        setPosts(postsData || []);
         setPhotos(photosData || []);
         setVideos(videosData || []);
         setLikes(likesData || []);
@@ -114,56 +96,6 @@ const ProfileTabs: React.FC<ProfileTabsProps> = ({ userId }) => {
       fetchUserContent();
     }
   }, [userId]);
-
-  // Function to handle liking a post - placeholder for now
-  const handleLikePost = async (postId: string) => {
-    if (!user?.id) return;
-    
-    try {
-      // Check if post is already liked
-      const { data: existingLike, error: checkError } = await supabase
-        .from('likes')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('post_id', postId)
-        .maybeSingle();
-        
-      if (checkError) throw checkError;
-      
-      if (existingLike) {
-        // Unlike the post
-        await supabase
-          .from('likes')
-          .delete()
-          .eq('id', existingLike.id);
-      } else {
-        // Like the post
-        await supabase
-          .from('likes')
-          .insert({
-            user_id: user.id,
-            post_id: postId
-          });
-      }
-      
-      // Refresh posts after like/unlike
-      const { data: updatedPosts, error: postsError } = await supabase
-        .from('posts')
-        .select(`
-          *,
-          author:user_id (id, full_name, username, avatar_url, subscription_tier)
-        `)
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false });
-        
-      if (postsError) throw postsError;
-      
-      setPosts(updatedPosts || []);
-      
-    } catch (error) {
-      console.error('Error handling like:', error);
-    }
-  };
 
   // Render a grid of media items (photos or videos)
   const renderMediaGrid = (items: any[], type: 'photo' | 'video') => {
@@ -228,13 +160,42 @@ const ProfileTabs: React.FC<ProfileTabsProps> = ({ userId }) => {
         author: like.post.author
       }));
       
+    if (likedPosts.length === 0) {
+      return (
+        <div className="text-sm text-gray-500 dark:text-gray-400 py-8 text-center">
+          No liked posts to display yet.
+        </div>
+      );
+    }
+    
     return (
-      <PostsList 
-        posts={likedPosts} 
-        isMyProfile={isMyProfile} 
-        profile={{ id: userId, name: user?.name || "User" }}
-        handleLikePost={handleLikePost} 
-      />
+      <div className="p-4">
+        {likedPosts.map((post: any) => (
+          <div key={post.id} className="mb-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="h-8 w-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center overflow-hidden">
+                {post.author?.avatar_url ? (
+                  <img 
+                    src={post.author.avatar_url} 
+                    alt={post.author?.full_name || "User"} 
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <span className="font-medium text-gray-500">
+                    {post.author?.full_name?.charAt(0) || 'U'}
+                  </span>
+                )}
+              </div>
+              <div>
+                <div className="text-sm font-medium">
+                  {post.author?.full_name || "Unknown User"}
+                </div>
+              </div>
+            </div>
+            <p className="text-sm">{post.content}</p>
+          </div>
+        ))}
+      </div>
     );
   };
 
@@ -272,18 +233,12 @@ const ProfileTabs: React.FC<ProfileTabsProps> = ({ userId }) => {
       <TabsContent value="posts" className="mt-4">
         <Card>
           <div className="p-4">
-            {isLoading ? (
-              <div className="flex justify-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
-              </div>
-            ) : (
-              <PostsList 
-                posts={posts} 
-                isMyProfile={isMyProfile} 
-                profile={{ id: userId, name: user?.name || "User" }}
-                handleLikePost={handleLikePost} 
-              />
-            )}
+            {/* Use the PostFeed component with userId filter */}
+            <PostFeed 
+              userId={userId} 
+              showTabs={false} 
+              title={isMyProfile ? "Your Posts" : "User Posts"} 
+            />
           </div>
         </Card>
       </TabsContent>

@@ -101,7 +101,7 @@ export const getPosts = async (userId?: string): Promise<Post[]> => {
     }
 
     const posts: Post[] = data.map((post) => {
-      const author = post.profiles;
+      const author = post.profiles || {};
       return {
         id: post.id,
         content: post.content,
@@ -195,7 +195,7 @@ export const fetchPosts = async (
     }
 
     const posts: Post[] = data.map((post) => {
-      const author = post.profiles;
+      const author = post.profiles || {};
       return {
         id: post.id,
         content: post.content,
@@ -272,7 +272,7 @@ export const getPostById = async (postId: string): Promise<{ success: boolean; p
       return { success: false, post: null, error: error.message };
     }
 
-    const author = data.profiles;
+    const author = data.profiles || {};
     const post: Post = {
       id: data.id,
       content: data.content,
@@ -490,7 +490,7 @@ export const getLikesForPost = async (postId: string): Promise<LikeUser[]> => {
     }
 
     const users: LikeUser[] = data.map((like) => {
-      const profile = like.profiles;
+      const profile = like.profiles || {};
       return {
         id: profile.id,
         username: profile.username,
@@ -541,7 +541,7 @@ export const fetchComments = async (postId: string): Promise<Comment[]> => {
     }
 
     const comments: Comment[] = data.map((comment) => {
-      const author = comment.profiles;
+      const author = comment.profiles || {};
       return {
         id: comment.id,
         content: comment.content,
@@ -606,7 +606,7 @@ export const addComment = async (
       return null;
     }
 
-    const author = data.profiles;
+    const author = data.profiles || {};
     const newComment: Comment = {
       id: data.id,
       content: data.content,

@@ -244,16 +244,24 @@ export const getLikesForPost = async (postId: string): Promise<LikeUser[]> => {
       return [];
     }
     
-    // Map the data to our LikeUser type - Fixed: Access individual items in the array
-    const likeUsers: LikeUser[] = data
-      .filter(item => item.user) // Filter out any null users
-      .map(item => ({
-        id: item.user.id,
-        username: item.user.username,
-        full_name: item.user.full_name,
-        avatar_url: item.user.avatar_url,
-        profile_picture_url: item.user.profile_picture_url
-      }));
+    // Fix: Map the data to our LikeUser type
+    const likeUsers: LikeUser[] = [];
+    
+    // Ensure data exists and is an array
+    if (Array.isArray(data)) {
+      // Process each item in the array to extract the user field
+      data.forEach(item => {
+        if (item && item.user) {
+          likeUsers.push({
+            id: item.user.id,
+            username: item.user.username,
+            full_name: item.user.full_name,
+            avatar_url: item.user.avatar_url,
+            profile_picture_url: item.user.profile_picture_url
+          });
+        }
+      });
+    }
       
     return likeUsers;
   } catch (error) {

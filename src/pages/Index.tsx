@@ -24,6 +24,8 @@ const Index = () => {
   const activityLoggedRef = useRef(false);
   // Add a ref to track whether friends have been loaded
   const friendsLoadedRef = useRef(false);
+  
+  const [refreshFeed, setRefreshFeed] = useState(0); // Add this state to trigger refresh
 
   // Check authentication only once
   useEffect(() => {
@@ -113,7 +115,8 @@ const Index = () => {
 
   const handleRefreshFeed = () => {
     // This function will be called after successful post creation
-    // The PostFeed component handles its own refresh
+    // Increment refresh counter to force re-render of PostFeed component
+    setRefreshFeed(prev => prev + 1);
   };
 
   const handleRemoveAds = () => {
@@ -155,7 +158,8 @@ const Index = () => {
               className="mb-4"
             />
             
-            <PostFeed />
+            {/* Pass key to force re-render when refreshFeed changes */}
+            <PostFeed key={`feed-${refreshFeed}`} />
           </div>
           <div className="lg:col-span-4 w-full">
             <div className="sticky top-20 space-y-6">

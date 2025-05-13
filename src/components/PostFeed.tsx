@@ -14,6 +14,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { shouldShowWatermark } from "@/services/securePhotoService";
 import Watermark from "@/components/media/Watermark";
 import VideoSubscriptionLock from '@/components/media/VideoSubscriptionLock';
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 const PostFeed = () => {
   const [activeTab, setActiveTab] = useState("all");
@@ -25,7 +26,7 @@ const PostFeed = () => {
   const { user } = useAuth();
   const [playingVideo, setPlayingVideo] = useState<string | null>(null);
 
-  // Memoize loadPosts to avoid dependency issues
+  // Enhanced loadPosts function to ensure proper data fetching
   const loadPosts = useCallback(async () => {
     if (!user) {
       console.log('No user available for loadPosts');
@@ -39,7 +40,7 @@ const PostFeed = () => {
     console.log(`Loading ${activeTab} posts for user: ${user.id}, location: ${userLocation}`);
     
     try {
-      // Simplified to use getPosts for now
+      // Fetch posts
       const fetchedPosts = await getPosts();
       console.log("Fetched posts:", fetchedPosts?.length || 0);
       
@@ -60,47 +61,118 @@ const PostFeed = () => {
         );
       }
       
-      // Check which posts the current user has liked
-      if (user && user.id) {
-        for (let post of filteredPosts) {
-          try {
-            const { data } = await supabase
-              .from('likes')
-              .select('id')
-              .eq('post_id', post.id)
-              .eq('user_id', user.id)
-              .maybeSingle();
-            
-            post.is_liked = !!data;
-          } catch (error) {
-            console.log(`Error checking like status for post ${post.id}:`, error);
-            post.is_liked = false;
+      // Process each post to get complete data
+      const processedPosts = await Promise.all(
+        filteredPosts.map(async (post) => {
+          // Check like status
+          let isLiked = false;
+          if (user && user.id) {
+            try {
+              const { data } = await supabase
+                .from('likes')
+                .select('id')
+                .eq('post_id', post.id)
+                .eq('user_id', user.id)
+                .maybeSingle();
+              
+              isLiked = !!data;
+            } catch (error) {
+              console.log(`Error checking like status for post ${post.id}:`, error);
+            }
           }
-        }
-      }
-      
-      // For each post, ensure it has its media loaded
-      for (const post of filteredPosts) {
-        // If post doesn't already have media data
-        if (!post.media || post.media.length === 0) {
+          
+          // Get accurate comments count
+          let commentsCount = post.comments_count || 0;
           try {
-            const { data: mediaData, error: mediaError } = await supabase
-              .from('media')
-              .select('*')
+            const { count: fetchedCount, error } = await supabase
+              .from('comments')
+              .select('id', { count: 'exact', head: true })
               .eq('post_id', post.id);
               
-            if (!mediaError && mediaData && mediaData.length > 0) {
-              post.media = mediaData;
-              console.log(`Added media to post ${post.id}:`, mediaData.length);
+            if (fetchedCount !== null) {
+              commentsCount = fetchedCount;
             }
-          } catch (err) {
-            console.error(`Error fetching media for post ${post.id}:`, err);
+            
+            if (error) {
+              console.error('Error fetching comment count:', error);
+            }
+          } catch (error) {
+            console.error('Error counting comments:', error);
           }
-        }
-      }
+
+          // Get accurate likes count
+          let likesCount = post.likes_count || 0;
+          try {
+            const { count: fetchedCount, error } = await supabase
+              .from('likes')
+              .select('id', { count: 'exact', head: true })
+              .eq('post_id', post.id);
+              
+            if (fetchedCount !== null) {
+              likesCount = fetchedCount;
+            }
+            
+            if (error) {
+              console.error('Error fetching like count:', error);
+            }
+          } catch (error) {
+            console.error('Error counting likes:', error);
+          }
+          
+          // Fetch media if needed
+          let media = post.media || [];
+          if (!post.media || post.media.length === 0) {
+            try {
+              const { data: mediaData, error: mediaError } = await supabase
+                .from('media')
+                .select('*')
+                .eq('post_id', post.id);
+                
+              if (!mediaError && mediaData && mediaData.length > 0) {
+                media = mediaData;
+              }
+            } catch (err) {
+              console.error(`Error fetching media for post ${post.id}:`, err);
+            }
+          }
+          
+          // Fetch complete author data if needed
+          let author = post.author || null;
+          if (post.author && (!post.author.profile_picture_url || !post.author.avatar_url)) {
+            try {
+              const { data: profileData, error: profileError } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', post.author.id)
+                .single();
+                
+              if (!profileError && profileData) {
+                author = {
+                  ...post.author,
+                  profile_picture_url: profileData.profile_picture_url || post.author.profile_picture_url,
+                  avatar_url: profileData.avatar_url || post.author.avatar_url,
+                  full_name: profileData.full_name || post.author.full_name,
+                  username: profileData.username || post.author.username
+                };
+              }
+            } catch (err) {
+              console.error(`Error fetching author data for post ${post.id}:`, err);
+            }
+          }
+          
+          // Return enhanced post object
+          return {
+            ...post,
+            is_liked: isLiked,
+            likes_count: likesCount,
+            comments_count: commentsCount,
+            media,
+            author
+          };
+        })
+      );
       
-      console.log("Final processed posts:", filteredPosts.length);
-      setPosts(filteredPosts);
+      setPosts(processedPosts);
     } catch (err) {
       console.error('Error loading posts:', err);
       toast({
@@ -127,7 +199,10 @@ const PostFeed = () => {
     };
   }, []);
 
+  // Enhanced handleRefresh function to force complete refresh
   const handleRefresh = async () => {
+    // Clear posts first to show loading state
+    setPosts([]);
     return loadPosts();
   };
 
@@ -183,6 +258,7 @@ const PostFeed = () => {
     setPlayingVideo(null);
   };
 
+  // Enhanced like handler with optimistic updates and error handling
   const handleLikePost = async (postId: string) => {
     if (!user) {
       toast({
@@ -232,6 +308,21 @@ const PostFeed = () => {
           description: error || "Failed to update like status",
           variant: "destructive",
         });
+      } else {
+        // Get the new like count to ensure accuracy
+        const { count } = await supabase
+          .from('likes')
+          .select('id', { count: 'exact', head: true })
+          .eq('post_id', postId);
+          
+        if (count !== null) {
+          setPosts(prevPosts => prevPosts.map(p => {
+            if (p.id === postId) {
+              return { ...p, likes_count: count };
+            }
+            return p;
+          }));
+        }
       }
     } catch (error) {
       console.error("Error in handleLikePost:", error);
@@ -272,9 +363,21 @@ const PostFeed = () => {
     return null;
   };
   
+  // Improved function to get the avatar URL
   const getAvatarUrl = (author: any) => {
     if (!author) return null;
-    return author.profile_picture_url || author.avatar_url || null;
+    
+    // First try profile_picture_url (our managed storage)
+    if (author.profile_picture_url) {
+      return author.profile_picture_url;
+    }
+    
+    // Then try avatar_url (from OAuth provider)
+    if (author.avatar_url) {
+      return author.avatar_url;
+    }
+    
+    return null;
   };
 
   return (
@@ -354,15 +457,16 @@ const PostFeed = () => {
                         className="h-10 w-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center overflow-hidden cursor-pointer"
                         onClick={() => post.author && handleProfileClick(post.author)}
                       >
-                        {getAvatarUrl(post.author) ? (
-                          <img 
+                        <Avatar>
+                          <AvatarImage 
                             src={getAvatarUrl(post.author)} 
-                            alt={post.author?.full_name || "User"} 
-                            className="h-full w-full object-cover"
+                            alt={post.author?.full_name || "User"}
                           />
-                        ) : (
-                          <User className="h-5 w-5 text-gray-500" />
-                        )}
+                          <AvatarFallback>
+                            {post.author?.full_name?.charAt(0) || 
+                             post.author?.username?.charAt(0) || 'U'}
+                          </AvatarFallback>
+                        </Avatar>
                       </div>
                       <div>
                         <div className="flex items-center">

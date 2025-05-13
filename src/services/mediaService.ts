@@ -14,7 +14,7 @@ export interface MediaItem {
   created_at: string;
   user_id: string;
   post_id: string | null;
-  description?: string | null;  // Add description field to interface
+  description?: string | null;
   user?: {
     id: string;
     username: string;
@@ -59,7 +59,7 @@ export const fetchMedia = async (
   }
 };
 
-// Add the missing function to fetch media by ID
+// Function to fetch media by ID
 export const fetchMediaById = async (mediaId: string): Promise<MediaItem | null> => {
   try {
     const { data, error } = await supabase
@@ -97,10 +97,10 @@ export const convertToVideoFormat = (mediaItems: MediaItem[]): Video[] => {
     video_url: item.file_url,
     category: item.category || 'uncategorized',
     views: item.views || 0,
-    likes_count: 0, // We don't have likes in the media table yet
+    likes_count: 0,
     created_at: item.created_at,
-    postId: item.post_id || '', // Ensure postId is always a string
-    description: item.description || '',  // Add description field
+    postId: item.post_id || '',
+    description: item.description || '',
     user: item.user || {
       id: item.user_id,
       username: 'unknown',
@@ -109,8 +109,6 @@ export const convertToVideoFormat = (mediaItems: MediaItem[]): Video[] => {
     }
   }));
 };
-
-// NEW FUNCTIONS FOR UPLOADING MEDIA
 
 /**
  * Upload a media file to Supabase storage
@@ -126,17 +124,37 @@ export const uploadMediaFile = async (
       return null;
     }
 
+    // Check if user is authenticated
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      console.error('User not authenticated for upload');
+      return null;
+    }
+
+    // Verify buckets exist first
+    const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
+    
+    if (bucketsError) {
+      console.error('Error checking storage buckets:', bucketsError);
+      return null;
+    }
+
+    // Check if target bucket exists
+    const bucketName = contentType === 'photo' ? 'photos' : 'videos';
+    const bucketExists = buckets.some(bucket => bucket.name === bucketName);
+
+    if (!bucketExists) {
+      console.error(`Bucket "${bucketName}" not found`);
+      return null;
+    }
+    
+    // Create a unique filename
     const fileExt = file.name.split('.').pop();
     const fileName = `${userId}/${Date.now()}.${fileExt}`;
     
-    // Use the appropriate bucket based on content type
-    // Note: We're simply using 'photos' and 'videos' buckets now,
-    // as watermarking is handled on the client-side
-    const bucketName = contentType === 'photo' ? 'photos' : 'videos';
-    
     console.log(`Uploading ${contentType} to ${bucketName} bucket: ${fileName}`);
     
-    // Upload file to storage
+    // Upload file to storage with improved error handling
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from(bucketName)
       .upload(fileName, file, {
@@ -146,6 +164,15 @@ export const uploadMediaFile = async (
       
     if (uploadError) {
       console.error(`Error uploading ${contentType}:`, uploadError);
+      console.error('Upload error details:', {
+        fileName,
+        bucketName,
+        contentType,
+        userId,
+        fileSize: file.size,
+        fileType: file.type,
+        errorMessage: uploadError.message
+      });
       return null;
     }
     
@@ -219,8 +246,7 @@ export const saveMediaMetadata = async (
       console.log('Using existing post ID for media:', postId);
     }
     
-    // FIX: Use correct media_type values for database compatibility
-    // Previous values were MIME types (like 'image/jpeg') which violate DB constraints
+    // Use correct media_type values for database compatibility
     const mediaType = mediaData.contentType === 'photo' ? 'image' : 'video';
     
     console.log(`Saving media with type: ${mediaType} for content type: ${mediaData.contentType}`);
@@ -230,14 +256,14 @@ export const saveMediaMetadata = async (
       .from('media')
       .insert({
         title: mediaData.title,
-        description: mediaData.description,  // Add description to database record
+        description: mediaData.description,
         category: mediaData.category.toLowerCase(),
         user_id: mediaData.userId,
         file_url: mediaData.fileUrl,
         thumbnail_url: mediaData.thumbnailUrl,
         content_type: mediaData.contentType,
-        media_type: mediaType, // Use simple 'image' or 'video' instead of MIME types
-        post_id: postId // Link media to the post
+        media_type: mediaType,
+        post_id: postId
       })
       .select('*, user:user_id(id, username, full_name, avatar_url)')
       .single();
@@ -251,6 +277,21 @@ export const saveMediaMetadata = async (
         contentType: mediaData.contentType,
         mediaType: mediaType,
       }));
+      
+      // If media creation fails, attempt to delete the orphaned post
+      if (postId && !mediaData.existingPostId) {
+        const { error: deleteError } = await supabase
+          .from('posts')
+          .delete()
+          .eq('id', postId);
+          
+        if (deleteError) {
+          console.error('Error cleaning up orphaned post:', deleteError);
+        } else {
+          console.log('Cleaned up orphaned post:', postId);
+        }
+      }
+      
       return null;
     }
     
@@ -279,9 +320,24 @@ export const uploadMedia = async (
   }
 ): Promise<MediaItem | null> => {
   try {
+    console.log('Starting media upload process:', {
+      contentType: metadata.contentType,
+      title: metadata.title,
+      description: metadata.description?.substring(0, 50) + '...',
+      category: metadata.category,
+      fileSize: file.size,
+      fileType: file.type
+    });
+    
     // Step 1: Upload the file to storage
     const uploadResult = await uploadMediaFile(file, metadata.contentType, metadata.userId);
-    if (!uploadResult) return null;
+    
+    if (!uploadResult) {
+      console.error('File upload to storage failed');
+      return null;
+    }
+    
+    console.log('File uploaded successfully, saving metadata...');
     
     // Step 2: Save metadata to database
     const mediaData = await saveMediaMetadata({
@@ -291,6 +347,12 @@ export const uploadMedia = async (
       existingPostId: metadata.existingPostId
     });
     
+    if (!mediaData) {
+      console.error('Failed to save media metadata');
+      return null;
+    }
+    
+    console.log('Media upload complete, returning media item:', mediaData.id);
     return mediaData;
   } catch (error) {
     console.error('Error in uploadMedia:', error);

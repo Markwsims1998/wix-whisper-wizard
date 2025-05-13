@@ -1,8 +1,9 @@
+
 import React, { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Image, Video, Smile, X } from "lucide-react";
+import { Image, Video, Smile, X, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth/AuthProvider";
 import data from '@emoji-mart/data';
@@ -36,6 +37,7 @@ const UnifiedContentCreator: React.FC<UnifiedContentCreatorProps> = ({
     type: 'photo' | 'video';
     previewUrl: string;
   } | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   // Handle text change in textarea
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -77,6 +79,30 @@ const UnifiedContentCreator: React.FC<UnifiedContentCreatorProps> = ({
     });
   };
 
+  // Function to validate the session before upload
+  const validateSession = async (): Promise<boolean> => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast({
+          title: "Session Expired",
+          description: "Your login session has expired. Please sign in again.",
+          variant: "destructive",
+        });
+        return false;
+      }
+      return true;
+    } catch (error) {
+      console.error("Error validating session:", error);
+      toast({
+        title: "Authentication Error",
+        description: "Failed to verify your login status. Please try again.",
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
   // Create post with or without media
   const handleCreatePost = async () => {
     if ((!postText.trim() && !selectedMedia) || !user?.id) {
@@ -88,68 +114,85 @@ const UnifiedContentCreator: React.FC<UnifiedContentCreatorProps> = ({
       return;
     }
     
+    // Validate session before proceeding with upload
+    const isSessionValid = await validateSession();
+    if (!isSessionValid) {
+      return;
+    }
+    
     setIsLoading(true);
+    setUploadProgress(10);
     
     try {
       let mediaData = null;
       
-      // Step 1: Handle media upload if there's selected media
-      if (selectedMedia) {
-        const contentType = selectedMedia.type;
-        
-        // Upload media file and get metadata
-        // Use the post text as the description instead of title now
-        mediaData = await uploadMedia(selectedMedia.file, {
-          title: postText.trim() || 'New post',  // Use post text as title
-          description: postText.trim(),          // Add description as well
-          category: 'user-post',
-          userId: user.id,
-          contentType
-        });
-        
-        if (!mediaData) {
-          throw new Error(`Failed to upload ${contentType}.`);
-        }
-      }
-      
-      // Step 2: Create the post
+      // Step 1: Create the post first
       const { success, post, error } = await createPost(
         postText,
-        user.id,
-        selectedMedia?.type,
-        mediaData?.id // Link to uploaded media if any
+        user.id
       );
       
-      if (success) {
-        toast({
-          title: "Post Created",
-          description: "Your post has been published successfully.",
-        });
-        
-        // Reset form
-        setPostText('');
-        setSelectedMedia(null);
-        
-        // Call onSuccess callback if provided
-        if (onSuccess) {
-          onSuccess();
-        }
-      } else {
-        toast({
-          title: "Error Creating Post",
-          description: error || "Failed to create post",
-          variant: "destructive",
-        });
+      if (!success || !post) {
+        throw new Error(error || "Failed to create post");
       }
-    } catch (err) {
+      
+      setUploadProgress(30);
+      console.log('Created post:', post.id);
+      
+      // Step 2: Handle media upload if there's selected media
+      if (selectedMedia) {
+        console.log(`Uploading ${selectedMedia.type} for post ${post.id}`);
+        const contentType = selectedMedia.type;
+        setUploadProgress(50);
+        
+        // Upload media file using the existingPostId
+        mediaData = await uploadMedia(selectedMedia.file, {
+          title: postText.trim() || 'New post',
+          description: postText.trim(),
+          category: 'user-post',
+          userId: user.id,
+          contentType,
+          existingPostId: post.id
+        });
+        
+        setUploadProgress(80);
+        
+        if (!mediaData) {
+          console.error(`Failed to upload ${contentType} for post ${post.id}:`, {
+            fileType: selectedMedia.file.type,
+            fileSize: selectedMedia.file.size,
+            fileName: selectedMedia.file.name
+          });
+        } else {
+          console.log(`Successfully uploaded ${contentType} for post ${post.id}:`, mediaData.id);
+        }
+      }
+      
+      setUploadProgress(100);
+      
+      toast({
+        title: "Post Created",
+        description: "Your post has been published successfully.",
+      });
+      
+      // Reset form
+      setPostText('');
+      setSelectedMedia(null);
+      
+      // Call onSuccess callback if provided
+      if (onSuccess) {
+        onSuccess();
+      }
+    } catch (err: any) {
       console.error('Error creating post:', err);
       toast({
         title: "Error",
-        description: "An unexpected error occurred while creating your post.",
+        description: err.message || "An unexpected error occurred while creating your post.",
         variant: "destructive",
       });
     } finally {
       setIsLoading(false);
+      setUploadProgress(0);
     }
   };
 
@@ -265,7 +308,12 @@ const UnifiedContentCreator: React.FC<UnifiedContentCreatorProps> = ({
           onClick={handleCreatePost}
           disabled={(!postText.trim() && !selectedMedia) || isLoading}
         >
-          {isLoading ? "Posting..." : selectedMedia ? "Share" : "Post"}
+          {isLoading ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              {uploadProgress > 0 ? `${uploadProgress}%` : "Posting..."}
+            </>
+          ) : selectedMedia ? "Share" : "Post"}
         </Button>
       </div>
     </div>

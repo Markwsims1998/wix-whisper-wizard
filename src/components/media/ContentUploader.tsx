@@ -16,9 +16,9 @@ import { supabase } from "@/lib/supabaseClient";
 interface ContentUploaderProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  type: 'photo' | 'video' | 'post';  // Keep 'post' as a valid type
+  type: 'photo' | 'video' | 'post';
   onSuccess?: () => void;
-  onUploadComplete?: () => void; // Add this missing prop
+  onUploadComplete?: () => void;
 }
 
 const ContentUploader: React.FC<ContentUploaderProps> = ({ 
@@ -37,6 +37,7 @@ const ContentUploader: React.FC<ContentUploaderProps> = ({
   const [category, setCategory] = useState("lifestyle");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
 
   // Define the content type for upload
   const contentType: 'photo' | 'video' = type === 'post' ? 'photo' : type as 'photo' | 'video';
@@ -59,6 +60,30 @@ const ContentUploader: React.FC<ContentUploaderProps> = ({
     const url = URL.createObjectURL(file);
     setPreviewUrl(url);
   };
+
+  // Function to validate the session before upload
+  const validateSession = async (): Promise<boolean> => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast({
+          title: "Session Expired",
+          description: "Your login session has expired. Please sign in again.",
+          variant: "destructive",
+        });
+        return false;
+      }
+      return true;
+    } catch (error) {
+      console.error("Error validating session:", error);
+      toast({
+        title: "Authentication Error",
+        description: "Failed to verify your login status. Please try again.",
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,44 +105,75 @@ const ContentUploader: React.FC<ContentUploaderProps> = ({
       });
       return;
     }
+
+    // Validate session before proceeding with upload
+    const isSessionValid = await validateSession();
+    if (!isSessionValid) {
+      return;
+    }
     
     setUploading(true);
+    setUploadProgress(10);
     
     try {
       let postId = '';
+      setUploadProgress(20);
 
       // Create a post first to get the post ID
-      // Now use description for the post content instead of title
       const { data: postData, error: postError } = await supabase
         .from('posts')
         .insert({
           user_id: user.id,
-          content: description || `New ${contentType} upload` // Use description as post content
+          content: description || `New ${contentType} upload`
         })
         .select('id')
         .single();
         
       if (postError) {
         console.error('Error creating post:', postError);
-        throw new Error('Failed to create post');
+        throw new Error(`Failed to create post: ${postError.message}`);
       }
       
       postId = postData.id;
       console.log('Created post with ID:', postId);
+      setUploadProgress(40);
+      
+      // If this is just a text post without media, we're done
+      if (type === 'post' && !selectedFile) {
+        toast({
+          title: "Post Created",
+          description: "Your post has been published successfully.",
+        });
+        
+        // Reset form
+        setTitle("");
+        setDescription("");
+        setSelectedFile(null);
+        setPreviewUrl(null);
+        setUploadProgress(100);
+        
+        // Close dialog and call callbacks
+        onOpenChange(false);
+        if (onSuccess) onSuccess();
+        if (onUploadComplete) onUploadComplete();
+        return;
+      }
       
       if (selectedFile) {
+        setUploadProgress(60);
         // Use the unified uploadMedia function for both photos and videos
         const mediaData = await uploadMedia(selectedFile, {
           title,
-          description, // Pass description as separate field
+          description,
           category,
           userId: user.id,
           contentType, 
           existingPostId: postId
         });
         
+        setUploadProgress(90);
+        
         if (!mediaData) {
-          // New error logging with more details
           console.error(`Upload failed for file:`, {
             filename: selectedFile.name,
             type: selectedFile.type,
@@ -125,11 +181,24 @@ const ContentUploader: React.FC<ContentUploaderProps> = ({
             contentType: contentType,
             category: category
           });
-          throw new Error(`Failed to upload ${contentType}. Check console for details.`);
+          
+          // Try to delete the orphaned post
+          const { error: deleteError } = await supabase
+            .from('posts')
+            .delete()
+            .eq('id', postId);
+            
+          if (deleteError) {
+            console.error('Failed to delete orphaned post:', deleteError);
+          }
+          
+          throw new Error(`Failed to upload ${contentType}. There might be an issue with storage permissions.`);
         }
         
         console.log(`${contentType} uploaded successfully:`, mediaData);
       }
+      
+      setUploadProgress(100);
       
       toast({
         title: "Upload Successful",
@@ -154,15 +223,16 @@ const ContentUploader: React.FC<ContentUploaderProps> = ({
       if (onUploadComplete) {
         onUploadComplete();
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error(`Error uploading ${type}:`, error);
       toast({
         title: "Upload Failed",
-        description: `There was a problem uploading your ${type}. Please try again.`,
+        description: error.message || `There was a problem uploading your ${type}. Please try again.`,
         variant: "destructive",
       });
     } finally {
       setUploading(false);
+      setUploadProgress(0);
     }
   };
 
@@ -249,7 +319,7 @@ const ContentUploader: React.FC<ContentUploaderProps> = ({
             </Select>
           </div>
           
-          {/* Description field (renamed from Title) */}
+          {/* Description field */}
           <div className="space-y-2">
             <Label htmlFor="description">Description</Label>
             <Textarea 
@@ -277,7 +347,7 @@ const ContentUploader: React.FC<ContentUploaderProps> = ({
               {uploading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Uploading...
+                  {uploadProgress > 0 ? `Uploading... ${uploadProgress}%` : 'Uploading...'}
                 </>
               ) : (
                 'Share'

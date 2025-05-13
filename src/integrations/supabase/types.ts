@@ -177,6 +177,7 @@ export type Database = {
           category: string | null
           content_type: Database["public"]["Enums"]["media_content_type"] | null
           created_at: string
+          description: string | null
           file_url: string
           id: string
           media_type: string
@@ -193,6 +194,7 @@ export type Database = {
             | Database["public"]["Enums"]["media_content_type"]
             | null
           created_at?: string
+          description?: string | null
           file_url: string
           id?: string
           media_type: string
@@ -209,6 +211,7 @@ export type Database = {
             | Database["public"]["Enums"]["media_content_type"]
             | null
           created_at?: string
+          description?: string | null
           file_url?: string
           id?: string
           media_type?: string

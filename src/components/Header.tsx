@@ -1,219 +1,150 @@
 
-import React, { useState } from "react";
+import React, { useEffect } from "react";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { Badge } from "@/components/ui/badge";
 import { Link, useNavigate } from "react-router-dom";
-import { Bell, MessageSquare, Menu, LogOut, User, Settings, Home, Store } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Bell, Search, MessageSquare, ShoppingCart, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/auth/AuthProvider";
-import { supabase } from "@/lib/supabaseClient";
-import { useToast } from "@/hooks/use-toast";
-import SearchBar from "@/components/SearchBar";
+import { countPendingWinks } from "@/services/winksService";
 
 const Header = () => {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const { toast } = useToast();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [pendingWinks, setPendingWinks] = React.useState(0);
 
-  const handleLogout = async () => {
-    try {
-      await supabase.auth.signOut();
-      toast({
-        title: "Logged out",
-        description: "You have successfully logged out.",
-      });
-    } catch (error) {
-      console.error("Logout error:", error);
-      toast({
-        title: "Logout failed",
-        description: "An error occurred during logout.",
-        variant: "destructive",
-      });
+  // Update header position based on sidebar width
+  useEffect(() => {
+    const updateHeaderPosition = () => {
+      const sidebar = document.querySelector('.sidebar') || document.querySelector('div[class*="bg-[#2B2A33]"]');
+      if (sidebar) {
+        const width = sidebar.getBoundingClientRect().width;
+        document.documentElement.style.setProperty('--sidebar-width', `${width}px`);
+      }
+    };
+
+    // Initial update
+    updateHeaderPosition();
+
+    // Set up observer to detect sidebar width changes
+    const observer = new ResizeObserver(updateHeaderPosition);
+    const sidebar = document.querySelector('.sidebar') || document.querySelector('div[class*="bg-[#2B2A33]"]');
+    if (sidebar) {
+      observer.observe(sidebar);
     }
-  };
 
-  const toggleMobileMenu = () => {
-    setIsMobileMenuOpen(!isMobileMenuOpen);
+    return () => {
+      if (sidebar) observer.unobserve(sidebar);
+    };
+  }, []);
+
+  // Fetch pending winks count
+  useEffect(() => {
+    if (user) {
+      const fetchWinksCount = async () => {
+        try {
+          const count = await countPendingWinks();
+          setPendingWinks(count);
+        } catch (error) {
+          console.error("Error fetching winks count:", error);
+        }
+      };
+      
+      fetchWinksCount();
+      
+      // Set up interval to refresh count
+      const interval = setInterval(fetchWinksCount, 60000); // every minute
+      return () => clearInterval(interval);
+    }
+  }, [user]);
+
+  const handleSignOut = async () => {
+    await logout();
+    navigate('/login');
   };
 
   return (
-    <header
-      className={`fixed top-0 right-0 w-full transition-all duration-300 z-40 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm
-        ${isMobileMenuOpen ? "h-screen" : "h-16"}`}
-      style={{ 
-        left: 'var(--sidebar-width, 0)' // Responsive header position
-      }}
-    >
-      <div className="flex justify-between items-center px-4 h-16">
-        <div className="md:hidden">
-          <Button variant="ghost" size="icon" onClick={toggleMobileMenu}>
-            <Menu className="h-5 w-5" />
-          </Button>
-        </div>
-
-        <div className="hidden md:block">
-          <Link to="/" className="font-bold text-xl text-purple-600">
-            WeConnect
-          </Link>
-        </div>
-
-        {/* Search Bar */}
-        <div className="hidden md:flex flex-1 justify-center px-4">
-          <SearchBar />
-        </div>
-
-        {/* Right Nav Section */}
-        <div className="flex items-center space-x-2">
-          {/* Notifications */}
-          <Button variant="ghost" size="icon" className="relative">
-            <Bell className="h-5 w-5" />
-            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-              3
-            </span>
-          </Button>
-          
-          {/* Messages */}
-          <Button variant="ghost" size="icon" className="relative" onClick={() => navigate('/messages')}>
-            <MessageSquare className="h-5 w-5" />
-            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-              2
-            </span>
-          </Button>
-          
-          {/* User Menu */}
-          {user ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="rounded-full">
-                  {user.profilePicture ? (
-                    <img
-                      src={user.profilePicture}
-                      alt="Profile"
-                      className="rounded-full h-8 w-8 object-cover"
-                    />
-                  ) : (
-                    <div className="rounded-full h-8 w-8 bg-purple-100 dark:bg-purple-900 flex items-center justify-center text-purple-600 dark:text-purple-300">
-                      {user.name?.charAt(0) || "U"}
-                    </div>
-                  )}
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56" align="end" forceMount>
-                <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuGroup>
-                  <DropdownMenuItem onClick={() => navigate('/profile')}>
-                    <User className="mr-2 h-4 w-4" />
-                    <span>Profile</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate('/settings')}>
-                    <Settings className="mr-2 h-4 w-4" />
-                    <span>Settings</span>
-                  </DropdownMenuItem>
-                </DropdownMenuGroup>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout}>
-                  <LogOut className="mr-2 h-4 w-4" />
-                  <span>Log out</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          ) : (
-            <Button variant="default" size="sm" onClick={() => navigate("/login")}>
-              Login
-            </Button>
-          )}
+    <header className="bg-white shadow-sm py-3 px-6 flex items-center justify-between dark:bg-gray-800 dark:text-white fixed top-0 right-0 z-50" style={{
+      left: 'var(--sidebar-width, 280px)',
+      width: 'calc(100% - var(--sidebar-width, 280px))',
+      transition: 'left 0.3s ease-in-out, width 0.3s ease-in-out',
+    }}>
+      <div className="flex-1 max-w-md">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+          <input
+            placeholder="Search..."
+            className="pl-10 pr-4 py-2 border border-gray-200 rounded-lg w-full focus:outline-none focus:ring-1 focus:ring-purple-500 text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+          />
         </div>
       </div>
 
-      {/* Mobile Menu */}
-      {isMobileMenuOpen && (
-        <div className="md:hidden p-4 bg-white dark:bg-gray-800 h-full">
-          <div className="mb-6">
-            <SearchBar />
+      <div className="flex items-center gap-4">
+        <button
+          className="relative text-gray-600 hover:text-purple-600 transition-colors dark:text-gray-300 dark:hover:text-purple-400 bg-gray-100 dark:bg-gray-700 rounded-full p-2"
+          aria-label="Notifications"
+        >
+          <Bell className="w-5 h-5" />
+          <Badge className="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 px-1.5 min-w-[20px] h-5 text-xs">
+            3
+          </Badge>
+        </button>
+
+        <button
+          className="relative text-gray-600 hover:text-purple-600 transition-colors dark:text-gray-300 dark:hover:text-purple-400 bg-gray-100 dark:bg-gray-700 rounded-full p-2"
+          aria-label="Messages"
+        >
+          <MessageSquare className="w-5 h-5" />
+          <Badge className="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 px-1.5 min-w-[20px] h-5 text-xs">
+            5
+          </Badge>
+        </button>
+
+        <Link 
+          className="relative text-gray-600 hover:text-purple-600 transition-colors dark:text-gray-300 dark:hover:text-purple-400 bg-gray-100 dark:bg-gray-700 rounded-full p-2"
+          to="/basket"
+        >
+          <ShoppingCart className="w-5 h-5" />
+          <Badge className="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 px-1.5 min-w-[20px] h-5 text-xs">
+            3
+          </Badge>
+        </Link>
+        
+        <Link 
+          className="relative text-gray-600 hover:text-purple-600 transition-colors dark:text-gray-300 dark:hover:text-purple-400 bg-gray-100 dark:bg-gray-700 rounded-full p-2"
+          to="/winks"
+        >
+          <Heart className="w-5 h-5" />
+          {pendingWinks > 0 && (
+            <Badge className="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 px-1.5 min-w-[20px] h-5 text-xs">
+              {pendingWinks}
+            </Badge>
+          )}
+        </Link>
+
+        <button 
+          className="flex items-center gap-2 text-gray-800 hover:text-purple-600 transition-colors dark:text-gray-300 dark:hover:text-purple-400"
+          aria-label="Profile"
+          onClick={() => navigate('/profile')}
+        >
+          <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center overflow-hidden dark:bg-purple-900">
+            {user?.profilePicture ? (
+              <img 
+                src={user.profilePicture} 
+                alt="Profile" 
+                className="w-full h-full object-cover" 
+              />
+            ) : (
+              <span className="font-medium text-purple-600 dark:text-purple-300">
+                {user?.name?.charAt(0) || user?.email?.charAt(0) || "M"}
+              </span>
+            )}
           </div>
-          
-          <div className="space-y-1">
-            <Button 
-              variant="ghost" 
-              className="w-full justify-start"
-              onClick={() => {
-                navigate('/');
-                setIsMobileMenuOpen(false);
-              }}
-            >
-              <Home className="mr-2 h-5 w-5" />
-              Home
-            </Button>
-            <Button 
-              variant="ghost" 
-              className="w-full justify-start"
-              onClick={() => {
-                navigate('/profile');
-                setIsMobileMenuOpen(false);
-              }}
-            >
-              <User className="mr-2 h-5 w-5" />
-              Profile
-            </Button>
-            <Button 
-              variant="ghost" 
-              className="w-full justify-start"
-              onClick={() => {
-                navigate('/messages');
-                setIsMobileMenuOpen(false);
-              }}
-            >
-              <MessageSquare className="mr-2 h-5 w-5" />
-              Messages
-            </Button>
-            <Button 
-              variant="ghost" 
-              className="w-full justify-start"
-              onClick={() => {
-                navigate('/shop');
-                setIsMobileMenuOpen(false);
-              }}
-            >
-              <Store className="mr-2 h-5 w-5" />
-              Shop
-            </Button>
-            <Button 
-              variant="ghost" 
-              className="w-full justify-start"
-              onClick={() => {
-                navigate('/settings');
-                setIsMobileMenuOpen(false);
-              }}
-            >
-              <Settings className="mr-2 h-5 w-5" />
-              Settings
-            </Button>
-          </div>
-          
-          <div className="absolute bottom-4 left-0 w-full px-4">
-            <Button 
-              variant="outline" 
-              className="w-full"
-              onClick={() => {
-                handleLogout();
-                setIsMobileMenuOpen(false);
-              }}
-            >
-              <LogOut className="mr-2 h-5 w-5" />
-              Log out
-            </Button>
-          </div>
-        </div>
-      )}
+          <span className="font-medium hidden md:block dark:text-white">
+            {user?.name || "Mark W Sims"}
+          </span>
+        </button>
+      </div>
     </header>
   );
 };

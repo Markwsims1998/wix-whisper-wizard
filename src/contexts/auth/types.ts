@@ -1,61 +1,5 @@
 
-import { Session } from '@supabase/supabase-js';
-
-export interface AuthUser {
-  id: string;
-  email: string | undefined;
-  name: string;
-  profilePicture: string | null;
-  role: string;
-  subscription: string;
-  location: string | null;
-  
-  // Additional properties needed by components
-  username?: string;
-  bio?: string;
-  gender?: string;
-  darkMode?: boolean;
-  useSystemTheme?: boolean;
-  showFeaturedContent?: boolean;
-  bottomNavPreferences?: string[];
-  coverPhoto?: string | null;
-  ageRange?: [number, number];
-  interestedIn?: string[];
-  meetSmokers?: boolean;
-  canAccommodate?: boolean;
-  canTravel?: boolean;
-  relationshipStatus?: string;
-  relationshipPartners?: string[];
-  status?: 'active' | 'banned';
-  lastSignIn?: string;
-  following?: number;
-  followers?: number;
-  joinDate?: string;
-  privacySettings?: {
-    profileVisibility: 'public' | 'friends' | 'private';
-    postVisibility: 'public' | 'friends' | 'private';
-    searchEngineVisible: boolean;
-    allowMessagesFrom: 'all' | 'friends' | 'matched' | 'none';
-    allowWinksFrom: 'all' | 'friends' | 'matched' | 'none';
-    showProfileTo: 'all' | 'friends' | 'matched';
-  };
-  notificationPreferences?: {
-    email: boolean;
-    push: boolean;
-    friendRequests: boolean;
-    messages: boolean;
-  };
-}
-
-// Default privacy settings
-export const defaultPrivacySettings = {
-  profileVisibility: 'public' as const,
-  postVisibility: 'public' as const, 
-  searchEngineVisible: true,
-  allowMessagesFrom: 'all' as const,
-  allowWinksFrom: 'all' as const,
-  showProfileTo: 'all' as const
-};
+import { User, Session } from '@supabase/supabase-js';
 
 // Default notification preferences
 export const defaultNotificationPrefs = {
@@ -65,28 +9,82 @@ export const defaultNotificationPrefs = {
   messages: true
 };
 
-// Helper function to safely parse JSON with default values
-export function safeJsonParse<T>(json: string, defaultValue: T): T {
+// Default privacy settings
+export const defaultPrivacySettings = {
+  profileVisibility: 'public' as 'public' | 'friends' | 'private',
+  postVisibility: 'public' as 'public' | 'friends' | 'private',
+  searchEngineVisible: true,
+  allowMessagesFrom: 'all' as 'all' | 'friends' | 'matched' | 'none',
+  allowWinksFrom: 'all' as 'all' | 'friends' | 'matched' | 'none',
+  showProfileTo: 'all' as 'all' | 'friends' | 'matched'
+};
+
+// Helper for safely parsing JSON
+export const safeJsonParse = <T>(jsonString: string, defaultValue: T): T => {
   try {
-    return JSON.parse(json) as T;
-  } catch (e) {
+    return JSON.parse(jsonString) as T;
+  } catch {
     return defaultValue;
   }
+};
+
+// Enhanced user type with additional profile information
+export interface AuthUser {
+  id: string;
+  username?: string;
+  name?: string;
+  email?: string;
+  role?: 'admin' | 'moderator' | 'user';
+  profilePicture?: string;
+  coverPhoto?: string;
+  relationshipStatus?: string;
+  relationshipPartners?: string[];
+  location?: string;
+  bio?: string;
+  darkMode?: boolean;
+  useSystemTheme?: boolean;
+  showFeaturedContent?: boolean;
+  bottomNavPreferences?: string[];
+  notificationPreferences?: {
+    email: boolean;
+    push: boolean;
+    friendRequests: boolean;
+    messages: boolean;
+  };
+  privacySettings?: {
+    profileVisibility: 'public' | 'friends' | 'private';
+    postVisibility: 'public' | 'friends' | 'private';
+    searchEngineVisible: boolean;
+    allowMessagesFrom: 'all' | 'friends' | 'matched' | 'none';
+    allowWinksFrom: 'all' | 'friends' | 'matched' | 'none';
+    showProfileTo: 'all' | 'friends' | 'matched';
+  };
+  status?: 'active' | 'banned';
+  lastSignIn?: string;
+  following?: number;
+  followers?: number;
+  joinDate?: string;
+  
+  // Profile fields
+  gender?: string;
+  interestedIn?: string[];
+  ageRange?: [number, number];
+  meetSmokers?: boolean;
+  canAccommodate?: boolean;
+  canTravel?: boolean;
 }
 
+// Auth context type definition
 export interface AuthContextType {
-  user: AuthUser | null;
   session: Session | null;
-  isLoading: boolean;
+  user: AuthUser | null;
+  loading: boolean;
   isAuthenticated: boolean;
-  authChangeEvent?: string | null;
-  loading?: boolean;
-  
-  // Additional methods needed by components
-  logout?: () => Promise<void>;
-  login?: (email: string, password: string) => Promise<void>;
-  signup?: (email: string, password: string) => Promise<void>;
-  updateUserProfile?: (updates: Partial<AuthUser>) => Promise<boolean>;
-  refreshUserProfile?: () => Promise<void>;
-  updatePassword?: (newPassword: string) => Promise<boolean>;
+  login: (email: string, password: string) => Promise<boolean>;
+  signup: (email: string, password: string, fullName: string) => Promise<boolean>;
+  logout: () => Promise<void>;
+  refreshUser: () => Promise<void>;
+  refreshUserProfile: () => Promise<void>;
+  updateUserProfile: (updates: Partial<AuthUser>) => Promise<boolean>;
+  updatePassword: (newPassword: string) => Promise<boolean>;
 }

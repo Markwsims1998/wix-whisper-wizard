@@ -1,369 +1,383 @@
-
-import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { Session, User } from '@supabase/supabase-js';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import { Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabaseClient';
-import { AuthUser, AuthContextType } from './types';
 import { useToast } from "@/hooks/use-toast";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { AuthContextType, AuthUser } from './types';
+import { transformUser, convertToProfileUpdates } from './authUtils';
 
-// Create the context
-const AuthContext = createContext<AuthContextType>({
-  user: null,
-  session: null,
-  isLoading: true,
-  isAuthenticated: false,
-});
+// Create the context with a default value
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-interface AuthProviderProps {
-  children: ReactNode;
-}
+// Hook to use the auth context
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
 
-// Create the auth provider
-export const AuthProvider = ({ children }: AuthProviderProps) => {
+// AuthProvider component
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [authChangeEvent, setAuthChangeEvent] = useState<string | null>(null);
-  const navigate = useNavigate();
-  const location = useLocation();
+  const [loading, setLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const { toast } = useToast();
+  const refreshingRef = useRef(false); // Add ref to track refresh state
+  const refreshCountRef = useRef(0); // Track number of refresh attempts
 
-  // Login function
-  const login = async (email: string, password: string) => {
-    try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
-      
-      if (error) throw error;
-      
-      toast({
-        title: "Login successful",
-        description: "Welcome back!"
-      });
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Login failed",
-        description: error.message || "An error occurred during login"
-      });
-      throw error;
+  // Function to refresh user data
+  const refreshUser = async () => {
+    // Prevent multiple concurrent refreshes
+    if (refreshingRef.current) {
+      console.log("User refresh already in progress, skipping");
+      return;
     }
-  };
-  
-  // Signup function
-  const signup = async (email: string, password: string) => {
-    try {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password
-      });
-      
-      if (error) throw error;
-      
-      toast({
-        title: "Account created",
-        description: "Please check your email to verify your account"
-      });
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Signup failed",
-        description: error.message || "An error occurred during signup"
-      });
-      throw error;
-    }
-  };
 
-  // Logout function
-  const logout = async () => {
+    // Too many refresh attempts, might indicate a loop
+    if (refreshCountRef.current > 5) {
+      console.warn("Too many refresh attempts detected, possible refresh loop");
+      return;
+    }
+
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-      setUser(null);
-      setSession(null);
-      navigate('/login');
+      refreshingRef.current = true;
+      refreshCountRef.current += 1;
+      
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      if (currentSession?.user) {
+        setSession(currentSession);
+        // Transform the Supabase user to our AuthUser type
+        const authUser = await transformUser(currentSession.user);
+        setUser(authUser);
+        setIsAuthenticated(!!authUser);
+        console.log("User refreshed:", currentSession.user.email);
+      }
     } catch (error) {
-      console.error('Error logging out:', error);
+      console.error("Error refreshing user:", error);
+    } finally {
+      refreshingRef.current = false;
+      // Reset counter after successful refresh
+      setTimeout(() => {
+        refreshCountRef.current = 0;
+      }, 5000);
     }
   };
 
-  // Update user profile
-  const updateUserProfile = async (updates: Partial<AuthUser>): Promise<boolean> => {
-    if (!user) return false;
-    
+  // Add a refreshUserProfile function
+  const refreshUserProfile = async (): Promise<void> => {
     try {
-      // Extract profile updates
-      const profileUpdates: Record<string, any> = {};
-      if (updates.name !== undefined) profileUpdates.full_name = updates.name;
-      if (updates.username !== undefined) profileUpdates.username = updates.username;
-      if (updates.profilePicture !== undefined) profileUpdates.avatar_url = updates.profilePicture;
-      if (updates.coverPhoto !== undefined) profileUpdates.cover_photo_url = updates.coverPhoto;
-      if (updates.gender !== undefined) profileUpdates.gender = updates.gender;
-      if (updates.location !== undefined) profileUpdates.location = updates.location;
-      if (updates.bio !== undefined) profileUpdates.bio = updates.bio;
-      if (updates.darkMode !== undefined) profileUpdates.dark_mode = updates.darkMode;
-      if (updates.useSystemTheme !== undefined) profileUpdates.use_system_theme = updates.useSystemTheme;
-      if (updates.showFeaturedContent !== undefined) profileUpdates.show_featured_content = updates.showFeaturedContent;
-      if (updates.bottomNavPreferences !== undefined) profileUpdates.bottom_nav_preferences = updates.bottomNavPreferences;
-      if (updates.ageRange !== undefined) profileUpdates.age_range = updates.ageRange;
-      if (updates.interestedIn !== undefined) profileUpdates.interested_in = updates.interestedIn;
-      if (updates.meetSmokers !== undefined) profileUpdates.meet_smokers = updates.meetSmokers;
-      if (updates.canAccommodate !== undefined) profileUpdates.can_accommodate = updates.canAccommodate;
-      if (updates.canTravel !== undefined) profileUpdates.can_travel = updates.canTravel;
-      if (updates.relationshipStatus !== undefined) profileUpdates.relationship_status = updates.relationshipStatus;
-      if (updates.relationshipPartners !== undefined) profileUpdates.relationship_partners = updates.relationshipPartners;
-      if (updates.notificationPreferences !== undefined) profileUpdates.notification_preferences = updates.notificationPreferences;
-      if (updates.privacySettings !== undefined) profileUpdates.privacy_settings = updates.privacySettings;
+      await refreshUser();
+    } catch (error) {
+      console.error("Error refreshing profile:", error);
+    }
+  };
+
+  // Add updateUserProfile function
+  const updateUserProfile = async (updates: Partial<AuthUser>): Promise<boolean> => {
+    try {
+      if (!user?.id) return false;
+      
+      const profileUpdates = convertToProfileUpdates(updates);
       
       const { error } = await supabase
         .from('profiles')
         .update(profileUpdates)
         .eq('id', user.id);
+        
+      if (error) {
+        console.error("Error updating profile:", error);
+        return false;
+      }
       
-      if (error) throw error;
-      
-      // Update local user state
-      setUser(prev => prev ? { ...prev, ...updates } : null);
+      // Refresh user data to reflect changes
+      await refreshUser();
       return true;
     } catch (error) {
-      console.error('Error updating profile:', error);
+      console.error("Error in updateUserProfile:", error);
       return false;
     }
   };
-
-  // Refresh user profile from database
-  const refreshUserProfile = async () => {
-    if (!session?.user?.id) return;
-    
-    try {
-      const { data: profileData, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', session.user.id)
-        .single();
-      
-      if (error) throw error;
-      
-      // Update user with refreshed data
-      setUser({
-        id: session.user.id,
-        email: session.user.email,
-        name: profileData?.full_name || session.user.email?.split('@')[0] || '',
-        profilePicture: profileData?.avatar_url || profileData?.profile_picture_url || null,
-        role: profileData?.role || 'user',
-        subscription: profileData?.subscription_tier || 'free',
-        location: profileData?.location || null,
-        username: profileData?.username,
-        bio: profileData?.bio,
-        gender: profileData?.gender,
-        darkMode: profileData?.dark_mode,
-        useSystemTheme: profileData?.use_system_theme,
-        showFeaturedContent: profileData?.show_featured_content,
-        coverPhoto: profileData?.cover_photo_url,
-        bottomNavPreferences: profileData?.bottom_nav_preferences,
-        ageRange: profileData?.age_range,
-        interestedIn: profileData?.interested_in,
-        meetSmokers: profileData?.meet_smokers,
-        canAccommodate: profileData?.can_accommodate,
-        canTravel: profileData?.can_travel,
-        privacySettings: profileData?.privacy_settings,
-        notificationPreferences: profileData?.notification_preferences,
-        relationshipStatus: profileData?.relationship_status,
-        relationshipPartners: profileData?.relationship_partners,
-        status: profileData?.status,
-      });
-    } catch (error) {
-      console.error('Error refreshing user profile:', error);
-    }
-  };
-
-  // Update password
+  
+  // Add updatePassword function
   const updatePassword = async (newPassword: string): Promise<boolean> => {
     try {
       const { error } = await supabase.auth.updateUser({
         password: newPassword
       });
       
-      if (error) throw error;
+      if (error) {
+        console.error("Error updating password:", error);
+        return false;
+      }
+      
       return true;
     } catch (error) {
-      console.error('Error updating password:', error);
+      console.error("Error in updatePassword:", error);
       return false;
     }
   };
 
+  // Setup auth state listener
   useEffect(() => {
-    // Set up the auth state listener
+    console.log("Setting up auth state listener...");
+    let mounted = true;
+    let timeoutId: number | undefined;
+    const authEventCountRef = {current: 0}; // Track number of auth events
+    
+    // Set a fail-safe timeout to prevent infinite loading
+    timeoutId = window.setTimeout(() => {
+      if (mounted && loading) {
+        console.log("Session initialization timed out, ending loading state");
+        if (mounted) setLoading(false);
+      }
+    }, 5000); // Extended from 3s to 5s to give more time for session retrieval
+    
+    // First set up the auth state change listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, currentSession) => {
-        setAuthChangeEvent(event);
+      (event, currentSession) => {
+        if (!mounted) return;
         
-        if (currentSession) {
-          setSession(currentSession);
-          
-          // Get user data from database
-          try {
-            const { data: profileData } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('id', currentSession.user.id)
-              .single();
-              
-            // Combine auth user with profile data
-            setUser({
-              id: currentSession.user.id,
-              email: currentSession.user.email,
-              name: profileData?.full_name || currentSession.user.email?.split('@')[0] || '',
-              profilePicture: profileData?.avatar_url || profileData?.profile_picture_url || null,
-              role: profileData?.role || 'user',
-              subscription: profileData?.subscription_tier || 'free',
-              location: profileData?.location || null,
-              username: profileData?.username,
-              bio: profileData?.bio,
-              gender: profileData?.gender,
-              darkMode: profileData?.dark_mode,
-              useSystemTheme: profileData?.use_system_theme,
-              showFeaturedContent: profileData?.show_featured_content,
-              coverPhoto: profileData?.cover_photo_url,
-              bottomNavPreferences: profileData?.bottom_nav_preferences,
-              ageRange: profileData?.age_range,
-              interestedIn: profileData?.interested_in,
-              meetSmokers: profileData?.meet_smokers,
-              canAccommodate: profileData?.can_accommodate,
-              canTravel: profileData?.can_travel,
-              privacySettings: profileData?.privacy_settings,
-              notificationPreferences: profileData?.notification_preferences,
-              relationshipStatus: profileData?.relationship_status,
-              relationshipPartners: profileData?.relationship_partners,
-              status: profileData?.status,
-            });
-
-            // Check if this is a SIGNED_IN event and profile is incomplete
-            // and redirect to profile completion page if needed
-            if (
-              event === 'SIGNED_IN' && 
-              profileData && 
-              (!profileData.full_name || !profileData.gender || !profileData.location) &&
-              location.pathname !== '/profile-completion' && 
-              location.pathname !== '/settings'
-            ) {
-              // If logged in but profile incomplete, redirect to complete profile
-              navigate('/profile-completion');
-            }
-          } catch (error) {
-            console.error('Error fetching user profile:', error);
-            setUser({
-              id: currentSession.user.id,
-              email: currentSession.user.email,
-              name: currentSession.user.email?.split('@')[0] || '',
-              profilePicture: null,
-              role: 'user',
-              subscription: 'free',
-              location: null,
-            });
-          }
-        } else {
-          setSession(null);
-          setUser(null);
+        // Prevent excessive auth state processing
+        authEventCountRef.current += 1;
+        if (authEventCountRef.current > 10) {
+          console.warn("Too many auth events detected, possible auth loop");
+          return;
         }
         
-        setIsLoading(false);
+        console.log("Auth state changed:", event, !!currentSession);
+        
+        if (currentSession?.user) {
+          // If session exists, update immediately to prevent flicker
+          setSession(currentSession);
+          
+          // Then fetch user profile asynchronously
+          setTimeout(async () => {
+            if (!mounted) return;
+            
+            try {
+              const authUser = await transformUser(currentSession.user);
+              if (mounted) {
+                setUser(authUser);
+                setIsAuthenticated(!!authUser);
+                setLoading(false);
+              }
+            } catch (error) {
+              console.error("Error transforming user:", error);
+              if (mounted) {
+                setLoading(false);
+                // Fallback to minimal user data on error
+                setUser({
+                  id: currentSession.user.id,
+                  email: currentSession.user.email || '',
+                  name: currentSession.user.email?.split('@')[0] || 'User'
+                });
+                setIsAuthenticated(true);
+              }
+            }
+          }, 0);
+        } else {
+          // No session, clear auth state
+          if (mounted) {
+            setUser(null);
+            setIsAuthenticated(false);
+            setLoading(false);
+          }
+        }
+        
+        // Toast notifications for auth events
+        if (event === 'SIGNED_IN' && currentSession?.user && mounted) {
+          toast({
+            title: "Logged in",
+            description: `Welcome back, ${currentSession.user.email}!`,
+          });
+        } 
+        else if (event === 'SIGNED_OUT' && mounted) {
+          toast({
+            title: "Logged out",
+            description: "You have been successfully logged out",
+          });
+        }
+        
+        // Reset auth event counter after a delay
+        setTimeout(() => {
+          authEventCountRef.current = 0;
+        }, 5000);
       }
     );
 
-    // Check for existing session on page load
-    const initializeAuth = async () => {
+    // Then check for existing session
+    const checkExistingSession = async () => {
       try {
-        const { data } = await supabase.auth.getSession();
+        console.log("Checking for existing session...");
+        const { data, error } = await supabase.auth.getSession();
         
-        if (data.session) {
-          setSession(data.session);
-          
-          // Get user data
-          const { data: profileData } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', data.session.user.id)
-            .single();
-          
-          setUser({
-            id: data.session.user.id,
-            email: data.session.user.email,
-            name: profileData?.full_name || data.session.user.email?.split('@')[0] || '',
-            profilePicture: profileData?.avatar_url || profileData?.profile_picture_url || null,
-            role: profileData?.role || 'user',
-            subscription: profileData?.subscription_tier || 'free',
-            location: profileData?.location || null,
-            username: profileData?.username,
-            bio: profileData?.bio,
-            gender: profileData?.gender,
-            darkMode: profileData?.dark_mode,
-            useSystemTheme: profileData?.use_system_theme,
-            showFeaturedContent: profileData?.show_featured_content,
-            coverPhoto: profileData?.cover_photo_url,
-            bottomNavPreferences: profileData?.bottom_nav_preferences,
-            ageRange: profileData?.age_range,
-            interestedIn: profileData?.interested_in,
-            meetSmokers: profileData?.meet_smokers,
-            canAccommodate: profileData?.can_accommodate,
-            canTravel: profileData?.can_travel,
-            privacySettings: profileData?.privacy_settings,
-            notificationPreferences: profileData?.notification_preferences,
-            relationshipStatus: profileData?.relationship_status,
-            relationshipPartners: profileData?.relationship_partners,
-            status: profileData?.status,
-          });
-
-          // Check if profile is incomplete and user isn't already on profile completion page
-          if (
-            profileData && 
-            (!profileData.full_name || !profileData.gender || !profileData.location) &&
-            location.pathname !== '/profile-completion' && 
-            location.pathname !== '/settings'
-          ) {
-            navigate('/profile-completion');
+        if (!mounted) return;
+        
+        if (error) {
+          console.error("Error getting session:", error);
+          setLoading(false);
+          return;
+        }
+        
+        const existingSession = data.session;
+        console.log("Existing session check result:", !!existingSession);
+        
+        if (existingSession?.user) {
+          setSession(existingSession);
+          try {
+            // Transform the Supabase user to our AuthUser type
+            const authUser = await transformUser(existingSession.user);
+            if (mounted) {
+              setUser(authUser);
+              setIsAuthenticated(!!authUser);
+              console.log("User authenticated from stored session:", existingSession.user.email);
+            }
+          } catch (error) {
+            console.error("Error transforming user during session check:", error);
+            if (mounted) {
+              // Fallback to minimal user data on error
+              setUser({
+                id: existingSession.user.id,
+                email: existingSession.user.email || '',
+                name: existingSession.user.email?.split('@')[0] || 'User'
+              });
+              setIsAuthenticated(true);
+            }
+          } finally {
+            if (mounted) setLoading(false);
           }
+        } else {
+          if (mounted) setLoading(false);
         }
       } catch (error) {
-        console.error('Error initializing auth:', error);
-      } finally {
-        setIsLoading(false);
+        console.error("Error checking session:", error);
+        if (mounted) setLoading(false);
       }
     };
+    
+    // Run the session check
+    checkExistingSession();
 
-    initializeAuth();
-
+    // Clean up subscription and prevent state updates after unmount
     return () => {
+      mounted = false;
       subscription.unsubscribe();
+      if (timeoutId) window.clearTimeout(timeoutId);
     };
-  }, []); // Empty dependencies to run only once on mount
+  }, [toast]);
 
-  // Provide auth context value
-  const value: AuthContextType = {
-    user,
-    session,
-    isLoading,
-    isAuthenticated: !!session,
-    authChangeEvent,
-    loading: isLoading,
-    logout,
-    login,
-    signup,
-    updateUserProfile,
-    refreshUserProfile,
-    updatePassword,
+  // Login function
+  const login = async (email: string, password: string): Promise<boolean> => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+      
+      if (error) {
+        toast({
+          title: "Login failed",
+          description: error.message,
+          variant: "destructive",
+        });
+        return false;
+      }
+      
+      return !!data.user;
+    } catch (error) {
+      console.error("Login error:", error);
+      toast({
+        title: "Login failed",
+        description: "An unexpected error occurred",
+        variant: "destructive",
+      });
+      return false;
+    } finally {
+      setLoading(false);
+    }
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-};
+  // Signup function
+  const signup = async (email: string, password: string, fullName: string): Promise<boolean> => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: fullName,
+            username: email.split('@')[0]
+          }
+        }
+      });
+      
+      if (error) {
+        toast({
+          title: "Signup failed",
+          description: error.message,
+          variant: "destructive",
+        });
+        return false;
+      }
+      
+      toast({
+        title: "Signup successful",
+        description: "Your account has been created successfully!",
+      });
+      
+      return !!data.user;
+    } catch (error) {
+      console.error("Signup error:", error);
+      toast({
+        title: "Signup failed",
+        description: "An unexpected error occurred",
+        variant: "destructive",
+      });
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
 
-// Custom hook for using auth
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
+  // Logout function
+  const logout = async () => {
+    try {
+      await supabase.auth.signOut();
+      // The onAuthStateChange handler will update the state
+    } catch (error) {
+      console.error("Logout error:", error);
+      toast({
+        title: "Logout failed",
+        description: "An unexpected error occurred",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Authentication context value
+  const value: AuthContextType = {
+    session,
+    user,
+    loading,
+    isAuthenticated,
+    login,
+    signup,
+    logout,
+    refreshUser,
+    refreshUserProfile,
+    updateUserProfile,
+    updatePassword
+  };
+
+  // Render the provider with the context value
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
 };
